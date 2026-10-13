@@ -1,0 +1,840 @@
+import { openDB, kvGet, kvSet, dayGet, dayPut, dayDelete, dayAll } from './db.js';
+import * as clock from './clock.js';
+import { DEFAULT_SETTINGS } from './config.js';
+
+const app = document.getElementById('app');
+const overlay = document.getElementById('overlay');
+const toastEl = document.getElementById('toast');
+
+const IDLE_MS = 60 * 1000;        // shared iPad: back to "Who are you?" after 1 idle minute
+const ALL_DONE_HOME_MS = 12000;   // ...or 12s after finishing everything
+const HOLD_MS = 800;              // press-and-hold to tick a habit, so exploring taps don't count
+const UNDO_MS = 8000;
+const PRAISE = ['Great job!', 'Awesome!', 'You did it!', 'Super star!', 'Way to go!', 'Nice work!', 'Brilliant!', 'Keep it up!', 'Fantastic!', 'Well done!'];
+
+const state = {
+  settings: null,
+  prefs: { readAloud: {} },
+  kidId: null,
+  day: null,
+  prayer: null,      // prayer screen being shown: { kidId, phase }
+  runs: {},          // running prayer timers by kid: { startMs, duration, startedAt }
+  undo: null,
+  autoHomeAt: 0,
+  lastTouch: Date.now(),
+  renderedDay: null,
+  reloadPending: false,
+};
+
+// ---------- helpers ----------
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const kid = (id = state.kidId) => state.settings.kids.find((k) => k.id === id);
+const todayKey = () => clock.dayKey(clock.now(), state.settings.dayStartHour);
+const doneCount = (k, day) => k.habits.filter((h) => day.done[h.id]).length;
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+async function loadDay(kidId) {
+  const id = `${todayKey()}|${kidId}`;
+  const rec = (await dayGet(id)) || { id, dayKey: todayKey(), kidId, done: {}, prayerAttempts: [] };
+  rec.log ||= []; // every done/undo, so Stage 2 coins can't be farmed by tick-undo-tick
+  return rec;
+}
+
+// When the child started: the Ready-set-go tap, or else their first tick.
+function firstDoneTime(day) {
+  const times = [day.startedAt, ...Object.values(day.done)].filter(Boolean).sort();
+  return times.length ? new Date(times[0]) : null;
+}
+
+function windowInfo() {
+  const s = state.settings;
+  const now = clock.now();
+  const open = clock.atTime(s.windowOpen, s.dayStartHour);
+  const close = clock.atTime(s.windowClose, s.dayStartHour);
+  if (now < open) return { phase: 'before', open, close, left: 1, mins: Math.ceil((open - now) / 60000) };
+  if (now < close) return { phase: 'open', open, close, left: (close - now) / (close - open), mins: Math.ceil((close - now) / 60000) };
+  return { phase: 'closed', open, close, left: 0, mins: 0 };
+}
+
+function greeting() {
+  const h = clock.now().getHours();
+  return h >= 3 && h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+}
+
+function runLeft(kidId) {
+  const r = state.runs[kidId];
+  return r ? r.duration - (Date.now() - r.startMs) : 0;
+}
+
+// ---------- speech & sound ----------
+
+// Default on for kids under 8 (Judah can't read much yet); each child can toggle it.
+function readAloudOn(id = state.kidId) {
+  if (!id) return false;
+  const pref = state.prefs.readAloud[id];
+  return pref === undefined ? kid(id).age < 8 : pref;
+}
+
+function speak(text, force = false) {
+  if (!(force || readAloudOn()) || !('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-AU';
+  u.rate = 0.95;
+  speechSynthesis.speak(u);
+}
+
+let audioCtx;
+function unlockAudio() {
+  try {
+    if (navigator.audioSession) navigator.audioSession.type = 'playback'; // play even with the silent switch on
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch {}
+}
+
+function tone(fn) {
+  if (!audioCtx) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume().then(() => fn(audioCtx)).catch(() => {});
+  else fn(audioCtx);
+}
+
+// Soft bell made from a few decaying sine partials (no audio files needed).
+function chime() {
+  tone((ctx) => {
+    const t0 = ctx.currentTime;
+    [[660, 0], [990, 0], [880, 0.6], [1320, 0.6]].forEach(([f, delay], i) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.frequency.value = f;
+      const start = t0 + delay;
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(i % 2 ? 0.08 : 0.2, start + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, start + 2.5);
+      o.connect(g).connect(ctx.destination);
+      o.start(start);
+      o.stop(start + 2.6);
+    });
+  });
+}
+
+function pop(big = false) {
+  tone((ctx) => {
+    const notes = big ? [523, 659, 784, 1047] : [520];
+    notes.forEach((f, i) => {
+      const t = ctx.currentTime + i * 0.12;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.frequency.setValueAtTime(f, t);
+      o.frequency.exponentialRampToValueAtTime(f * 2, t + 0.12);
+      g.gain.setValueAtTime(0.15, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+      o.connect(g).connect(ctx.destination);
+      o.start(t);
+      o.stop(t + 0.35);
+    });
+  });
+}
+
+// ---------- rendering ----------
+
+function windowBarHTML() {
+  const w = windowInfo();
+  const openTxt = clock.fmtTime(w.open);
+  const closeTxt = clock.fmtTime(w.close);
+  let label;
+  if (w.phase === 'before') label = `🐦 Early bird time! Start now`;
+  else if (w.phase === 'open') label = `${w.mins} min left`;
+  else label = `🌙 Morning finished. See you tomorrow!`;
+  // Fill turns green → yellow → red as the morning runs out.
+  const fill = w.phase === 'open' ? `hsl(${Math.round(120 * w.left)}, 80%, 50%)` : '';
+  const pct = (w.left * 100).toFixed(1);
+  return `
+    <div class="window-bar ${w.phase}" role="progressbar" aria-valuenow="${Math.round(w.left * 100)}" aria-valuemin="0" aria-valuemax="100">
+      <div class="window-fill" style="width:${pct}%;${fill ? `background:${fill}` : ''}"></div>
+      ${w.phase === 'open' ? `<span class="sun-edge" style="left:${pct}%">☀️</span>` : ''}
+      <div class="window-label">${label}</div>
+    </div>
+    <div class="window-ends"><span>${w.phase === 'before' ? `Opens ${openTxt}` : openTxt}</span><span>Ends ${closeTxt}</span></div>`;
+}
+
+function clockHTML() {
+  return `<div class="clock">${clock.fmtTime(clock.now())}${clock.isFaked() ? ' <span class="fake">DEV</span>' : ''}</div>`;
+}
+
+async function renderPicker() {
+  const days = await Promise.all(state.settings.kids.map((k) => loadDay(k.id)));
+  const w = windowInfo();
+  app.innerHTML = `
+    <section class="screen picker">
+      <header class="top">
+        <h1>Who are you?</h1>
+        ${clockHTML()}
+      </header>
+      ${windowBarHTML()}
+      <div class="cards">
+        ${state.settings.kids.map((k, i) => {
+          const d = days[i];
+          const n = doneCount(k, d);
+          const all = n === k.habits.length;
+          const started = firstDoneTime(d);
+          let status;
+          if (state.runs[k.id]) status = `🙏 Praying <span data-countdown="${k.id}">${clock.fmtDuration(runLeft(k.id))}</span>`;
+          else if (all) status = '🎉 All done!';
+          else if (started) status = `Started ${clock.fmtTime(started)}`;
+          else status = w.phase === 'closed' ? 'See you tomorrow' : '👆 Tap to start';
+          const nudge = !started && !state.runs[k.id] && w.phase !== 'closed';
+          return `
+          <button class="kid-card ${all ? 'all-done' : ''} ${nudge ? 'nudge' : ''}" style="--kid:${k.color}" data-action="open-kid" data-kid="${k.id}">
+            <div class="avatar">${k.avatar || '🙂'}</div>
+            <div class="kid-name">${esc(k.name)}</div>
+            <div class="dots" aria-label="${n} of ${k.habits.length} done">
+              ${k.habits.map((h) => `<span class="dot ${d.done[h.id] ? 'on' : ''}">${d.done[h.id] ? '✓' : ''}</span>`).join('')}
+            </div>
+            <div class="card-status">${status}</div>
+          </button>`;
+        }).join('')}
+      </div>
+    </section>`;
+}
+
+function tileHTML(k, h, d, nudgeId) {
+  const at = d.done[h.id];
+  const open = clock.atTime(state.settings.windowOpen, state.settings.dayStartHour);
+  if (at) {
+    const early = new Date(at) < open;
+    const undo = state.undo?.habitId === h.id;
+    return `
+      <div class="tile done" role="button" data-action="habit" data-habit="${h.id}">
+        ${early ? '<span class="early" title="Early bird">🐦</span>' : ''}
+        <span class="tile-icon">${h.icon}</span>
+        <span class="tile-name">${esc(h.name)}</span>
+        ${undo ? '<button class="undo-chip" data-action="undo">↩️ Undo</button>' : `<span class="tile-sub">✓ ${clock.fmtTime(new Date(at))}</span>`}
+      </div>`;
+  }
+  if (h.type === 'timer') {
+    const running = state.runs[k.id];
+    return `
+      <div class="tile ${running ? 'running' : ''} ${nudgeId === h.id ? 'nudge' : ''}" role="button" data-action="habit" data-habit="${h.id}">
+        <span class="tile-icon">${h.icon}</span>
+        <span class="tile-name">${esc(h.name)}</span>
+        <span class="tile-sub">${running ? `⏱ <span data-countdown="${k.id}">${clock.fmtDuration(runLeft(k.id))}</span> left` : `⏱ ${k.prayerMinutes} min · tap`}</span>
+      </div>`;
+  }
+  return `
+    <div class="tile ${nudgeId === h.id ? 'nudge' : ''}" role="button" data-hold data-habit="${h.id}">
+      <span class="tile-icon">${h.icon}</span>
+      <span class="tile-name">${esc(h.name)}</span>
+      <span class="tile-sub">👇 Hold when done</span>
+    </div>`;
+}
+
+function renderMorning() {
+  const k = kid();
+  const d = state.day;
+  const n = doneCount(k, d);
+  const total = k.habits.length;
+  const all = n === total;
+  // Nudge the first unfinished habit when nothing has been ticked yet.
+  const nudgeId = n === 0 && !state.runs[k.id] ? k.habits[0]?.id : null;
+  const started = firstDoneTime(d);
+  const notStarted = !started && !state.runs[k.id];
+  app.innerHTML = `
+    <section class="screen morning" style="--kid:${k.color}">
+      <header class="top">
+        <button class="btn back" data-action="home" aria-label="Back to Who are you">🏠</button>
+        <div class="me">${k.avatar || '🙂'}</div>
+        <div class="hello">
+          <h1>${all ? `🎉 Amazing, ${esc(k.name)}!` : `${greeting()}, ${esc(k.name)}!`}</h1>
+          <p>${notStarted ? '🚦 Tap the big button to start your morning!' : all ? `All done by ${clock.fmtTime(new Date(Object.values(d.done).sort().at(-1)))}. What a start!` : n === 0 ? `☀️ Started ${clock.fmtTime(started)}. Pick a habit!` : `${n} of ${total} done${started ? ` · started ${clock.fmtTime(started)}` : ''}. Keep going!`}</p>
+        </div>
+        <button class="btn speak ${readAloudOn() ? 'on' : ''}" data-action="toggle-speak" aria-pressed="${readAloudOn()}" aria-label="Read aloud">
+          ${readAloudOn() ? '🔊' : '🔇'}
+        </button>
+      </header>
+      ${windowBarHTML()}
+      <div class="morning-body">
+        ${notStarted ? `
+        <div class="start-panel">
+          <button class="go-btn" data-action="go">
+            <span class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></span>
+            <span class="go-text">Ready, set, go!</span>
+            <span class="go-sub">Start my morning</span>
+          </button>
+        </div>` : `
+        <div class="tiles">
+          ${k.habits.map((h) => tileHTML(k, h, d, nudgeId)).join('')}
+          <div class="tile finish ${all ? 'lit' : ''}" aria-hidden="true">
+            <span class="tile-icon">🏆</span>
+            <span class="tile-name">${all ? 'You did it!' : 'Finish line'}</span>
+            <span class="tile-sub">${n} / ${total}</span>
+          </div>
+        </div>`}
+        <aside class="side">
+          <div class="pet-box ${all ? 'happy' : ''}">
+            <div class="pet big">🥚</div>
+            <div class="pet-caption">${all ? 'Your egg is wiggling!' : 'Something is growing…'}</div>
+          </div>
+          <div class="habit-progress" aria-label="${n} of ${total} done">
+            <div class="habit-fill" style="width:${(n / total) * 100}%"></div>
+            <span>${'⭐'.repeat(n)}${'☆'.repeat(total - n)}</span>
+          </div>
+        </aside>
+      </div>
+    </section>`;
+}
+
+async function render() {
+  state.renderedDay = todayKey();
+  if (state.kidId) {
+    state.day = await loadDay(state.kidId);
+    renderMorning();
+  } else {
+    await renderPicker();
+  }
+  renderDevBar();
+}
+
+// Light refresh every second: clock, window bar, idle timeout, 3am rollover.
+function tick() {
+  if (todayKey() !== state.renderedDay) {
+    navigator.serviceWorker?.getRegistration().then((r) => r?.update()).catch(() => {});
+    return render();
+  }
+  const bar = app.querySelector('.window-bar');
+  if (bar) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = windowBarHTML();
+    bar.nextElementSibling.remove();
+    bar.replaceWith(...tmp.children);
+  }
+  const c = app.querySelector('.clock');
+  if (c) c.outerHTML = clockHTML();
+  const idle = Date.now() - state.lastTouch > IDLE_MS && state.prayer?.phase !== 'confirm';
+  if ((state.kidId || state.prayer) && (idle || (state.autoHomeAt && Date.now() > state.autoHomeAt))) goHome();
+}
+
+// ---------- actions ----------
+
+function openKid(id) {
+  unlockAudio();
+  const k = kid(id);
+  state.kidId = id;
+  state.autoHomeAt = 0;
+  const w = windowInfo();
+  // Speak before any await so iOS treats it as part of the tap.
+  speak(w.phase === 'open' ? `Good morning ${k.name}! You have ${w.mins} minutes. Let's go!`
+    : w.phase === 'before' ? `Good morning ${k.name}! Early bird! Let's start the day.`
+    : `Hi ${k.name}!`);
+  return render();
+}
+
+function goHome() {
+  closeOverlay();
+  state.kidId = null;
+  state.day = null;
+  state.undo = null;
+  state.autoHomeAt = 0;
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  if (state.reloadPending) return location.reload();
+  render();
+}
+
+async function completeHabit(habitId) {
+  const k = kid();
+  const h = k.habits.find((x) => x.id === habitId);
+  const at = clock.now().toISOString();
+  state.day.done[habitId] = at;
+  state.day.log.push({ t: at, habit: habitId, action: 'done' });
+  await dayPut(state.day);
+  afterDone(habitId, h.type !== 'timer');
+}
+
+// Shared feedback after any habit is completed (tile tap or prayer timer).
+function afterDone(habitId, allowUndo) {
+  const k = kid();
+  const h = k.habits.find((x) => x.id === habitId);
+  const all = doneCount(k, state.day) === k.habits.length;
+  if (allowUndo) {
+    clearTimeout(state.undo?.timer);
+    state.undo = { habitId, timer: setTimeout(() => { state.undo = null; if (state.kidId === k.id && !state.prayer) renderMorning(); }, UNDO_MS) };
+  }
+  renderMorning();
+  const tile = app.querySelector(`[data-habit="${habitId}"]`);
+  tile?.classList.add('just-done');
+  burst(tile);
+  if (all) {
+    pop(true);
+    speak(`${h.name}, done! You finished everything. Amazing!`);
+    allDoneMoment();
+    state.autoHomeAt = Date.now() + ALL_DONE_HOME_MS;
+  } else {
+    pop();
+    speak(`${h.name}, done! ${pick(PRAISE)}`);
+  }
+}
+
+async function undo() {
+  if (!state.undo || !state.day) return;
+  const habitId = state.undo.habitId;
+  clearTimeout(state.undo.timer);
+  state.undo = null;
+  delete state.day.done[habitId];
+  state.day.log.push({ t: clock.now().toISOString(), habit: habitId, action: 'undo' });
+  state.autoHomeAt = 0;
+  await dayPut(state.day);
+  renderMorning();
+}
+
+function burst(fromEl, count = 14) {
+  const r = fromEl?.getBoundingClientRect();
+  const box = document.createElement('div');
+  box.className = 'burst';
+  box.style.left = `${r ? r.left + r.width / 2 : innerWidth / 2}px`;
+  box.style.top = `${r ? r.top + r.height / 2 : innerHeight / 2}px`;
+  box.innerHTML = Array.from({ length: count }, (_, i) =>
+    `<span style="--a:${(360 / count) * i}deg;--d:${90 + (i % 3) * 50}px">${['⭐', '✨', '🎉', '💛'][i % 4]}</span>`).join('');
+  document.body.appendChild(box);
+  setTimeout(() => box.remove(), 1600);
+}
+
+function allDoneMoment() {
+  const k = kid();
+  const el = document.createElement('div');
+  el.className = 'all-done-moment';
+  el.style.setProperty('--kid', k.color);
+  el.innerHTML = `<div><div class="big-emoji">🎉</div><h2>All done, ${esc(k.name)}!</h2><p>Finished at ${clock.fmtTime(clock.now())}</p></div>`;
+  document.body.appendChild(el);
+  setTimeout(() => burst(null, 30), 150);
+  setTimeout(() => burst(null, 30), 700);
+  el.addEventListener('click', () => el.remove());
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ---------- ready, set, go ----------
+
+let going = false;
+
+function beep(freq, len = 0.25) {
+  tone((ctx) => {
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'triangle';
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0.2, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    o.connect(g).connect(ctx.destination);
+    o.start(t);
+    o.stop(t + len + 0.05);
+  });
+}
+
+// Traffic-light countdown, then the start time is saved and the habit tiles appear.
+async function readySetGo() {
+  if (going) return;
+  going = true;
+  unlockAudio();
+  const k = kid();
+  const el = document.createElement('div');
+  el.className = 'rsg';
+  document.body.appendChild(el);
+  const steps = [['Ready…', 'r', 440], ['Set…', 'y', 440], ['GO!', 'g', 880]];
+  for (const [word, light, freq] of steps) {
+    el.dataset.light = light;
+    el.innerHTML = `<div class="rsg-lights"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="rsg-word">${word}</div>`;
+    beep(freq, light === 'g' ? 0.6 : 0.25);
+    speak(word.replace('…', ''));
+    await new Promise((r) => setTimeout(r, light === 'g' ? 700 : 900));
+  }
+  el.remove();
+  going = false;
+  if (state.kidId !== k.id) return;
+  const at = clock.now().toISOString();
+  state.day.startedAt = at;
+  state.day.log.push({ t: at, action: 'start' });
+  await dayPut(state.day);
+  renderMorning();
+  burst(app.querySelector('.tiles'), 20);
+  speak(`Let's go, ${k.name}!`);
+}
+
+// ---------- press-and-hold tiles ----------
+
+let hold = null;
+
+function startHold(tile) {
+  cancelHold();
+  unlockAudio();
+  const k = kid();
+  const h = k.habits.find((x) => x.id === tile.dataset.habit);
+  tile.classList.remove('hint');
+  tile.classList.add('holding');
+  speak(h.name);
+  hold = {
+    tile,
+    started: Date.now(),
+    timer: setTimeout(() => { hold = null; tile.classList.remove('holding'); completeHabit(h.id); }, HOLD_MS),
+  };
+}
+
+function cancelHold() {
+  if (!hold) return;
+  clearTimeout(hold.timer);
+  const { tile, started } = hold;
+  hold = null;
+  tile.classList.remove('holding');
+  if (Date.now() - started < 400) {
+    // A quick tap: show how to finish instead of ticking it.
+    tile.classList.add('hint');
+    const sub = tile.querySelector('.tile-sub');
+    if (sub) sub.textContent = '👇 Keep your finger down!';
+    setTimeout(() => speak('Hold your finger down to finish.'), 600);
+  }
+}
+
+// ---------- prayer timer ----------
+
+let wakeLock = null;
+
+async function updateWakeLock() {
+  const want = Object.keys(state.runs).length > 0 && !document.hidden;
+  try {
+    if (want && !wakeLock && 'wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } else if (!want && wakeLock) {
+      await wakeLock.release();
+      wakeLock = null;
+    }
+  } catch {}
+}
+
+function prayerDurationMs(k) {
+  const ms = k.prayerMinutes * 60000;
+  return clock.fastTimers() ? ms / 60 : ms; // dev mode: 1 minute becomes 1 second
+}
+
+function openPrayer() {
+  const k = kid();
+  state.prayer = { kidId: k.id, phase: state.runs[k.id] ? 'running' : 'ready' };
+  renderPrayer();
+  if (state.prayer.phase === 'ready') speak(`Prayer time. ${k.prayerMinutes} minutes. Tap start when you are ready.`);
+}
+
+async function startPrayer() {
+  unlockAudio();
+  const k = kid();
+  const run = { startMs: Date.now(), duration: prayerDurationMs(k), startedAt: clock.now().toISOString() };
+  state.runs[k.id] = run;
+  state.day.prayerRun = run; // saved so the timer survives a reload
+  await dayPut(state.day);
+  state.prayer = { kidId: k.id, phase: 'running' };
+  updateWakeLock();
+  renderPrayer();
+}
+
+// Runs every 250ms for all kids, so a timer keeps going while siblings use the iPad.
+function checkRuns() {
+  for (const id of Object.keys(state.runs)) {
+    const left = runLeft(id);
+    if (left <= 0) { finishPrayer(id); continue; }
+    document.querySelectorAll(`[data-countdown="${id}"]`).forEach((el) => { el.textContent = clock.fmtDuration(left); });
+    if (state.prayer?.kidId === id) {
+      const ring = overlay.querySelector('.ring-fg');
+      if (ring) ring.style.strokeDashoffset = String(RING_C * (1 - left / state.runs[id].duration));
+    }
+  }
+}
+
+async function endRun(kidId, completed) {
+  const run = state.runs[kidId];
+  if (!run) return null;
+  delete state.runs[kidId];
+  updateWakeLock();
+  const day = state.kidId === kidId && state.day ? state.day : await loadDay(kidId);
+  const end = clock.now().toISOString();
+  day.prayerAttempts.push({ start: run.startedAt, end, completed });
+  delete day.prayerRun;
+  if (completed) {
+    day.done.pray = end;
+    day.log.push({ t: end, habit: 'pray', action: 'done' });
+  }
+  await dayPut(day);
+  return day;
+}
+
+async function finishPrayer(kidId) {
+  if (!(await endRun(kidId, true))) return;
+  chime();
+  const k = kid(kidId);
+  if (state.prayer?.kidId === kidId) {
+    state.prayer.phase = 'done';
+    renderPrayer();
+    if (state.kidId === kidId) speak('Amen! Prayer done. Well done.');
+  } else if (state.kidId === kidId) {
+    afterDone('pray', false);
+  } else {
+    toast(`🙏 Amen, ${esc(k.name)}! Prayer finished.`);
+    if (!state.kidId) renderPicker();
+  }
+}
+
+async function stopPrayer() {
+  const kidId = state.prayer.kidId;
+  await endRun(kidId, false);
+  state.prayer.phase = 'stopped';
+  renderPrayer();
+  speak('Try again, you can do it.');
+}
+
+function closeOverlay() {
+  state.prayer = null;
+  overlay.innerHTML = '';
+  overlay.classList.remove('show');
+}
+
+function closePrayer() {
+  const finished = state.prayer?.phase === 'done';
+  closeOverlay();
+  state.lastTouch = Date.now();
+  if (finished) afterDone('pray', false);
+  else renderMorning();
+}
+
+const RING_R = 150;
+const RING_C = 2 * Math.PI * RING_R;
+
+function renderPrayer() {
+  const p = state.prayer;
+  const k = kid(p.kidId);
+  let body = '';
+  if (p.phase === 'ready') {
+    body = `
+      <div class="pray-icon">🙏</div>
+      <h2>Prayer time</h2>
+      <p>Pray for ${k.prayerMinutes} minutes. Start the timer when you're ready.</p>
+      <div class="pray-actions">
+        <button class="btn big calm-primary" data-action="pray-start">▶ Start</button>
+        <button class="btn calm-secondary" data-action="pray-close">Back</button>
+      </div>`;
+  } else if (p.phase === 'running' || p.phase === 'confirm') {
+    const run = state.runs[k.id];
+    const left = runLeft(k.id);
+    body = `
+      <div class="ring-wrap">
+        <div class="breathe"></div>
+        <svg viewBox="0 0 340 340" class="ring" aria-hidden="true">
+          <circle cx="170" cy="170" r="${RING_R}" class="ring-bg"/>
+          <circle cx="170" cy="170" r="${RING_R}" class="ring-fg"
+            style="stroke-dasharray:${RING_C};stroke-dashoffset:${RING_C * (1 - left / run.duration)}"/>
+        </svg>
+        <div class="ring-time" data-countdown="${k.id}">${clock.fmtDuration(left)}</div>
+      </div>
+      <p class="calm-text">Take your time. God is listening. 💛</p>
+      ${p.phase === 'confirm' ? `
+        <div class="confirm">
+          <p>Stop early? Your Pray habit won't be finished.</p>
+          <div class="pray-actions">
+            <button class="btn big calm-primary" data-action="pray-keep">Keep praying</button>
+            <button class="btn calm-secondary" data-action="pray-stop">Stop</button>
+          </div>
+        </div>` : `
+        <div class="pray-actions">
+          <button class="btn calm-secondary" data-action="home">🏠 Let others use the iPad</button>
+          <button class="btn calm-secondary" data-action="pray-confirm">Stop</button>
+        </div>
+        <p class="small">The timer keeps going and chimes when you're done.</p>`}`;
+  } else if (p.phase === 'done') {
+    body = `
+      <div class="pray-icon glow">🙏</div>
+      <h2>Amen!</h2>
+      <p>You prayed for the whole ${k.prayerMinutes} minutes. Well done!</p>
+      <div class="pray-actions"><button class="btn big calm-primary" data-action="pray-close">✓ Back to my habits</button></div>`;
+  } else if (p.phase === 'stopped') {
+    body = `
+      <div class="pray-icon">💛</div>
+      <h2>Try again, you can do it.</h2>
+      <p>Every bit of prayer counts. Start again when you're ready.</p>
+      <div class="pray-actions">
+        <button class="btn big calm-primary" data-action="pray-start">▶ Try again</button>
+        <button class="btn calm-secondary" data-action="pray-close">Back</button>
+      </div>`;
+  }
+  overlay.innerHTML = `<div class="prayer-screen">${body}</div>`;
+  overlay.classList.add('show');
+}
+
+function toast(html) {
+  clearTimeout(toast.timer);
+  toastEl.innerHTML = html;
+  toastEl.classList.add('show');
+  toast.timer = setTimeout(() => toastEl.classList.remove('show'), 6000);
+}
+
+// ---------- dev mode (open the app with ?dev=1; ?dev=0 turns it off) ----------
+
+function devOn() { try { return localStorage.getItem('dev.mode') === '1'; } catch { return false; } }
+function setDev(on) { try { on ? localStorage.setItem('dev.mode', '1') : localStorage.removeItem('dev.mode'); } catch {} }
+
+function toLocalInput(d) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function renderDevBar() {
+  let bar = document.getElementById('devbar');
+  document.body.classList.toggle('dev', devOn());
+  if (!devOn()) { bar?.remove(); return; }
+  if (!bar) { bar = document.createElement('div'); bar.id = 'devbar'; document.body.appendChild(bar); }
+  bar.innerHTML = `
+    <b>DEV</b>
+    <input type="datetime-local" id="dev-time" value="${toLocalInput(clock.now())}">
+    <button data-action="dev-set">Set time</button>
+    <button data-action="dev-add" data-min="5">+5m</button>
+    <button data-action="dev-add" data-min="15">+15m</button>
+    <button data-action="dev-add" data-min="1440">+1 day</button>
+    <button data-action="dev-real">Real time</button>
+    <label><input type="checkbox" id="dev-fast" ${clock.fastTimers() ? 'checked' : ''}> Fast timers</label>
+    <button data-action="dev-reset">Clear today</button>
+    <button data-action="dev-export">Export JSON</button>
+    <button data-action="dev-hide">Hide</button>`;
+}
+
+async function exportData() {
+  const data = {
+    exportedAt: new Date().toISOString(),
+    settings: await kvGet('settings'),
+    prefs: await kvGet('prefs'),
+    days: await dayAll(),
+  };
+  const name = `morning-tracker-${todayKey()}.json`;
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const file = new File([blob], name, { type: 'application/json' });
+  if (navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: name }); return; } catch {}
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+async function devAction(action, el) {
+  if (action === 'dev-set') {
+    const v = document.getElementById('dev-time').value;
+    if (v) clock.setFakeTime(new Date(v));
+  } else if (action === 'dev-add') clock.addMinutes(Number(el.dataset.min));
+  else if (action === 'dev-real') clock.clearFakeTime();
+  else if (action === 'dev-reset') {
+    if (!confirm("Clear today's ticks for all kids?")) return;
+    state.runs = {};
+    await Promise.all(state.settings.kids.map((k) => dayDelete(`${todayKey()}|${k.id}`)));
+  } else if (action === 'dev-export') return exportData();
+  else if (action === 'dev-hide') setDev(false);
+  await render();
+}
+
+// ---------- events ----------
+
+document.addEventListener('pointerdown', (e) => {
+  state.lastTouch = Date.now();
+  const tile = e.target.closest('.tile[data-hold]');
+  if (tile) startHold(tile);
+}, true);
+document.addEventListener('pointerup', cancelHold);
+document.addEventListener('pointercancel', cancelHold);
+document.addEventListener('contextmenu', (e) => { if (e.target.closest('.tile')) e.preventDefault(); });
+
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'dev-fast') clock.setFastTimers(e.target.checked);
+});
+
+document.addEventListener('click', async (e) => {
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const a = el.dataset.action;
+  if (a.startsWith('dev-')) return devAction(a, el);
+  switch (a) {
+    case 'open-kid': return openKid(el.dataset.kid);
+    case 'home': return goHome();
+    case 'go': return readySetGo();
+    case 'undo': e.stopPropagation(); return undo();
+    case 'toggle-speak': {
+      state.prefs.readAloud[state.kidId] = !readAloudOn();
+      await kvSet('prefs', state.prefs);
+      renderMorning();
+      if (readAloudOn()) speak('Read aloud is on.', true);
+      return;
+    }
+    case 'habit': {
+      const h = kid().habits.find((x) => x.id === el.dataset.habit);
+      if (state.day.done[h.id]) return speak(`${h.name} is already done. Nice!`);
+      if (h.type === 'timer') return openPrayer();
+      return;
+    }
+    case 'pray-start': return startPrayer();
+    case 'pray-confirm': state.prayer.phase = 'confirm'; return renderPrayer();
+    case 'pray-keep': state.prayer.phase = 'running'; return renderPrayer();
+    case 'pray-stop': return stopPrayer();
+    case 'pray-close': return closePrayer();
+  }
+});
+
+// Catch up timers and re-request the wake lock when the iPad wakes or the app returns.
+document.addEventListener('visibilitychange', () => {
+  updateWakeLock();
+  if (!document.hidden) { checkRuns(); tick(); }
+});
+
+// ---------- start ----------
+
+// Fill in fields added to DEFAULT_SETTINGS since this iPad first saved its settings.
+function migrate(s) {
+  if ((s.version || 1) >= DEFAULT_SETTINGS.version) return s;
+  for (const [key, val] of Object.entries(DEFAULT_SETTINGS)) if (!(key in s)) s[key] = structuredClone(val);
+  for (const dk of DEFAULT_SETTINGS.kids) {
+    const k = s.kids.find((x) => x.id === dk.id);
+    if (k) for (const [key, val] of Object.entries(dk)) if (!(key in k)) k[key] = structuredClone(val);
+  }
+  s.version = DEFAULT_SETTINGS.version;
+  return s;
+}
+
+async function init() {
+  await openDB();
+  const saved = await kvGet('settings');
+  state.settings = migrate(saved || structuredClone(DEFAULT_SETTINGS));
+  await kvSet('settings', state.settings);
+  state.prefs = (await kvGet('prefs')) || { readAloud: {} };
+  const dev = new URLSearchParams(location.search).get('dev');
+  if (dev !== null) setDev(dev !== '0');
+  navigator.storage?.persist?.();
+
+  // Resume any prayer timers that were running before a reload.
+  for (const k of state.settings.kids) {
+    const d = await loadDay(k.id);
+    if (d.prayerRun) state.runs[k.id] = d.prayerRun;
+  }
+  updateWakeLock();
+
+  if ('serviceWorker' in navigator) {
+    const hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    // New version deployed: reload now if nobody is mid-morning, otherwise on the next trip home.
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController) return;
+      if (!state.kidId && !state.prayer && !Object.keys(state.runs).length) location.reload();
+      else state.reloadPending = true;
+    });
+  }
+  await render();
+  setInterval(tick, 1000);
+  setInterval(checkRuns, 250);
+}
+
+init().catch((err) => {
+  app.innerHTML = `<div class="error"><h1>Something went wrong 😕</h1><p>${esc(err.message || err)}</p><button class="btn" onclick="location.reload()">Try again</button></div>`;
+});
