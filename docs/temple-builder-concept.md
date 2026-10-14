@@ -132,3 +132,38 @@ At about 5 blocks a day, one temple takes about 3 months:
 1. **Topple or Gentle?** Or Topple for Eliana and Gentle for the younger two?
 2. **Which night for the fire?** Saturday evening is suggested.
 3. **Who logs hay for each child?** The suggestion above has Eliana logging her own and a parent logging with the younger two.
+
+---
+
+## Update: the brick tower (prototype v4)
+
+Joel chose concept-art #4, the leaning tower on a sea cliff, then asked for missing pieces that make sense like Jenga, more pull towards gold and more push away from hay. This version is based on research into how games handle structural support (Jenga, Valheim, Minecraft, Fortnite, 7 Days to Die, bridge games) and into motivation (Minecraft light, SimCity blight, Stardew quality, Duolingo streak repair, and studies of the overjustification and IKEA effects).
+
+**The two-hands rule.** The tower is laid like real brickwork, so every brick rests on the two bricks below it.
+- **Both hands there:** the brick is solid.
+- **One hand burnt away:** the brick cracks and wobbles.
+- **No hands left:** the brick falls, and the bricks above it check again, so collapses chain upward row by row.
+- **Hay low in the tower is the most dangerous**, because many bricks end up resting on it.
+
+**No surprises.** All week, bricks that would fall at the next fire glow red. A banner and the forecast panel give the count, for example "21 good bricks will fall at the next fire!" Nothing is random.
+
+**Gold is strong:**
+- A brick resting on one gold hand doesn't crack, because gold spans the gap.
+- A full row of gold and silver acts as a beam, a new ground that stops chains.
+- A level that is complete and has no hay is sealed and can never fall.
+
+**Light vs rot:**
+- Gold gives out light to itself and its neighbours.
+- Hay rots day by day: fresh, damp, mouldy, then swarming with flies.
+- Each night, flies spread to nearby gems and dull them, unless those gems are in gold's light.
+- Doves land only on gold with no flies nearby.
+
+**Make it right:** owning up and fixing it turns the newest rotten brick into redeemed stone and adds a pearl.
+
+**Rubble, not wipe-out:**
+- Fallen gold, gems and pearls land in a rubble pile, and each new good brick lifts one back into place.
+- Silver and stone that fall are lost.
+
+This keeps real stakes without destroying everything. The IKEA-effect research says kids stop caring once what they built is gone.
+
+Demo URLs: `?sim=45` builds 45 simulated days. `?seq=ggghhhgggggg` plays specific days with no fire (g great, m mixed, h hard, r make it right).
