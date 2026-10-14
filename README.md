@@ -64,6 +64,16 @@ Tips for a shared kitchen iPad:
 - 🐦 on a tile means it was done before 6:30am.
 - The app goes back to **Who are you?** after 1 minute of no touches, or 12 seconds after finishing everything.
 
+## Fruit Tree
+
+A shared family tree for the rest of the day (concept: `docs/fruit-tree-concept.md`). After the 7:30am window it becomes the home screen; in the morning, tap **🌳 Fruit Tree**.
+
+- Tap your face, then **💧 I stopped to pray**. Rain falls on the roots. Each child sees only their own weekly count.
+- **Hold** a moment card (e.g. "I stayed calm when I was cross") to grow fruit. A blossom pops on, then ripens. Up to 5 a day each. **↩️ Undo** in the message at the bottom.
+- **🌧️ Stop & Pray**: pick a feeling, then a 30-second Scripture breath prayer, "Now tell Jesus what happened", and "Do you need to make something right?"
+- Tap any fruit to hear what it means and who grew it. When you pick your face, your fruit glows.
+- Fruit never earns coins and the tree never wilts.
+
 ## Dev mode (fake the time)
 
 Open the app with `?dev=1` on the end of the URL (`?dev=0` turns it off). A black bar appears at the bottom:

@@ -1,6 +1,7 @@
 import { openDB, kvGet, kvSet, dayGet, dayPut, dayDelete, dayAll } from './db.js';
 import * as clock from './clock.js';
 import { DEFAULT_SETTINGS } from './config.js';
+import { createTree } from './tree.js';
 
 const app = document.getElementById('app');
 const overlay = document.getElementById('overlay');
@@ -24,6 +25,8 @@ const state = {
   lastTouch: Date.now(),
   renderedDay: null,
   reloadPending: false,
+  view: null,        // 'picker' | 'tree' when chosen; null = by time of day (tree after the morning window)
+  treeKid: null,     // child selected on the Fruit Tree screen
 };
 
 // ---------- helpers ----------
@@ -38,6 +41,8 @@ async function loadDay(kidId) {
   const id = `${todayKey()}|${kidId}`;
   const rec = (await dayGet(id)) || { id, dayKey: todayKey(), kidId, done: {}, prayerAttempts: [] };
   rec.log ||= []; // every done/undo, so Stage 2 coins can't be farmed by tick-undo-tick
+  rec.drops ||= []; // Fruit Tree: times this child stopped to pray
+  rec.fruit ||= []; // Fruit Tree: moments planted
   return rec;
 }
 
@@ -67,10 +72,15 @@ function runLeft(kidId) {
   return r ? r.duration - (Date.now() - r.startMs) : 0;
 }
 
+const tree = createTree({
+  state, app, overlay, esc, kid, todayKey, loadDay, clockHTML, render,
+  speak, unlockAudio, tone, pop, burst, toast, hideToast,
+});
+
 // ---------- speech & sound ----------
 
 // Default on for kids under 8 (Judah can't read much yet); each child can toggle it.
-function readAloudOn(id = state.kidId) {
+function readAloudOn(id = state.kidId || state.treeKid) {
   if (!id) return false;
   const pref = state.prefs.readAloud[id];
   return pref === undefined ? kid(id).age < 8 : pref;
@@ -170,6 +180,7 @@ async function renderPicker() {
     <section class="screen picker">
       <header class="top">
         <h1>Who are you?</h1>
+        <button class="btn tree-btn" data-action="tree-open">🌳 Fruit Tree</button>
         ${clockHTML()}
       </header>
       ${windowBarHTML()}
@@ -287,9 +298,12 @@ function renderMorning() {
 
 async function render() {
   state.renderedDay = todayKey();
+  const showTree = state.view ? state.view === 'tree' : windowInfo().phase === 'closed';
   if (state.kidId) {
     state.day = await loadDay(state.kidId);
     renderMorning();
+  } else if (showTree) {
+    await tree.render();
   } else {
     await renderPicker();
   }
@@ -311,8 +325,9 @@ function tick() {
   }
   const c = app.querySelector('.clock');
   if (c) c.outerHTML = clockHTML();
-  const idle = Date.now() - state.lastTouch > IDLE_MS && state.prayer?.phase !== 'confirm';
-  if ((state.kidId || state.prayer) && (idle || (state.autoHomeAt && Date.now() > state.autoHomeAt))) goHome();
+  const idle = Date.now() - state.lastTouch > IDLE_MS && state.prayer?.phase !== 'confirm' && !tree.busy();
+  const away = state.kidId || state.prayer || state.treeKid || state.view;
+  if (away && (idle || (state.autoHomeAt && Date.now() > state.autoHomeAt))) goHome();
 }
 
 // ---------- actions ----------
@@ -331,6 +346,8 @@ function openKid(id) {
 }
 
 function goHome() {
+  tree.reset();
+  state.view = null;
   closeOverlay();
   state.kidId = null;
   state.day = null;
@@ -666,6 +683,11 @@ function renderPrayer() {
   overlay.classList.add('show');
 }
 
+function hideToast() {
+  clearTimeout(toast.timer);
+  toastEl.classList.remove('show');
+}
+
 function toast(html) {
   clearTimeout(toast.timer);
   toastEl.innerHTML = html;
@@ -757,6 +779,8 @@ document.addEventListener('click', async (e) => {
   if (!el) return;
   const a = el.dataset.action;
   if (a.startsWith('dev-')) return devAction(a, el);
+  if (a.startsWith('tree-')) return tree.action(a, el);
+  if (a.startsWith('calm-')) return tree.calmAction(a, el);
   switch (a) {
     case 'open-kid': return openKid(el.dataset.kid);
     case 'home': return goHome();
