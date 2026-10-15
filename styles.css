@@ -372,10 +372,12 @@ button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulat
 .tab.on { background: var(--kid); color: #fff; }
 /* 16 extra chores: compact tiles in a 4-wide grid that scrolls if the screen is short. */
 .screen.tab-extras { height: 100vh; min-height: 0; overflow: hidden; }
-.tiles.extras { grid-template-columns: repeat(4, 1fr); grid-auto-rows: minmax(108px, 1fr); gap: 12px; overflow-y: auto; align-content: start; min-height: 0; }
-.tiles.extras .tile { min-height: 108px; padding: 8px 6px; gap: 2px; border-radius: 22px; }
-.tiles.extras .tile-icon { font-size: 44px; }
-.tiles.extras .tile-name { font-size: 19px; text-align: center; line-height: 1.1; }
+.tiles.extras { grid-template-columns: repeat(5, 1fr); grid-auto-rows: minmax(96px, 1fr); gap: 10px; overflow-y: auto; align-content: start; min-height: 0; }
+.tiles.extras .tile { min-height: 96px; padding: 6px 4px; gap: 2px; border-radius: 20px; }
+.tiles.extras .tile-icon { font-size: 40px; }
+.tiles.extras .tile-name { font-size: 17px; text-align: center; line-height: 1.1; }
+/* 20 jobs: kids already know to hold, so the hint only shows on the done time. */
+.tiles.extras .tile:not(.done) .tile-sub { display: none; }
 .tiles.extras .tile-sub { font-size: 15px; }
 .tiles.extras .tile.done::after { width: 34px; height: 34px; font-size: 22px; top: 6px; right: 8px; }
 .tiles.extras .undo-chip { min-height: 44px; font-size: 17px; padding: 0 12px; }

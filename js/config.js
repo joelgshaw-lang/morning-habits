@@ -19,7 +19,7 @@ const nightHabits = () => [
 
 // Bump version when adding fields; app.js fills missing fields into saved settings.
 export const DEFAULT_SETTINGS = {
-  version: 4,
+  version: 5,
   windowOpen: '06:30',
   windowClose: '07:30',
   nightOpen: '18:00',
@@ -42,6 +42,11 @@ export const DEFAULT_SETTINGS = {
     { id: 'sink', name: 'Wipe the bathroom sink', icon: '🧼' },
     { id: 'yard', name: 'Help in the yard', icon: '🍂' },
     { id: 'sibling', name: 'Help a brother or sister', icon: '🤗' },
+    { id: 'vacuum', name: 'Vacuum', icon: '🌀' },
+    // Several "another helpful job" tiles, so kids can log a few jobs that aren't on the list.
+    { id: 'other2', name: 'Another helpful job', icon: '💪' },
+    { id: 'other3', name: 'Another helpful job', icon: '🌟' },
+    { id: 'other4', name: 'Another helpful job', icon: '👐' },
     { id: 'other', name: 'Another helpful job', icon: '🙌' },
   ],
   kids: [

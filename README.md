@@ -58,7 +58,7 @@ Tips for a shared kitchen iPad:
 - Tap your card on **Who are you?** It's the home screen all day. Each card shows the egg and how many ⛏ swings are waiting in the mine.
 - Each child's screen has four tabs and opens on the right routine for the time of day:
   - **☀️ Morning** (6:30–7:30am window)
-  - **⭐ Extra chores**: any time of day, once each per day. 16 jobs: clean the floor, take out the trash, wipe the table, fold washing, water the plants, help with dinner, pack away toys, do the dishes, set the table, put clothes away, line up the shoes, unpack the shopping, wipe the bathroom sink, help in the yard, help a brother or sister, and another helpful job. A chore that's already in a child's own routine is left out of their list.
+  - **⭐ Extra chores**: any time of day, once each per day. 20 jobs: clean the floor, take out the trash, wipe the table, fold washing, water the plants, help with dinner, pack away toys, do the dishes, set the table, put clothes away, line up the shoes, unpack the shopping, wipe the bathroom sink, help in the yard, help a brother or sister, vacuum, and four "Another helpful job" tiles for jobs that aren't on the list. A chore that's already in a child's own routine is left out of their list.
   - **🌙 Night** (6–8pm window): shower or bath, pyjamas, brush teeth, tidy my room, pack my bag.
   - **⛏ Mine**: opens The Mine and the Temple (see below). Locked 🔒 in the morning until the morning jobs are done, and 🔑 a grown-up opens it with the PIN for 20 minutes at a time.
 - Tap the big **Ready, set, go!** button: a traffic-light countdown starts the morning and saves the start time. Then the habit tiles appear.
