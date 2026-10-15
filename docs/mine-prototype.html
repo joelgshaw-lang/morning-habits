@@ -6,8 +6,11 @@
 <title>The Mine and the Temple</title>
 <!-- Design prototype for "The Mine and the Temple" (1 Corinthians 3). Not wired into the app yet.
      Kids tap "I did something good" or "I need to say sorry". A grown-up rates it 1–5 (press and hold).
-     Good things hide their own gem next to the mole, plus pickaxe swings to dig it out. Sorry things put wobbly props
-     into the tunnels. The weekly fire (grown-ups only) burns them and those tunnels cave in. Each child has their own mine. -->
+     Good things hide their own gem next to the mole, plus pickaxe swings to dig it out. Every rock gives stone.
+     Gems go into a treasure chest: put them in the temple, or spend gem combinations (Catan-style) on reinforcements and
+     buildings. The temple's middle stands on Jesus, the foundation; its wings and the hill buildings stand over the mine.
+     Sorry things put wobbly props into the tunnels. The weekly fire runs through the tunnels like a fuse: wobbly props burn,
+     tunnels cave in, and anything standing on them falls in. Each child has their own mine. -->
 <style>
   :root { --ink: #1f2430; --muted: #5b6170; --bg: #fff8ee; --shadow: 0 6px 0 rgba(0,0,0,.1), 0 12px 30px rgba(0,0,0,.12); }
   * { box-sizing: border-box; }
@@ -166,6 +169,30 @@
   @keyframes fall { to { transform: translate(var(--x), 110vh) rotate(720deg); } }
   .land { animation: land .22s ease-out; transform-box: fill-box; transform-origin: center; }
   @keyframes land { 0% { transform: scale(1.5); } 60% { transform: scale(.9); } 100% { transform: none; } }
+  .chestbtn { min-height: 56px; font-size: 20px; cursor: pointer; }
+  .chestbtn.pulse { animation: cpulse .5s ease-out; }
+  @keyframes cpulse { 40% { transform: scale(1.18); } }
+  .round.on { background: #fde68a; }
+  .gemgrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+  .gemtile { border: 3px solid transparent; border-radius: 16px; background: #fff; box-shadow: 0 4px 0 rgba(0,0,0,.08); min-height: 92px; font: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; font-size: 26px; }
+  .gemtile b { font-size: 18px; } .gemtile small { font-size: 11px; color: var(--muted); font-weight: 800; }
+  .gemtile.none { opacity: .5; } .gemtile.sel { border-color: #f59e0b; }
+  .recipe { display: grid; grid-template-columns: 56px 1fr 120px; gap: 10px; align-items: center; background: #fff; border-radius: 18px; padding: 10px; margin: 8px 0; box-shadow: 0 4px 0 rgba(0,0,0,.06); border: 3px solid transparent; }
+  .recipe.can { border-color: #22c55e; background: #f0fdf4; }
+  .recipe .re { font-size: 40px; text-align: center; } .rdoes { font-size: 14px; font-weight: 700; color: var(--muted); }
+  .rcost { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; } .rverse { font-size: 12px; font-style: italic; color: #8a7a5a; margin-top: 2px; }
+  .ing { display: inline-flex; align-items: center; gap: 2px; font-weight: 900; font-size: 14px; background: #f3f4f6; border-radius: 10px; padding: 2px 6px; opacity: .55; }
+  .ing.ok { opacity: 1; background: #dcfce7; }
+  .trade { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 10px; font-size: 14px; font-weight: 800; color: var(--muted); }
+  .gemmini { border: 0; border-radius: 12px; background: #fff; box-shadow: 0 3px 0 rgba(0,0,0,.08); min-height: 48px; min-width: 48px; cursor: pointer; font: inherit; }
+  .tilt { animation: tilt .9s ease-out forwards; transform-box: fill-box; transform-origin: center bottom; }
+  @keyframes tilt { to { transform: rotate(10deg) translateY(4px); } }
+  .fuseburn { animation: fuseburn 2.6s ease-out forwards; }
+  @keyframes fuseburn { 0% { opacity: 1; } 100% { opacity: 0; stroke: #3a1a0a; } }
+  .spark-up { animation: sparkup 1.2s ease-out forwards; }
+  @keyframes sparkup { to { transform: translateY(-40px); opacity: 0; } }
+  .bld text { pointer-events: none; }
+  @media (max-width: 760px) { .gemgrid { grid-template-columns: repeat(4, 1fr); } .recipe { grid-template-columns: 44px 1fr 90px; } }
   @media (prefers-reduced-motion: reduce) {
     .reveal .rays, .reveal .spinny, .glint, .beacon, .arrow, .weak, .loose, .bob, .wing { animation: none !important; }
   }
@@ -179,8 +206,10 @@
   <div class="top">
     <button class="chip who" id="whoChip"></button>
     <div class="chip picks" id="picks"></div>
+    <button class="chip chestbtn" id="chestBtn"></button>
     <div class="chip warnchip" id="warn"></div>
     <div class="spacer"></div>
+    <button class="chip round" id="lensBtn" aria-label="Danger lens">👁</button>
     <button class="chip round" id="lookBtn" aria-label="Look at the temple">🏛</button>
     <button class="chip round" id="speakBtn" aria-label="Read aloud">🔈</button>
     <button class="chip round" id="grownBtn" aria-label="Grown-ups">👨‍👩‍👧</button>
@@ -210,6 +239,17 @@
       <div class="row"><button class="btn yes" id="ownedBtn" style="background:#db2777">💛 They owned up themselves</button><button class="btn no" id="noticedBtn">👀 A grown-up noticed</button></div>
     </div>
     <div class="row"><button class="btn no" id="rateCancel">Cancel</button></div>
+  </div></div>
+
+  <!-- treasure chest + recipe book -->
+  <div class="ov" id="chestOv"><div class="sheet chest">
+    <div style="display:flex;justify-content:space-between;align-items:center"><h3>🧰 My treasure chest</h3><button class="btn no" id="chestClose" style="flex:none;width:90px;min-height:48px">Close</button></div>
+    <div class="sub">Tap a gem to put it in your temple, or build something from the recipe book.</div>
+    <div class="gemgrid" id="chestGems"></div>
+    <div class="row" id="chestActions"></div>
+    <div class="trade" id="tradeRow"></div>
+    <h3 style="margin-top:14px">📜 Recipe book</h3>
+    <div id="recipes"></div>
   </div></div>
 
   <!-- grown-up PIN -->
@@ -252,7 +292,7 @@
 </div>
 
 <script>
-// ---------- gems and actions ----------
+// ---------- gems, actions and recipes ----------
 const GEMS = {
   carnelian:  ['Carnelian', 'Love', '#ff8a8a', '#e0102f', '#6e0014'],
   topaz:      ['Topaz', 'Joy', '#ffe27a', '#ffa400', '#9a5200'],
@@ -265,6 +305,7 @@ const GEMS = {
   amethyst:   ['Amethyst', 'Self-control', '#eaa8ff', '#a12cff', '#46087f'],
 };
 const GEM_IDS = Object.keys(GEMS);
+const TREASURE = ['gold', 'pearl', ...GEM_IDS];
 // Draft list: swap in the family's own. Good things hide their gem; sorry things put in a wobbly prop.
 const GOOD = [
   { e: '🙏', t: 'I stopped to pray', gem: 'gold' },
@@ -277,6 +318,8 @@ const GOOD = [
   { e: '😄', t: 'I chose a happy attitude', gem: 'topaz' },
   { e: '✋', t: 'I kept my promise', gem: 'jasper' },
   { e: '🪶', t: 'Gentle words and hands', gem: 'beryl' },
+  { e: '🫂', t: 'I forgave someone', gem: 'pearl' },
+  { e: '🧹', t: 'I did an extra chore', gem: 'hand' },
 ];
 const SORRY = [
   { e: '😡', t: 'I hit or yelled when I was mad', prop: 'wood' },
@@ -296,13 +339,28 @@ const KIDS = [
 ];
 const DAILY_LOGS = 6, PER_CARD = 2; // so gems can't be farmed by tapping
 
-// ---------- mine and temple layout ----------
+// Recipe book (Catan-style): each recipe needs a mix of different fruits, so prayer alone can't build everything.
+const RECIPES = [
+  { id: 'brace', e: '🧱', name: 'Stone Brace', kind: 'reinforce', cost: { jasper: 1, stone: 3 }, does: 'Put it in a tunnel. A cave-in can’t spread past it.', verse: 'Faithful in little things (Luke 16:10)' },
+  { id: 'pillar', e: '🏛️', name: 'Golden Pillar', kind: 'reinforce', cost: { gold: 2, chalcedony: 1, stone: 2 }, does: 'Put it under a building. Whatever stands above it holds, even if a prop next to it burns.', verse: 'A pillar in the temple of my God (Rev 3:12)' },
+  { id: 'shield', e: '🛡️', name: 'Shield of Faith', kind: 'once', cost: { jasper: 1, sapphire: 1, gold: 1 }, does: 'The next fire skips one wobbly prop. You can hold one.', verse: 'It puts out the flaming arrows (Eph 6:16)' },
+  { id: 'bell', e: '🔔', name: 'Bell Tower', kind: 'building', cost: { carnelian: 2, sapphire: 1, stone: 3 }, does: 'Shows the fire danger all week.', verse: 'The watchman blows the trumpet (Ezek 33:6)' },
+  { id: 'garden', e: '🌳', name: 'Garden', kind: 'building', cost: { emerald: 1, beryl: 1, chrysolite: 1, chalcedony: 1, stone: 2 }, does: 'After each fire it grows a gem of your rarest fruit.', verse: 'Remain in me and you will bear much fruit (John 15:5)' },
+  { id: 'lantern', e: '🏮', name: 'Lantern', kind: 'building', cost: { topaz: 1, beryl: 1, stone: 2 }, does: 'Lights up hidden geodes near the mole.', verse: 'A lamp for my feet (Ps 119:105)' },
+];
+const R = Object.fromEntries(RECIPES.map((r) => [r.id, r]));
+
+// ---------- mine, temple and hill layout ----------
 const COLS = 14, ROWS = 30, CW = 52, CH = 50, MX = 36, MY = 270;
 const ENTRY = { r: 0, c: 7 };
 const cx = (c) => MX + c * CW, cy = (r) => MY + r * CH;
 const hardness = (r) => Math.min(3, 1 + Math.floor(r / 6));
+const colOf = (x) => Math.max(0, Math.min(COLS - 1, Math.floor((x - MX) / CW)));
+// The foundation (Jesus) rock spans the middle. Anything built beyond it stands over the mine.
+const FOUND_L = 336, FOUND_R = 464;
+const PLOTS = [{ id: 'p1', x: 92 }, { id: 'p2', x: 184 }, { id: 'p3', x: 616 }, { id: 'p4', x: 708 }];
+PLOTS.forEach((p) => { p.c = colOf(p.x); });
 
-// Buildings grow in tiers: when one is finished it joins the gallery and a bigger one begins.
 const BUILDINGS = [
   { name: 'Altar', map: ['..WW..', '.WWWW.', 'WWWWWW'] },
   { name: 'Chapel', map: ['......S......', '.....DDD.....', '....DDDDD....', '.RRRRRRRRRRR.', '.WWWWWWWWWWW.', '.WWWW...WWWW.', '.WWWW...WWWW.'] },
@@ -317,76 +375,110 @@ function slotsFor(level) {
   const tw = size * 1.15, th = size * 0.85;
   const x0 = 400 - (w * tw) / 2, y0 = 226 - h * th;
   const out = [];
-  map.forEach((row, r) => [...row].forEach((ch, c) => { if (ch !== '.') out.push({ r, c, x: x0 + c * tw, y: y0 + r * th, w: tw, h: th }); }));
+  map.forEach((row, r) => [...row].forEach((ch, c) => {
+    if (ch === '.') return;
+    const x = x0 + c * tw, mid = x + tw / 2;
+    out.push({ r, c, x, y: y0 + r * th, w: tw, h: th, wing: mid < FOUND_L || mid > FOUND_R, col: colOf(mid) });
+  }));
+  // Fill from the bottom, middle first: the part on the foundation is built before the wings.
   out.sort((a, b) => b.r - a.r || Math.abs(a.c - (w - 1) / 2) - Math.abs(b.c - (w - 1) / 2));
   return out;
 }
 
 // ---------- per-child state (saved on this device) ----------
-let S, kid, busy = false, selected = null, makingRight = false;
-const DEV = new URLSearchParams(location.search).has('dev');
-// The day comes from the real calendar (a new day starts at 3am, like the rest of the app). Test mode can step it on.
+let S, kid, busy = false, selected = null, makingRight = false, placing = null, lens = false;
 function todayNum() { const d = new Date(Date.now() - 3 * 3600e3); return Math.floor((d - d.getTimezoneOffset() * 60e3) / 864e5); }
-let dayOffset = 0;
 function syncDay() { if (S.start === undefined) S.start = todayNum() - (S.day - 1); S.day = todayNum() - S.start + 1 + (S.dayOffset || 0); }
-const save = () => { try { localStorage.setItem(`mine3.${kid.id}`, JSON.stringify(S)); localStorage.setItem('mine3.kid', kid.id); } catch {} };
+const save = () => { try { localStorage.setItem(`mine4.${kid.id}`, JSON.stringify(S)); localStorage.setItem('mine4.kid', kid.id); } catch {} };
+function emptyChest() { const c = { stone: 0, hands: 0 }; TREASURE.forEach((t) => { c[t] = 0; }); return c; }
 function freshState() {
   const cells = [];
   for (let r = 0; r < ROWS; r++) {
     const row = [];
     for (let c = 0; c < COLS; c++) {
       const p = Math.random();
-      // Only earned gems glint. The rock holds a little gold and the odd mystery geode.
       const content = r > 0 && p < 0.05 ? 'geode' : r > 0 && p < 0.14 ? 'gold' : 'dirt';
       row.push({ s: 'rock', content, v: Math.floor(Math.random() * 4) });
     }
     cells.push(row);
   }
   Object.assign(cells[ENTRY.r][ENTRY.c], { s: 'tunnel', prop: 'stone', content: 'dirt', entry: true });
-  return { cells, swings: 0, day: 1, start: todayNum(), temple: [], level: 0, gallery: [], order: 0, mole: { ...ENTRY }, logs: {}, pearlDay: 0, readAloud: undefined, noticedDays: [], lastOpen: 0 };
+  return { cells, swings: 0, day: 1, start: todayNum(), dayOffset: 0, chest: emptyChest(), temple: [], level: 0, gallery: [], plots: {}, ruined: {}, shield: 0,
+    order: 0, mole: { ...ENTRY }, logs: {}, pearlDay: 0, readAloud: undefined, noticedDays: [], lastOpen: 0 };
 }
 function loadKid(id) {
   kid = KIDS.find((k) => k.id === id) || KIDS[0];
-  try { S = JSON.parse(localStorage.getItem(`mine3.${kid.id}`)); } catch { S = null; }
+  try { S = JSON.parse(localStorage.getItem(`mine4.${kid.id}`)); } catch { S = null; }
   if (!S) S = freshState();
   if (S.readAloud === undefined) S.readAloud = kid.age < 8;
-  S.noticedDays = S.noticedDays || [];
   syncDay();
-  selected = null; makingRight = false;
+  selected = null; makingRight = false; placing = null;
 }
 
 const inside = (r, c) => r >= 0 && r < ROWS && c >= 0 && c < COLS;
 const around = (r, c) => [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]].filter(([a, b]) => inside(a, b));
 const cell = (r, c) => S.cells[r][c];
+const key = (r, c) => `${r},${c}`;
+const unkey = (k) => k.split(',').map(Number);
 const diggable = (r, c) => cell(r, c).s !== 'tunnel' && around(r, c).some(([a, b]) => cell(a, b).s === 'tunnel');
 const digCost = (r, c) => { const k = cell(r, c); return k.soft ? 1 : k.s === 'rubble' ? Math.max(1, hardness(r) - 1) : hardness(r); };
+const templeCount = () => S.temple.filter(Boolean).length;
 function deepest() { let d = 0; for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (cell(r, c).s === 'tunnel') d = Math.max(d, r); return d; }
 function rotCount() { let n = 0; for (const row of S.cells) for (const k of row) if (k.s === 'tunnel' && BURNS.includes(k.prop)) n++; return n; }
-// Lots of rot under the temple loosens its top stones: 4 props loosen 1, every 2 more loosen another, up to 5.
-const looseCount = () => { const r = rotCount(); return r < 4 ? 0 : Math.min(S.temple.length, 5, Math.floor((r - 4) / 2) + 1); };
 
-// The fire burns wobbly props. That tunnel caves in. If a grown-up noticed (rather than the child owning up),
-// tunnels cut off behind it cave in too, up to 3 steps away. Owning up always comes out ahead.
-function caveInSet() {
-  const burnt = new Map();
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) { const k = cell(r, c); if (k.s === 'tunnel' && BURNS.includes(k.prop)) burnt.set(`${r},${c}`, k.how); }
-  const open = new Set([`${ENTRY.r},${ENTRY.c}`]), q = [[ENTRY.r, ENTRY.c]];
-  while (q.length) { const [r, c] = q.shift(); for (const [a, b] of around(r, c)) { const key = `${a},${b}`; if (open.has(key) || burnt.has(key) || cell(a, b).s !== 'tunnel') continue; open.add(key); q.push([a, b]); } }
-  const lost = [];
-  for (const [key, how] of burnt) {
-    if (how !== 'noticed') continue;
-    const [r0, c0] = key.split(',').map(Number), seen = new Set([key]), qq = [[r0, c0, 0]];
+// ---------- what the fire will do (used for the warnings, the lens and the fire itself) ----------
+// 1. The fire runs through the tunnels from the entrance. 2. Wobbly props burn (a Shield of Faith quenches the first one).
+// 3. A tunnel with a burnt prop caves in, unless a brace or pillar stands there. If a grown-up noticed (rather than the child
+//    owning up), tunnels cut off behind it cave in too, up to 3 steps. 4. Anything built over a caved-in tunnel in the top two
+//    rows falls in, unless a Golden Pillar holds that column. The foundation (Jesus) and what's on it never fall.
+function fireRoute() {
+  const dist = { [key(ENTRY.r, ENTRY.c)]: 0 }, parent = {}, order = [key(ENTRY.r, ENTRY.c)], q = [[ENTRY.r, ENTRY.c]];
+  while (q.length) {
+    const [r, c] = q.shift();
+    for (const [a, b] of around(r, c)) {
+      const k2 = key(a, b);
+      if (k2 in dist || cell(a, b).s !== 'tunnel') continue;
+      dist[k2] = dist[key(r, c)] + 1; parent[k2] = key(r, c); order.push(k2); q.push([a, b]);
+    }
+  }
+  return { dist, parent, order };
+}
+function forecast() {
+  const route = fireRoute();
+  const burning = route.order.filter((k2) => { const [r, c] = unkey(k2); return BURNS.includes(cell(r, c).prop); });
+  const quenched = S.shield && burning.length ? burning[0] : null;
+  const burnt = burning.filter((k2) => k2 !== quenched);
+  const held = new Set(), caved = new Set();
+  for (const k2 of burnt) { const [r, c] = unkey(k2); if (cell(r, c).pillar) held.add(k2); else caved.add(k2); }
+  // Cut off behind a noticed prop: up to 3 tunnels away, stopping at braces and pillars.
+  const open = new Set([key(ENTRY.r, ENTRY.c)]), q = [[ENTRY.r, ENTRY.c]];
+  while (q.length) { const [r, c] = q.shift(); for (const [a, b] of around(r, c)) { const k2 = key(a, b); if (open.has(k2) || caved.has(k2) || cell(a, b).s !== 'tunnel') continue; open.add(k2); q.push([a, b]); } }
+  const lost = new Set();
+  for (const k2 of caved) {
+    const [r0, c0] = unkey(k2);
+    if (cell(r0, c0).how !== 'noticed') continue;
+    const seen = new Set([k2]), qq = [[r0, c0, 0]];
     while (qq.length) {
       const [r, c, d] = qq.shift();
       if (d >= 3) continue;
       for (const [a, b] of around(r, c)) {
-        const k2 = `${a},${b}`;
-        if (seen.has(k2) || open.has(k2) || cell(a, b).s !== 'tunnel' || burnt.has(k2)) continue;
-        seen.add(k2); lost.push(k2); qq.push([a, b, d + 1]);
+        const k3 = key(a, b), kk = cell(a, b);
+        if (seen.has(k3) || open.has(k3) || kk.s !== 'tunnel' || caved.has(k3) || kk.pillar) continue;
+        seen.add(k3); lost.add(k3); qq.push([a, b, d + 1]);
       }
     }
   }
-  return { burnt, lost: [...new Set(lost)] };
+  const down = new Set([...caved, ...lost]);
+  const columnFalls = (c) => {
+    const support = [0, 1].map((r) => cell(r, c));
+    if (support.some((k2) => k2.pillar === 'pillar')) return null;
+    for (const r of [0, 1]) if (down.has(key(r, c))) return key(r, c);
+    return null;
+  };
+  const wingFall = [], plotFall = [];
+  slotsFor(S.level).forEach((sl, i) => { if (S.temple[i] && sl.wing) { const at = columnFalls(sl.col); if (at) wingFall.push({ i, at }); } });
+  PLOTS.forEach((p) => { if (S.plots[p.id]) { const at = columnFalls(p.c); if (at) plotFall.push({ id: p.id, at }); } });
+  return { route, burning, quenched, burnt, held, caved, lost, down, wingFall, plotFall };
 }
 
 // ---------- artwork ----------
@@ -402,14 +494,18 @@ function buildDefs() {
     <linearGradient id="tunnel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a110b"/><stop offset="1" stop-color="#2e1f14"/></linearGradient>
     <linearGradient id="flameG" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ff3d00"/><stop offset=".55" stop-color="#ffa21f"/><stop offset="1" stop-color="#fff3a0"/></linearGradient>
     <radialGradient id="lamp"><stop offset="0" stop-color="#ffe9a8" stop-opacity=".5"/><stop offset="1" stop-color="#ffe9a8" stop-opacity="0"/></radialGradient>
+    <radialGradient id="sad"><stop offset="0" stop-color="#ff9ad5" stop-opacity=".7"/><stop offset="1" stop-color="#ff9ad5" stop-opacity="0"/></radialGradient>
     <path id="star" d="M0 -9 L2 -2 L9 0 L2 2 L0 9 L-2 2 L-9 0 L-2 -2Z"/>
     <path id="flame" d="M15 22 C3 22 2 12 9 6 C9 11 12 12 12 12 C11 6 14 1 18 -4 C18 4 25 7 25 14 C25 20 21 22 15 22Z" fill="url(#flameG)"/>
-    <g id="fly"><ellipse rx="2.4" ry="1.7" fill="#111"/><ellipse class="wing" cx="-1.2" cy="-2.2" rx="1.8" ry="1.3" fill="#e9f3ff" opacity=".75"/><ellipse class="wing" cx="1.3" cy="-2.2" rx="1.8" ry="1.3" fill="#e9f3ff" opacity=".75"/></g>
+    <g id="fly"><ellipse rx="3.6" ry="2.6" fill="#111"/><ellipse class="wing" cx="-1.8" cy="-3" rx="2.6" ry="1.8" fill="#e9f3ff" opacity=".8"/><ellipse class="wing" cx="1.8" cy="-3" rx="2.6" ry="1.8" fill="#e9f3ff" opacity=".8"/></g>
     <g id="t-gold"><rect width="30" height="22" rx="2.5" fill="url(#gold)"/><rect x="3" y="2.5" width="24" height="3.5" rx="1.5" fill="#fff" opacity=".5"/><path d="M6 15 L13 8" stroke="#fffbe6" stroke-width="1.2" opacity=".6"/></g>
     <g id="t-pearl"><rect width="30" height="22" rx="2" fill="#e6dccb"/><rect x="2" y="1.5" width="26" height="19" rx="9" fill="url(#pearl)"/><ellipse cx="10" cy="7" rx="5" ry="2.6" fill="#fff" opacity=".85"/></g>
     <g id="nugget"><path d="M-12 4 C-14 -4 -6 -10 0 -8 C6 -11 14 -5 12 3 C10 10 -8 11 -12 4Z" fill="url(#gold)" stroke="#8f6206"/><circle cx="-4" cy="-3" r="2.2" fill="#fff" opacity=".8"/></g>
     <g id="pearlBig"><circle r="12" fill="url(#pearl)"/><ellipse cx="-4" cy="-4" rx="4" ry="2" fill="#fff" opacity=".9"/></g>
-    <g id="geode"><circle r="9" fill="#8a8a96" stroke="#5c5c66"/><path d="M-5 -2 l3 -4 l3 3 l3 -3" stroke="#d9d9f0" fill="none"/><text y="5" text-anchor="middle" font-size="10" font-weight="900" fill="#fff">?</text></g>`;
+    <g id="stoneBlock"><rect x="-10" y="-8" width="20" height="16" rx="3" fill="#a8a196" stroke="#6f6a60"/><path d="M-6 -2 h6 M2 3 h5" stroke="#7a756c"/></g>
+    <g id="geode"><circle r="9" fill="#8a8a96" stroke="#5c5c66"/><path d="M-5 -2 l3 -4 l3 3 l3 -3" stroke="#d9d9f0" fill="none"/><text y="5" text-anchor="middle" font-size="10" font-weight="900" fill="#fff">?</text></g>
+    <g id="pillar"><rect x="16" y="2" width="20" height="46" rx="3" fill="url(#gold)" stroke="#8f6206"/><rect x="12" y="0" width="28" height="7" rx="2" fill="url(#gold)" stroke="#8f6206"/><rect x="12" y="43" width="28" height="7" rx="2" fill="url(#gold)" stroke="#8f6206"/><path d="M22 8 V42 M30 8 V42" stroke="#fff3a0" opacity=".7"/></g>
+    <g id="brace"><path d="M8 48 L26 10 L44 48" stroke="#8d877b" stroke-width="7" fill="none" stroke-linejoin="round"/><path d="M14 36 H38" stroke="#8d877b" stroke-width="6"/></g>`;
   for (const [id, [, , light, base, dark]] of Object.entries(GEMS)) {
     s += `<linearGradient id="gm-${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${base}"/><stop offset="1" stop-color="${dark}"/></linearGradient>
       <linearGradient id="gt-${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${light}"/><stop offset=".6" stop-color="${base}"/><stop offset="1" stop-color="${dark}"/></linearGradient>
@@ -431,54 +527,82 @@ function rockFace(x, y, v, rubble) {
   if (rubble) return `<rect x="${x}" y="${y}" width="${CW}" height="${CH}" fill="#4a3a2c"/><g stroke="#2b2018" stroke-width="1.2"><ellipse cx="${x + 13}" cy="${y + 36}" rx="12" ry="10" fill="#8d7d6b"/><ellipse cx="${x + 36}" cy="${y + 38}" rx="14" ry="10" fill="#7b6b59"/><ellipse cx="${x + 25}" cy="${y + 20}" rx="12" ry="9" fill="#9a8a77"/><ellipse cx="${x + 42}" cy="${y + 14}" rx="8" ry="7" fill="#857562"/></g>`;
   return `<rect x="${x}" y="${y}" width="${CW}" height="${CH}" fill="${tints[v]}"/><path d="M${x + 6} ${y + 14 + v * 3} q8 -4 16 0 M${x + 26} ${y + 34 - v * 2} q8 4 18 -2" stroke="#5a412c" stroke-width="1.4" fill="none"/>`;
 }
-const art = (t) => t === 'gold' ? '#nugget' : t === 'pearl' ? '#pearlBig' : t === 'geode' ? '#geode' : `#g-${t}`;
+const art = (t) => t === 'gold' ? '#nugget' : t === 'pearl' ? '#pearlBig' : t === 'geode' ? '#geode' : t === 'stone' ? '#stoneBlock' : `#g-${t}`;
+const tname = (t) => t === 'gold' ? 'Gold' : t === 'pearl' ? 'Pearl' : t === 'stone' ? 'Stone' : t === 'hands' ? 'Helping hand' : GEMS[t][0];
+const ticon = (t, size = 26) => t === 'stone' ? '🪨' : t === 'hands' ? '🙌' : `<svg viewBox="-16 -16 32 32" width="${size}" height="${size}"><use href="${art(t)}" transform="scale(${t === 'pearl' ? 1.1 : t === 'gold' ? 1.1 : .95})"/></svg>`;
 
 // ---------- render ----------
 const scene = document.getElementById('scene');
 let dusk = false;
 function render(fx = {}) {
-  const fore = caveInSet();
-  const doomed = new Set([...fore.burnt.keys(), ...fore.lost]);
-  const near = new Set(); // rocks lit up for digging: next to a tunnel, only when there are swings
-  let mine = '', props = '', items = '', flies = '', marks = '';
+  const F = forecast();
+  const atRiskCells = new Set([...F.down]);
+  const showLens = lens || Object.values(S.plots).includes('bell');
+  let mine = '', props = '', items = '', flies = '', marks = '', lensSVG = '';
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-    const k = cell(r, c), x = cx(c), y = cy(r), key = `${r},${c}`;
+    const k = cell(r, c), x = cx(c), y = cy(r), kk = key(r, c);
     if (k.s === 'tunnel') {
       mine += `<g class="cell" data-r="${r}" data-c="${c}"><rect x="${x}" y="${y}" width="${CW}" height="${CH}" fill="url(#tunnel)"/><ellipse cx="${x + 26}" cy="${y + 30}" rx="30" ry="24" fill="url(#lamp)"/></g>`;
-      if (k.prop) props += `<use href="#p-${k.prop}" x="${x}" y="${y}" data-prop="${key}" pointer-events="none"/>`;
+      if (k.prop) props += `<use href="#p-${k.prop}" x="${x}" y="${y}" data-prop="${kk}" pointer-events="none"/>`;
+      if (k.pillar) props += `<use href="#${k.pillar}" x="${x}" y="${y}" data-pil="${kk}" pointer-events="none"/>`;
       if (k.entry) props += `<path d="M${x + 18} ${y} V${y + CH} M${x + 34} ${y} V${y + CH}" stroke="#a9875e" stroke-width="3"/><path d="M${x + 18} ${y + 12} h16 M${x + 18} ${y + 26} h16 M${x + 18} ${y + 40} h16" stroke="#a9875e" stroke-width="2.5"/>`;
-      if (k.pile) items += `<g class="cell ${fx.found === key ? '' : 'bob'}" data-r="${r}" data-c="${c}" style="cursor:pointer"><use href="${art(k.pile)}" x="${x + 26}" y="${y + 30}"/></g>`;
+      if (k.pile) items += `<g class="cell bob" data-r="${r}" data-c="${c}" style="cursor:pointer"><use href="${art(k.pile)}" x="${x + 26}" y="${y + 30}"/></g>`;
       if (BURNS.includes(k.prop)) for (let f = 0; f < 2; f++) {
         const dur = (1.3 + ((r + c + f) % 4) * .3).toFixed(2);
-        flies += `<g transform="translate(${x + 26} ${y + 22})"><g><animateTransform attributeName="transform" type="rotate" from="${f * 180}" to="${f * 180 + ((r + c) % 2 ? 360 : -360)}" dur="${dur}s" repeatCount="indefinite"/><g transform="translate(${12 + f * 5} 0)"><use href="#fly"/></g></g></g>`;
+        flies += `<g transform="translate(${x + 26} ${y + 22})"><g><animateTransform attributeName="transform" type="rotate" from="${f * 180}" to="${f * 180 + ((r + c) % 2 ? 360 : -360)}" dur="${dur}s" repeatCount="indefinite"/><g transform="translate(${13 + f * 5} 0)"><use href="#fly"/></g></g></g>`;
       }
-      if (doomed.has(key)) marks += `<rect x="${x + 2}" y="${y + 2}" width="${CW - 4}" height="${CH - 4}" rx="6" fill="rgba(255,40,40,.32)" class="weak" pointer-events="none"/><text x="${x + 26}" y="${y + 14}" text-anchor="middle" font-size="14" pointer-events="none">⚠️</text>`;
+      if (atRiskCells.has(kk)) marks += `<rect x="${x + 2}" y="${y + 2}" width="${CW - 4}" height="${CH - 4}" rx="6" fill="rgba(255,40,40,.32)" class="weak" pointer-events="none"/><text x="${x + 26}" y="${y + 14}" text-anchor="middle" font-size="14" pointer-events="none">⚠️</text>`;
+      if (F.quenched === kk) marks += `<circle cx="${x + 26}" cy="${y + 25}" r="22" fill="rgba(120,180,255,.25)" stroke="#7ab8ff" stroke-width="3" pointer-events="none"/><text x="${x + 26}" y="${y + 31}" text-anchor="middle" font-size="16" pointer-events="none">🛡️</text>`;
+      if (placing && placing.kind === 'reinforce' && !k.pillar) marks += `<rect x="${x + 3}" y="${y + 3}" width="${CW - 6}" height="${CH - 6}" rx="6" fill="rgba(122,184,255,.18)" stroke="#7ab8ff" stroke-width="3" stroke-dasharray="6 4" class="weak" pointer-events="none"/>`;
     } else {
       const can = diggable(r, c) && S.swings > 0;
-      if (can) near.add(key);
-      mine += `<g class="cell ${fx.cavein?.has(key) ? 'cavein' : ''}" data-r="${r}" data-c="${c}">${rockFace(x, y, k.v, k.s === 'rubble')}
+      mine += `<g class="cell ${fx.cavein?.has(kk) ? 'cavein' : ''}" data-r="${r}" data-c="${c}">${rockFace(x, y, k.v, k.s === 'rubble')}
         ${can ? `<rect x="${x + 2}" y="${y + 2}" width="${CW - 4}" height="${CH - 4}" rx="4" fill="rgba(255,230,150,.16)" stroke="rgba(255,230,150,.55)" stroke-width="2" pointer-events="none"/>` : ''}
-        ${selected === key ? `<rect x="${x + 1}" y="${y + 1}" width="${CW - 2}" height="${CH - 2}" rx="5" fill="rgba(255,215,90,.28)" stroke="#ffd34d" stroke-width="4" pointer-events="none"/><text x="${x + 26}" y="${y + 33}" text-anchor="middle" font-size="22" pointer-events="none">⛏</text>` : ''}
+        ${selected === kk ? `<rect x="${x + 1}" y="${y + 1}" width="${CW - 2}" height="${CH - 2}" rx="5" fill="rgba(255,215,90,.28)" stroke="#ffd34d" stroke-width="4" pointer-events="none"/><text x="${x + 26}" y="${y + 33}" text-anchor="middle" font-size="22" pointer-events="none">⛏</text>` : ''}
         ${k.hits ? `<path d="M${x + 26} ${y + 4} l-6 12 l9 8 l-7 12 l5 10 M${x + 20} ${y + 16} l-12 4" stroke="#1e130a" stroke-width="2.4" fill="none" pointer-events="none"/>` : ''}
-        ${can && digCost(r, c) > 1 ? `<g pointer-events="none">${Array.from({ length: digCost(r, c) - (k.hits || 0) }, (_, i) => `<circle cx="${x + 8 + i * 9}" cy="${y + 44}" r="3.4" fill="#ffe9b0" stroke="#5a412c"/>`).join('')}</g>` : ''}</g>`;
-      // Earned gems glow with a beacon and the action's emoji, so the child can find what their choice made.
-      if (k.earned) {
-        const col = k.content === 'gold' ? '#ffd84d' : GEMS[k.content] ? GEMS[k.content][3] : '#fff';
+        ${can && digCost(r, c) > 1 ? `<g pointer-events="none">${Array.from({ length: Math.max(0, digCost(r, c) - (k.hits || 0)) }, (_, i) => `<circle cx="${x + 8 + i * 9}" cy="${y + 44}" r="3.4" fill="#ffe9b0" stroke="#5a412c"/>`).join('')}</g>` : ''}</g>`;
+      // Trapped treasure cries for help; boulders from fallen buildings need a helping hand.
+      if (k.s === 'rubble' && (k.pile || k.boulder)) {
+        items += `<g pointer-events="none"><circle cx="${x + 26}" cy="${y + 25}" r="24" fill="url(#sad)" class="weak"/>
+          <g class="arrow"><rect x="${x + 6}" y="${y - 16}" width="40" height="16" rx="8" fill="#fff"/><text x="${x + 26}" y="${y - 4}" text-anchor="middle" font-size="11" font-weight="900" fill="#be185d">${k.boulder ? '🙌 help!' : 'help!'}</text></g>
+          ${k.pile ? `<use href="${art(k.pile)}" x="${x + 26}" y="${y + 28}" opacity=".6"/>` : `<text x="${x + 26}" y="${y + 34}" text-anchor="middle" font-size="22">${R[k.boulder.rid]?.e || '🪨'}</text>`}</g>`;
+      } else if (k.earned) {
+        const col = k.content === 'gold' ? '#ffd84d' : k.content === 'pearl' ? '#fff' : GEMS[k.content] ? GEMS[k.content][3] : '#fff';
         items += `<g pointer-events="none"><circle cx="${x + 26}" cy="${y + 25}" r="20" fill="none" stroke="${col}" stroke-width="4" class="beacon"/>
           <use href="#star" x="${x + 26}" y="${y + 25}" fill="${col}" stroke="#fff" stroke-width="1"/>
           <g class="arrow"><text x="${x + 26}" y="${y - 4}" text-anchor="middle" font-size="20">${k.earned}</text></g></g>`;
-      } else if (k.pile) {
-        items += `<g pointer-events="none"><use href="#star" x="${x + 26}" y="${y + 25}" fill="#fff" class="glint"/><text x="${x + 40}" y="${y + 44}" font-size="13">💎</text></g>`;
       } else if (k.content === 'geode') {
-        items += `<g pointer-events="none" opacity=".7"><use href="#star" x="${x + 16 + k.v * 5}" y="${y + 18 + k.v * 4}" fill="#cfd2ff" class="glint" style="animation-delay:${(r + c) % 5 * .4}s"/></g>`;
+        const lit = Object.values(S.plots).includes('lantern') && Math.abs(r - S.mole.r) + Math.abs(c - S.mole.c) <= 3;
+        items += lit ? `<g pointer-events="none"><use href="#geode" x="${x + 26}" y="${y + 25}"/><circle cx="${x + 26}" cy="${y + 25}" r="16" fill="none" stroke="#cfd2ff" stroke-width="2" class="beacon"/></g>`
+          : `<g pointer-events="none" opacity=".7"><use href="#star" x="${x + 16 + k.v * 5}" y="${y + 18 + k.v * 4}" fill="#cfd2ff" class="glint" style="animation-delay:${(r + c) % 5 * .4}s"/></g>`;
       } else if (k.content === 'gold') {
         items += `<g pointer-events="none"><circle cx="${x + 14 + k.v * 6}" cy="${y + 20 + k.v * 3}" r="2" fill="#ffd84d"/><circle cx="${x + 20 + k.v * 6}" cy="${y + 26 + k.v * 3}" r="1.4" fill="#ffd84d"/></g>`;
       }
     }
   }
+  // Danger lens: the fire's path through the tunnels, like a fuse.
+  if (showLens) {
+    for (const k2 of F.route.order) {
+      const p = F.route.parent[k2]; if (!p) continue;
+      const [r1, c1] = unkey(p), [r2, c2] = unkey(k2);
+      lensSVG += `<line x1="${cx(c1) + 26}" y1="${cy(r1) + 28}" x2="${cx(c2) + 26}" y2="${cy(r2) + 28}" stroke="#ff8a3d" stroke-width="4" stroke-dasharray="6 6" opacity=".75" class="fuse"/>`;
+    }
+  }
+  // Support lines: what holds up each wing stone and building, red when it will fall.
+  const fallingWing = new Map(F.wingFall.map((w) => [w.i, w.at])), fallingPlot = new Map(F.plotFall.map((p) => [p.id, p.at]));
+  let support = '';
+  const supportLine = (x, y0, c, at) => {
+    const tun = [0, 1].filter((r) => cell(r, c).s === 'tunnel');
+    if (!tun.length) return '';
+    const yb = cy(Math.max(...tun)) + 25;
+    return `<line x1="${x}" y1="${y0}" x2="${x}" y2="${yb}" stroke="${at ? '#ff3b3b' : cell(0, c).pillar === 'pillar' || cell(1, c).pillar === 'pillar' ? '#7ab8ff' : 'rgba(255,255,255,.55)'}" stroke-width="${at ? 3 : 2}" stroke-dasharray="4 4" pointer-events="none" ${at ? 'class="weak"' : ''}/>`;
+  };
+  PLOTS.forEach((p) => { if (S.plots[p.id]) support += supportLine(p.x, 252, p.c, fallingPlot.get(p.id)); });
+  const shownCols = new Set();
+  slotsFor(S.level).forEach((sl, i) => { if (S.temple[i] && sl.wing && !shownCols.has(sl.col)) { shownCols.add(sl.col); support += supportLine(cx(sl.col) + 26, 250, sl.col, fallingWing.get(i)); } });
   const m = S.mole;
   const golden = S.day >= 7 && !S.noticedDays.some((d) => d > S.day - 7);
-  const moleSVG = `<g transform="translate(${cx(m.c) + 26} ${cy(m.r) + 38})" pointer-events="none">${golden ? `<circle cy="-12" r="26" fill="url(#lamp)"/>` : ''}<ellipse cx="0" cy="4" rx="12" ry="9" fill="#5b4636"/><circle cx="0" cy="-6" r="9" fill="#6b5442"/><circle cx="-3.5" cy="-8" r="1.6" fill="#111"/><circle cx="3.5" cy="-8" r="1.6" fill="#111"/><ellipse cx="0" cy="-3" rx="3.2" ry="2.4" fill="#ff9db0"/><path d="M-6 -15 q6 -6 12 0 v3 h-12z" fill="${golden ? 'url(#gold)' : '#f2c94c'}" stroke="${golden ? '#fff3a0' : 'none'}"/><circle cx="0" cy="-15" r="2" fill="#fff8c8"/></g>`;
+  const moleSVG = `<g transform="translate(${cx(m.c) + 26} ${cy(m.r) + 38})" pointer-events="none">${golden ? `<circle cy="-12" r="26" fill="url(#lamp)"/>` : ''}<ellipse cx="0" cy="4" rx="12" ry="9" fill="#5b4636"/><circle cx="0" cy="-6" r="9" fill="#6b5442"/><circle cx="-3.5" cy="-8" r="1.6" fill="#111"/><circle cx="3.5" cy="-8" r="1.6" fill="#111"/><ellipse cx="0" cy="-3" rx="3.2" ry="2.4" fill="#ff9db0"/><path d="M-6 -15 q6 -6 12 0 v3 h-12z" fill="${golden ? 'url(#gold)' : '#f2c94c'}"/><circle cx="0" cy="-15" r="2" fill="#fff8c8"/></g>`;
   scene.innerHTML = DEFS + `
     <rect x="0" y="-200" width="800" height="462" fill="url(#${dusk ? 'skyDusk' : 'sky'})"/>
     <circle cx="690" cy="60" r="34" fill="${dusk ? '#ff9a5a' : '#ffe27a'}" opacity=".9"/>
@@ -486,51 +610,69 @@ function render(fx = {}) {
     <rect x="0" y="250" width="800" height="20" fill="#6fb35a"/>
     <rect x="0" y="262" width="800" height="${ROWS * CH + 400}" fill="#3a2a1d"/>
     ${galleryArt()}
-    <rect x="250" y="226" width="300" height="22" rx="4" fill="url(#marble)" stroke="#cdbb93"/>
-    <text x="400" y="242" text-anchor="middle" font-size="12" font-weight="900" fill="#b8860b" letter-spacing="1.5">✝ JESUS CHRIST · THE FOUNDATION ✝</text>
-    ${templeArt()}
-    <path d="M${cx(ENTRY.c) + 26} 248 V${cy(0)}" stroke="#a9875e" stroke-width="4"/>
-    <g id="mine">${mine}</g><g>${props}</g><g>${items}</g><g pointer-events="none">${flies}</g><g>${marks}</g>${moleSVG}<g id="fx"></g>`;
-  renderHud(fore);
+    <rect x="${FOUND_L}" y="226" width="${FOUND_R - FOUND_L}" height="40" rx="5" fill="url(#marble)" stroke="#cdbb93" stroke-width="2"/>
+    <text x="400" y="242" text-anchor="middle" font-size="11" font-weight="900" fill="#b8860b" letter-spacing="1">✝ JESUS CHRIST</text>
+    <text x="400" y="257" text-anchor="middle" font-size="9" font-weight="900" fill="#b8860b">THE FOUNDATION</text>
+    ${plotsArt(fallingPlot)}
+    ${templeArt(fallingWing)}
+    <path d="M${cx(ENTRY.c) + 26} 266 V${cy(0)}" stroke="#a9875e" stroke-width="4"/>
+    <g id="mine">${mine}</g><g>${props}</g><g>${lensSVG}</g><g>${items}</g><g pointer-events="none">${flies}</g><g>${marks}</g><g>${support}</g>${moleSVG}<g id="fx"></g>`;
+  renderHud(F);
   save();
 }
 
-function templeArt() {
-  const slots = slotsFor(S.level), loose = looseCount();
+function templeArt(fallingWing) {
+  const slots = slotsFor(S.level);
   let s = '<g id="temple">';
   slots.forEach((sl, i) => {
     const t = S.temple[i];
-    if (t) s += `<g class="tstone ${i >= S.temple.length - loose ? 'loose' : ''}" data-ti="${i}" style="animation-delay:${(i % 4) * -.12}s"><use href="#t-${t}" transform="translate(${sl.x} ${sl.y}) scale(${sl.w / 30} ${sl.h / 22})"/></g>`;
+    if (t) s += `<g class="tstone ${fallingWing.has(i) ? 'loose' : ''}" data-ti="${i}" style="animation-delay:${(i % 4) * -.12}s"><use href="#t-${t}" transform="translate(${sl.x} ${sl.y}) scale(${sl.w / 30} ${sl.h / 22})"/>${fallingWing.has(i) ? `<rect x="${sl.x}" y="${sl.y}" width="${sl.w}" height="${sl.h}" fill="none" stroke="#ff3b3b" stroke-width="2"/>` : ''}</g>`;
     else s += `<rect x="${sl.x + .5}" y="${sl.y + .5}" width="${sl.w - 1}" height="${sl.h - 1}" rx="2" fill="rgba(255,255,255,.2)" stroke="#fff" stroke-dasharray="2 2" opacity=".6"/>`;
   });
-  return s + `</g><text x="400" y="${slots.reduce((m, sl) => Math.min(m, sl.y), 999) - 8}" text-anchor="middle" font-size="13" font-weight="900" fill="#fff" stroke="#3b2a10" stroke-width="3" paint-order="stroke">${buildingName(S.level)} · ${S.temple.length}/${slots.length}</text>`;
+  const top = slots.reduce((m, sl) => Math.min(m, sl.y), 999) - 8;
+  return s + `</g><text x="400" y="${top}" text-anchor="middle" font-size="13" font-weight="900" fill="#fff" stroke="#3b2a10" stroke-width="3" paint-order="stroke">${buildingName(S.level)} · ${templeCount()}/${slots.length}</text>`;
+}
+function plotsArt(fallingPlot) {
+  return PLOTS.map((p) => {
+    const rid = S.plots[p.id];
+    if (!rid) return placing && placing.kind === 'building'
+      ? `<g class="plot" data-plot="${p.id}" style="cursor:pointer"><rect x="${p.x - 34}" y="196" width="68" height="56" rx="10" fill="rgba(255,255,255,.35)" stroke="#fff" stroke-width="3" stroke-dasharray="7 5" class="weak"/><text x="${p.x}" y="232" text-anchor="middle" font-size="26">＋</text></g>`
+      : `<g opacity=".35"><rect x="${p.x - 26}" y="238" width="52" height="12" rx="4" fill="#fff" stroke="#fff" stroke-dasharray="4 3"/></g>`;
+    const falling = fallingPlot.has(p.id);
+    return `<g class="bld ${falling ? 'loose' : ''}" data-plot="${p.id}"><rect x="${p.x - 30}" y="240" width="60" height="12" rx="3" fill="#b8b2a6" stroke="#7a756c"/>
+      <text x="${p.x}" y="236" text-anchor="middle" font-size="44">${R[rid].e}</text>
+      <text x="${p.x}" y="190" text-anchor="middle" font-size="11" font-weight="900" fill="#fff" stroke="#3b2a10" stroke-width="3" paint-order="stroke">${R[rid].name}</text>
+      ${falling ? `<rect x="${p.x - 34}" y="196" width="68" height="58" rx="8" fill="none" stroke="#ff3b3b" stroke-width="3"/>` : ''}</g>`;
+  }).join('');
 }
 function galleryArt() {
-  return S.gallery.slice(-6).map((name, i) => `<g transform="translate(${i < 3 ? 60 + i * 62 : 560 + (i - 3) * 62} 196) scale(.85)"><rect x="-26" y="10" width="52" height="34" rx="4" fill="url(#gold)" stroke="#8f6206"/><polygon points="-30,10 0,-12 30,10" fill="url(#gold)" stroke="#8f6206"/><text y="58" text-anchor="middle" font-size="10" font-weight="900" fill="#3b2a10">${name}</text></g>`).join('');
+  return S.gallery.slice(-2).map((name, i) => `<g transform="translate(${i ? 760 : 40} 150) scale(.7)"><rect x="-26" y="10" width="52" height="34" rx="4" fill="url(#gold)" stroke="#8f6206"/><polygon points="-30,10 0,-12 30,10" fill="url(#gold)" stroke="#8f6206"/><text y="58" text-anchor="middle" font-size="12" font-weight="900" fill="#3b2a10">${name}</text></g>`).join('');
 }
 
-function renderHud(fore) {
+function renderHud(F) {
   document.getElementById('whoChip').innerHTML = `<span class="av">${kid.av}</span><span>${kid.name}<small>Day ${S.day}</small></span>`;
   const n = S.swings;
   document.getElementById('picks').innerHTML = n ? `${'⛏'.repeat(Math.min(n, 6))}${n > 6 ? `<small style="display:inline;margin-left:4px">+${n - 6}</small>` : ''}` : '<small style="font-size:15px">⛏ do good things to get swings</small>';
-  const wob = rotCount(), loose = looseCount();
+  const ch = S.chest, gems = TREASURE.reduce((a, t) => a + ch[t], 0);
+  document.getElementById('chestBtn').innerHTML = `🧰 <b>${gems}</b><small>🪨 ${ch.stone}${ch.hands ? ` · 🙌 ${ch.hands}` : ''}</small>`;
+  const risk = F.wingFall.length + F.plotFall.length;
   const w = document.getElementById('warn');
-  w.classList.toggle('show', wob > 0);
-  w.innerHTML = `🪰 wobbly props${loose ? ' · 🏛 loose stones' : ''} · make it right with a grown-up`;
+  w.classList.toggle('show', rotCount() > 0);
+  w.innerHTML = `🪰 wobbly props${risk ? ` · ⚠️ ${F.plotFall.length ? F.plotFall.map((p) => R[S.plots[p.id]].e).join('') + ' ' : ''}${F.wingFall.length ? `${F.wingFall.length} temple stone${F.wingFall.length === 1 ? '' : 's'} ` : ''}will fall in` : ''}`;
   document.getElementById('speakBtn').textContent = S.readAloud ? '🔊' : '🔈';
+  document.getElementById('lensBtn').classList.toggle('on', lens);
   // Grown-ups drawer
-  let buried = 0, waiting = 0;
-  const lostKeys = new Set([...fore.burnt.keys(), ...fore.lost]);
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) { const k = cell(r, c); if (k.pile && k.s === 'tunnel') { waiting++; if (lostKeys.has(`${r},${c}`)) buried++; } }
+  let buried = 0;
+  for (const k2 of F.down) { const [r, c] = unkey(k2); if (cell(r, c).pile) buried++; }
   document.getElementById('drawerKid').textContent = `${kid.av} ${kid.name}’s mine · depth ${deepest() * 3} m`;
   document.getElementById('forecast').innerHTML = `
-    <div class="line ${fore.burnt.size ? 'red' : 'green'}">${fore.burnt.size} wobbly props burn</div>
-    <div class="line ${fore.lost.length ? 'red' : 'green'}">${fore.lost.length} more tunnels behind them cave in</div>
-    <div class="line ${buried ? 'red' : 'green'}">${buried} unsent gems would be buried</div>
-    <div class="line ${loose ? 'red' : 'green'}">${loose} temple stones would fall</div>
-    <div class="note">Owned-up props only cave in their own spot. Props a grown-up noticed also take up to 3 tunnels behind them.</div>`;
+    <div class="line ${F.burnt.length ? 'red' : 'green'}">${F.burnt.length} wobbly props burn${F.quenched ? ' (🛡️ shield saves 1)' : ''}</div>
+    <div class="line ${F.down.size ? 'red' : 'green'}">${F.down.size} tunnels cave in</div>
+    <div class="line ${risk ? 'red' : 'green'}">${F.plotFall.length} buildings and ${F.wingFall.length} temple stones fall in</div>
+    <div class="line ${buried ? 'red' : 'green'}">${buried} gems in the mine get buried</div>
+    <div class="note">Owned-up props only cave in their own tunnel. Props a grown-up noticed also take up to 3 tunnels behind them. Golden pillars hold what stands above them.</div>`;
   const slots = slotsFor(S.level);
-  document.getElementById('templeInfo').innerHTML = `<div class="line">${buildingName(S.level)}: ${S.temple.length} of ${slots.length}</div><div class="note">${waiting} found gems waiting in the mine${S.gallery.length ? ` · finished: ${S.gallery.join(', ')}` : ''}</div>`;
+  document.getElementById('templeInfo').innerHTML = `<div class="line">${buildingName(S.level)}: ${templeCount()} of ${slots.length}</div><div class="note">Buildings: ${Object.values(S.plots).map((r) => R[r].e).join(' ') || 'none yet'}${S.gallery.length ? ` · finished: ${S.gallery.join(', ')}` : ''}</div>`;
   const total = Object.values(S.logs[S.day] || {}).reduce((a, b) => a + b, 0);
   document.getElementById('todayInfo').textContent = `${total} of ${DAILY_LOGS} gem-earning good things logged today (each card counts twice a day at most).`;
 }
@@ -580,11 +722,12 @@ function caption(html, ms = 2600, cls = '') {
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 function particle(tag, attrs, cls, ms, style = {}) {
   const fx = document.getElementById('fx');
-  if (!fx) return;
+  if (!fx) return document.createElementNS('http://www.w3.org/2000/svg', 'g');
   const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
   for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
   e.setAttribute('class', cls); Object.assign(e.style, style);
   fx.appendChild(e); setTimeout(() => e.remove(), ms);
+  return e;
 }
 
 // Big jump-out in the middle of the screen.
@@ -660,18 +803,22 @@ function holdable(el, ms, onDone) {
   el.addEventListener('pointerup', stop); el.addEventListener('pointerleave', stop); el.addEventListener('pointercancel', stop);
 }
 
+
+
 // ---------- logging ----------
 const ov = (id, on) => document.getElementById(id).classList.toggle('show', on);
 let pickList = null, pickIdx = -1;
 function openCards(kind) {
   if (busy) return;
+  placing = null;
   pickList = kind === 'good' ? GOOD : SORRY; pickIdx = -1;
   document.getElementById('cardsTitle').textContent = kind === 'good' ? '⭐ What good thing did you do?' : '💛 What do you need to say sorry for?';
-  document.getElementById('cardsSub').textContent = kind === 'good' ? 'Tap one to hear it. Then tap “Yes, this one!”' : 'Thank you for being honest. Tap one to hear it.';
+  document.getElementById('cardsSub').textContent = kind === 'good' ? 'Tap one to hear it. Then tap “Yes, this one!”' : 'Thank you for being honest.';
   const logs = S.logs[S.day] || {};
   document.getElementById('cardGrid').innerHTML = pickList.map((a, i) => {
     const used = kind === 'good' && (logs[a.t] || 0) >= PER_CARD;
-    return `<button class="tile ${kind === 'good' ? 'g' : 'b'} ${used ? 'done' : ''}" data-i="${i}"><span class="e">${a.e}</span>${a.t}${used ? '<small>done twice today</small>' : ''}</button>`;
+    const tag = kind === 'good' ? (a.gem === 'hand' ? '🙌 helping hand' : a.gem === 'pearl' ? '⚪ pearl' : a.gem === 'gold' ? '🟨 gold' : `💎 ${GEMS[a.gem][0]}`) : '';
+    return `<button class="tile ${kind === 'good' ? 'g' : 'b'} ${used ? 'done' : ''}" data-i="${i}"><span class="e">${a.e}</span>${a.t}<small>${used ? 'done twice today' : tag}</small></button>`;
   }).join('');
   document.getElementById('cardsOk').disabled = true;
   ov('cardsOv', true);
@@ -726,7 +873,7 @@ function seedGem(gem, emoji, size) {
   const m = S.mole, opts = [];
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     const k = cell(r, c);
-    if (k.s === 'tunnel' || !diggable(r, c) || k.earned || k.pile) continue;
+    if (k.s !== 'rock' || !diggable(r, c) || k.earned || k.pile) continue;
     opts.push({ r, c, d: Math.abs(r - m.r) + Math.abs(c - m.c), dirt: k.content === 'dirt' });
   }
   if (!opts.length) return null;
@@ -736,23 +883,24 @@ function seedGem(gem, emoji, size) {
   Object.assign(cell(spot.r, spot.c), { content: gem, earned: emoji, soft: true, size });
   return spot;
 }
+function fruitOfDay() { const ids = ['gold', ...GEM_IDS]; return ids[todayNum() % ids.length]; }
 async function logGood(a, n) {
   busy = true;
   const logs = S.logs[S.day] = S.logs[S.day] || {};
-  const total = Object.values(logs).reduce((x, y) => x + y, 0);
-  if (total >= DAILY_LOGS || (logs[a.t] || 0) >= PER_CARD) {
-    caption(`${a.e} Noticed! 💛<em>You’ve found all your gems for today. Keep being kind anyway!</em>`, 3200, 'love');
-    busy = false; return;
-  }
   logs[a.t] = (logs[a.t] || 0) + 1;
   S.swings += n;
-  const fod = a.gem === fruitOfDay(); // today's fruit grows one size bigger
+  if (a.gem === 'hand') {
+    S.chest.hands++;
+    render();
+    chime([523, 784, 1047]);
+    caption(`🙌 A helping hand! +${n} ⛏<em>Helping hands clear the big boulders when something falls in.</em>`, 3200, 'joy');
+    busy = false; return;
+  }
+  const fod = a.gem === fruitOfDay();
   const size = Math.min(5, n + (fod ? 1 : 0));
   const spot = seedGem(a.gem, a.e, size);
-  if (n >= 4) seedGem('gold', '✨', 3); // big acts hide a bonus gold nugget too
-  const name = a.gem === 'gold' ? 'Gold' : GEMS[a.gem][0], fruit = a.gem === 'gold' ? 'Prayer' : GEMS[a.gem][1];
-  chime([523, 659, 784, 1047]);
-  // Quick planting: a mystery silhouette pops up and flies into the rock. The full colour is saved for the dig.
+  if (n >= 4) seedGem('gold', '✨', 3);
+  const fruit = a.gem === 'gold' ? 'Prayer' : a.gem === 'pearl' ? 'Forgiveness' : GEMS[a.gem][1];
   render();
   if (spot) aim(spot.r);
   await wait(350);
@@ -763,18 +911,18 @@ async function logGood(a, n) {
     document.getElementById('fx').insertAdjacentHTML('beforeend', sil);
     await wait(1100);
     document.getElementById('fx').lastElementChild?.remove();
-    chime([1200], 'sine'); thud();
+    chime([1200]); thud();
     scene.querySelector(`.cell[data-r="${spot.r}"][data-c="${spot.c}"]`)?.classList.add('shake');
   }
   busy = false;
 }
 // A sorry thing puts wobbly props in, starting where the mole is.
 function placeRot(prop, how) {
-  const seen = new Set([`${S.mole.r},${S.mole.c}`]), q = [[S.mole.r, S.mole.c]];
+  const seen = new Set([key(S.mole.r, S.mole.c)]), q = [[S.mole.r, S.mole.c]];
   while (q.length) {
     const [r, c] = q.shift(), k = cell(r, c);
     if (k.s === 'tunnel' && !k.entry && k.prop === 'stone') { k.prop = prop; k.how = how; return [r, c]; }
-    for (const [a, b] of around(r, c)) { const key = `${a},${b}`; if (!seen.has(key) && cell(a, b).s === 'tunnel') { seen.add(key); q.push([a, b]); } }
+    for (const [a, b] of around(r, c)) { const k2 = key(a, b); if (!seen.has(k2) && cell(a, b).s === 'tunnel') { seen.add(k2); q.push([a, b]); } }
   }
   return null;
 }
@@ -786,25 +934,13 @@ async function logSorry(a, n, how) {
   chime(how === 'owned' ? [440, 523] : [220, 180]);
   const flyArt = `<use href="#p-${a.prop}" transform="translate(-26 -25)"/><g transform="translate(0 -10)"><g><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="1.2s" repeatCount="indefinite"/><g transform="translate(18 0)"><use href="#fly"/></g></g></g>`;
   const head = how === 'owned' ? '💛 Thank you for being honest.' : '👀 A grown-up noticed.';
-  const body = made
-    ? `${made} wobbly ${PROP_WORD[a.prop]} prop${made === 1 ? '' : 's'} went in near you. ${how === 'owned' ? 'Only that spot is at risk.' : 'The tunnels behind it are at risk too.'} Say sorry and make it right before Sunday!`
-    : 'Dig some tunnels first.';
+  const body = made ? `${made} wobbly ${PROP_WORD[a.prop]} prop${made === 1 ? '' : 's'} went in near you. If something is built above, it will wobble. Make it right before the fire!` : 'Dig some tunnels first.';
   await bigReveal(flyArt, 1, `${head}<small>${body}</small>`, null, { soft: true, ms: 3600 });
   render();
   busy = false;
 }
 
-// Fruit of the Day: the same for everyone each day; that fruit's gems grow one size bigger.
-function fruitOfDay() { const ids = ['gold', ...GEM_IDS]; return ids[todayNum() % ids.length]; }
-async function firstOpen() {
-  if (S.lastOpen === S.day) return;
-  S.lastOpen = S.day; save();
-  const f = fruitOfDay(), name = f === 'gold' ? 'Prayer' : GEMS[f][1];
-  dusk = true; render(); await wait(300); dusk = false; render();
-  await bigReveal(art(f), 2, `🌅 Good morning, ${kid.name}!<small>Today’s Fruit of the Day is <b>${name}</b>. Those gems grow bigger today!</small>`, null, { ms: 3600 });
-}
-
-// Drag to look around the mine (a drag is never a tap).
+// ---------- digging (tap to aim, tap again to swing) ----------
 let drag = null, dragged = false;
 scene.addEventListener('pointerdown', (e) => { drag = { y: e.clientY, cam: cam.ty }; dragged = false; });
 addEventListener('pointermove', (e) => {
@@ -815,18 +951,25 @@ addEventListener('pointermove', (e) => {
 });
 addEventListener('pointerup', () => { drag = null; });
 
-// ---------- digging (tap to aim, tap again to swing) ----------
 scene.addEventListener('click', (e) => {
   if (busy || dragged) return;
+  const plot = e.target.closest('[data-plot]');
+  if (plot) return tapPlot(plot.dataset.plot);
   const g = e.target.closest('.cell'); if (!g) return;
-  const r = Number(g.dataset.r), c = Number(g.dataset.c), k = cell(r, c), key = `${r},${c}`;
+  const r = Number(g.dataset.r), c = Number(g.dataset.c), k = cell(r, c), kk = key(r, c);
   if (makingRight) return fixProp(r, c);
-  if (k.s === 'tunnel' && k.pile) return sendUp(r, c);
-  if (k.s === 'tunnel') { if (BURNS.includes(k.prop)) caption(`🪰 A wobbly ${PROP_WORD[k.prop]} prop. It will burn at the fire. Make it right with a grown-up.`, 3200, 'danger'); return; }
+  if (placing && placing.kind === 'reinforce') return placeReinforce(r, c);
+  if (k.s === 'tunnel' && k.pile) return collect(r, c);
+  if (k.s === 'tunnel') {
+    if (BURNS.includes(k.prop)) caption(`🪰 A wobbly ${PROP_WORD[k.prop]} prop. At the fire it burns and this tunnel caves in. Make it right with a grown-up, or put a pillar here.`, 3600, 'danger');
+    else if (k.pillar) caption(k.pillar === 'pillar' ? '🏛️ A golden pillar. It holds up whatever stands above it.' : '🧱 A stone brace. Cave-ins can’t spread past it.', 2600, 'joy');
+    return;
+  }
   if (!diggable(r, c)) return caption('Dig next to a tunnel.', 1600);
+  if (k.boulder && S.chest.hands < 1) return caption(`🙌 This boulder needs a helping hand. Do an extra chore, then log it!`, 3200, 'love');
   if (S.swings <= 0) return caption('⛏ No swings left. Do something good to get more!', 2400);
   const nextToMole = around(r, c).some(([a, b]) => a === S.mole.r && b === S.mole.c);
-  if (selected !== key && !nextToMole) { selected = key; S.mole = nearestTunnel(r, c); render(); chime([500]); return; }
+  if (selected !== kk && !nextToMole) { selected = kk; S.mole = nearestTunnel(r, c); render(); chime([500]); return; }
   swing(r, c);
 });
 function nearestTunnel(r, c) { for (const [a, b] of around(r, c)) if (cell(a, b).s === 'tunnel') return { r: a, c: b }; return S.mole; }
@@ -843,49 +986,120 @@ function swing(r, c) {
     if (S.swings === 0) caption(`Crack! ${need - k.hits} more swing${need - k.hits === 1 ? '' : 's'} next time.`, 2200);
     return;
   }
+  const wasRubble = k.s === 'rubble', boulder = k.boulder;
+  if (boulder) S.chest.hands--;
   const found = k.pile || (k.content !== 'dirt' ? (k.content === 'geode' ? geodeGem(r) : k.content) : null);
   const size = k.size || 2, earned = k.earned;
-  Object.assign(k, { s: 'tunnel', prop: 'stone', content: 'dirt', hits: 0, earned: null, soft: false, size: 0, pile: found, order: ++S.order });
+  Object.assign(k, { s: 'tunnel', prop: 'stone', content: 'dirt', hits: 0, earned: null, soft: false, size: 0, pile: found, boulder: null, order: ++S.order });
+  S.chest.stone++; // every rock gives a stone block
   selected = null; S.mole = { r, c }; aim(r);
-  render({ found: found ? `${r},${c}` : null });
+  render();
   scene.classList.remove('bigshake'); void scene.getBoundingClientRect(); scene.classList.add('bigshake');
-  for (let i = 0; i < 10; i++) particle('rect', { x: cx(c) + 22, y: cy(r) + 22, width: 6, height: 5, fill: '#8a6a4c' }, 'shard', 800,
-    { '--sx': `${(Math.random() * 90 - 45).toFixed(0)}px`, '--sy': `${(Math.random() * 70 - 45).toFixed(0)}px` });
+  for (let i = 0; i < 10; i++) particle('rect', { x: cx(c) + 22, y: cy(r) + 22, width: 6, height: 5, fill: '#8a6a4c' }, 'shard', 800, { '--sx': `${(Math.random() * 90 - 45).toFixed(0)}px`, '--sy': `${(Math.random() * 70 - 45).toFixed(0)}px` });
+  particle('text', { x: cx(c) + 30, y: cy(r) + 10, 'font-size': 16, 'font-weight': 900, fill: '#fff' }, 'spark-up', 1200).textContent = '+1 🪨';
+  if (boulder) {
+    for (const [t, n] of Object.entries(boulder.gems)) S.chest[t] = (S.chest[t] || 0) + n;
+    S.ruined[boulder.rid] = true;
+    render();
+    chime([523, 659, 784, 1047, 1319]);
+    busy = true;
+    bigReveal(`<text y="12" text-anchor="middle" font-size="34">${R[boulder.rid].e}</text>`, 1, `🆘 Rescued!<small>All the gems from your ${R[boulder.rid].name} are back in your chest. Rebuild it for just ${rebuildCost(boulder.rid).stone} stone!</small>`, screenOf(r, c), { ms: 4200, rainbow: true })
+      .then(() => { busy = false; });
+    return;
+  }
   if (!found) { chime([330]); return; }
   chime(found === 'gold' ? [660, 880, 1100] : [660, 880, 1100, 1320, 1760]);
-  const label = found === 'gold' ? `🟨 Gold!<small>${earned ? 'From your prayer' : 'A gold nugget'}</small>`
+  const flawless = size >= 5 && !wasRubble;
+  const label = wasRubble ? `🆘 Rescued!<small>Your ${tname(found).toLowerCase()} came through the fire and shines brighter!</small>`
+    : found === 'gold' ? `🟨 Gold!<small>${earned ? 'From your prayer' : 'A gold nugget'}</small>`
     : found === 'pearl' ? '⚪ A pearl!<small>Pearls grow where something hurt</small>'
-    : `💎 ${size >= 4 ? 'Huge ' : ''}${GEMS[found][0]}!<small>${GEMS[found][1]}${earned ? ` · from “${earned}”` : ' · from a mystery geode!'}</small>`;
+    : `${flawless ? '🌈 Flawless ' : '💎 '}${size >= 4 ? 'Huge ' : ''}${GEMS[found][0]}!<small>${GEMS[found][1]}${earned ? ` · from “${earned}”` : ' · from a mystery geode!'}</small>`;
   busy = true;
-  const flawless = size >= 5;
-  bigReveal(art(found), 1.5 + size * 0.25, flawless ? label.replace('💎 ', '🌈 Flawless ') : label, screenOf(r, c), { hint: '👆 tap to send it to your temple!', rainbow: flawless, ms: 4000 })
-    .then(() => { busy = false; sendUp(r, c); });
+  bigReveal(art(found), 1.5 + size * 0.25, label, screenOf(r, c), { hint: '👆 tap to put it in your treasure chest!', rainbow: flawless || wasRubble, ms: 4000 })
+    .then(() => { busy = false; collect(r, c); });
 }
-// Mystery geodes hold a random gem (rarer ones deeper down) or gold.
 function geodeGem(r) { return Math.random() < 0.3 ? 'gold' : GEM_IDS[Math.floor(Math.random() * Math.min(GEM_IDS.length, 3 + Math.floor(r / 3)))]; }
 
-// ---------- the temple ----------
-async function sendUp(r, c) {
-  const k = cell(r, c), slots = slotsFor(S.level);
-  if (!k.pile) return;
-  if (S.temple.length >= slots.length) await finishBuilding();
-  return sendUpNow(r, c);
-}
-async function sendUpNow(r, c) {
-  const k = cell(r, c), slots = slotsFor(S.level);
+// Found treasure flies up into the treasure chest.
+function collect(r, c) {
+  const k = cell(r, c); if (!k.pile) return;
   const t = k.pile; k.pile = null;
-  const sl = slots[S.temple.length];
+  S.chest[t] = (S.chest[t] || 0) + 1;
+  const b = document.getElementById('chestBtn').getBoundingClientRect();
+  const pt = scene.createSVGPoint(); pt.x = b.left + b.width / 2; pt.y = b.top + b.height / 2;
+  const p = pt.matrixTransform(scene.getScreenCTM().inverse());
   render();
-  cam.ty = 0;
-  particle('use', { href: art(t), x: cx(c) + 26, y: cy(r) + 30 }, 'fly-up', 950, { '--tx': `${sl.x + sl.w / 2 - cx(c) - 26}px`, '--ty': `${sl.y + sl.h / 2 - cy(r) - 30}px` });
+  particle('use', { href: art(t), x: cx(c) + 26, y: cy(r) + 30 }, 'fly-up', 950, { '--tx': `${p.x - cx(c) - 26}px`, '--ty': `${p.y - cy(r) - 30}px` });
   chime([880, 1320]);
-  await wait(950);
-  S.temple.push(t);
+  const btn = document.getElementById('chestBtn'); btn.classList.remove('pulse'); void btn.offsetWidth; btn.classList.add('pulse');
+}
+
+// ---------- treasure chest, temple and recipe book ----------
+const has = (cost) => Object.entries(cost).every(([t, n]) => (S.chest[t] || 0) >= n);
+const pay = (cost) => Object.entries(cost).forEach(([t, n]) => { S.chest[t] -= n; });
+function rebuildCost(rid) { return { stone: Math.max(2, R[rid].cost.stone || 0) }; }
+const costOf = (rid) => (S.ruined[rid] && R[rid].kind === 'building' ? rebuildCost(rid) : R[rid].cost);
+const costHTML = (cost) => Object.entries(cost).map(([t, n]) => `<span class="ing ${(S.chest[t] || 0) >= n ? 'ok' : ''}">${ticon(t, 22)}×${n}</span>`).join('');
+let tradeGive = null;
+function openChest() {
+  if (busy) return;
+  const ch = S.chest;
+  document.getElementById('chestGems').innerHTML = TREASURE.map((t) => `<button class="gemtile ${ch[t] ? '' : 'none'}" data-gem="${t}">${ticon(t, 34)}<b>${ch[t]}</b><small>${t === 'gold' ? 'Prayer' : t === 'pearl' ? 'Forgiveness' : GEMS[t][1]}</small></button>`).join('')
+    + `<div class="gemtile none">🪨<b>${ch.stone}</b><small>Stone</small></div><div class="gemtile none">🙌<b>${ch.hands}</b><small>Helping hands</small></div>`;
+  document.getElementById('recipes').innerHTML = RECIPES.map((rc) => {
+    const cost = costOf(rc.id), can = has(cost);
+    const built = rc.kind === 'building' && Object.values(S.plots).includes(rc.id);
+    const shieldFull = rc.id === 'shield' && S.shield;
+    return `<div class="recipe ${can && !built && !shieldFull ? 'can' : ''}"><div class="re">${rc.e}</div><div class="rbody"><b>${rc.name}</b>${S.ruined[rc.id] && rc.kind === 'building' ? ' <small>(rebuild)</small>' : ''}<div class="rdoes">${rc.does}</div><div class="rcost">${costHTML(cost)}</div><div class="rverse">${rc.verse}</div></div>
+      <button class="btn yes" data-build="${rc.id}" ${!can || built || shieldFull ? 'disabled' : ''}>${built ? 'Built ✓' : shieldFull ? 'Holding 🛡️' : 'Build'}</button></div>`;
+  }).join('');
+  document.getElementById('tradeRow').innerHTML = tradeGive
+    ? `<span>Swap 3 ${ticon(tradeGive, 22)} for 1:</span>` + TREASURE.filter((t) => t !== tradeGive && t !== 'pearl').map((t) => `<button class="gemmini" data-get="${t}">${ticon(t, 26)}</button>`).join('') + '<button class="gemmini" data-get="">✕</button>'
+    : `<span>Market: tap a gem you have 3 of, then “Swap”.</span>`;
+  ov('chestOv', true);
+}
+let chestSel = null;
+document.getElementById('chestOv').addEventListener('click', async (e) => {
+  const g = e.target.closest('[data-gem]'), b = e.target.closest('[data-build]'), get = e.target.closest('[data-get]');
+  if (g) {
+    chestSel = g.dataset.gem;
+    if (!S.chest[chestSel]) return;
+    document.querySelectorAll('#chestGems .gemtile').forEach((x) => x.classList.toggle('sel', x === g));
+    document.getElementById('chestActions').innerHTML = `<button class="btn yes" data-act="temple">🏛 Put it in my temple <small>(+1 🪨)</small></button>${S.chest[chestSel] >= 3 && chestSel !== 'pearl' ? '<button class="btn no" data-act="swap">🔄 Swap 3 for 1</button>' : ''}`;
+    speak(`${tname(chestSel)}. You have ${S.chest[chestSel]}.`);
+    return;
+  }
+  const act = e.target.closest('[data-act]');
+  if (act?.dataset.act === 'temple') return addToTemple(chestSel);
+  if (act?.dataset.act === 'swap') { tradeGive = chestSel; openChest(); return; }
+  if (get) {
+    if (get.dataset.get && S.chest[tradeGive] >= 3) { S.chest[tradeGive] -= 3; S.chest[get.dataset.get]++; chime([660, 990]); caption(`🔄 Swapped 3 ${tname(tradeGive)} for 1 ${tname(get.dataset.get)}.`, 2400, 'joy'); }
+    tradeGive = null; render(); openChest(); return;
+  }
+  if (b) return startBuild(b.dataset.build);
+});
+document.getElementById('chestClose').onclick = () => { ov('chestOv', false); chestSel = null; tradeGive = null; document.getElementById('chestActions').innerHTML = ''; };
+
+async function addToTemple(t) {
+  if (!t || !S.chest[t]) return;
+  if (S.chest.stone < 1) return caption('You need 1 🪨 stone to set it. Dig some rock!', 2400);
+  const slots = slotsFor(S.level);
+  let i = S.temple.findIndex((x, j) => !x && j < slots.length);
+  if (i < 0) i = S.temple.length;
+  if (i >= slots.length) { await finishBuilding(); return; }
+  S.chest[t]--; S.chest.stone--;
+  ov('chestOv', false); document.getElementById('chestActions').innerHTML = '';
+  cam.ty = 0;
+  const sl = slots[i];
   render();
-  scene.querySelector(`.tstone[data-ti="${S.temple.length - 1}"]`)?.classList.add('land');
+  particle('use', { href: art(t), x: 400, y: cam.y + 60 }, 'fly-up', 900, { '--tx': `${sl.x + sl.w / 2 - 400}px`, '--ty': `${sl.y + sl.h / 2 - cam.y - 60}px` });
+  await wait(900);
+  S.temple[i] = t;
+  render();
+  scene.querySelector(`.tstone[data-ti="${i}"]`)?.classList.add('land');
   chime([1760, 2640], 'triangle');
-  setTimeout(() => aim(S.mole.r), 900);
-  if (S.temple.length >= slots.length) { await wait(500); await finishBuilding(); }
+  if (sl.wing) caption('🏛 That stone is out on the wing, over the mine. Keep the props under it strong!', 3200, 'joy');
+  if (templeCount() >= slots.length) { await wait(600); await finishBuilding(); }
 }
 function confetti() {
   const cols = Object.values(GEMS).map((g) => g[3]);
@@ -907,6 +1121,43 @@ async function finishBuilding() {
   render();
 }
 
+function startBuild(rid) {
+  const rc = R[rid], cost = costOf(rid);
+  if (!has(cost)) return;
+  if (rc.kind === 'once') { pay(cost); S.shield = 1; ov('chestOv', false); render(); chime([660, 880, 1320]); caption('🛡️ Shield of Faith ready! The next fire skips one wobbly prop.', 3200, 'joy'); return; }
+  placing = { rid, kind: rc.kind };
+  ov('chestOv', false);
+  cam.ty = rc.kind === 'building' ? 0 : cam.ty;
+  render();
+  caption(rc.kind === 'building' ? `${rc.e} Tap a ＋ spot on the hill to build your ${rc.name}.<em>Look under it: wobbly props there could make it fall in.</em>` : `${rc.e} Tap a tunnel to put your ${rc.name} there.${rid === 'pillar' ? '<em>Put it in the top two rows under a building to hold it up.</em>' : ''}`, 0, 'joy');
+}
+function tapPlot(id) {
+  if (!placing || placing.kind !== 'building') {
+    const rid = S.plots[id];
+    if (rid) caption(`${R[rid].e} ${R[rid].name}: ${R[rid].does}`, 3000, 'joy');
+    return;
+  }
+  if (S.plots[id]) return;
+  const rid = placing.rid;
+  pay(costOf(rid)); delete S.ruined[rid];
+  S.plots[id] = rid; placing = null;
+  render();
+  confetti(); chime([523, 659, 784, 1047]);
+  scene.querySelector(`.bld[data-plot="${id}"]`)?.classList.add('land');
+  caption(`${R[rid].e} You built a ${R[rid].name}!<em>${R[rid].does}</em>`, 3600, 'joy');
+}
+function placeReinforce(r, c) {
+  const k = cell(r, c);
+  if (k.s !== 'tunnel' || k.pillar) { caption('Tap a tunnel (a dug-out space).', 2000); return; }
+  const rid = placing.rid;
+  pay(R[rid].cost);
+  k.pillar = rid; placing = null;
+  render();
+  thud(); chime([880, 1320]);
+  for (let i = 0; i < 6; i++) particle('circle', { cx: cx(c) + 26, cy: cy(r) + 46, r: 5, fill: '#cbb89a' }, 'dust', 900, { '--sx': `${(Math.random() * 50 - 25).toFixed(0)}px`, '--sy': `${(Math.random() * -20).toFixed(0)}px` });
+  caption(rid === 'pillar' ? '🏛️ Golden pillar in! Whatever stands above it will hold.' : '🧱 Stone brace in! Cave-ins stop here.', 2800, 'joy');
+}
+
 // ---------- grown-ups: make it right, the fire, days ----------
 function fixProp(r, c) {
   const k = cell(r, c);
@@ -916,9 +1167,9 @@ function fixProp(r, c) {
   let pearl = false;
   if (S.pearlDay !== S.day && !k.pile) { k.pile = 'pearl'; S.pearlDay = S.day; pearl = true; }
   makingRight = false;
-  render({ found: `${r},${c}` });
+  render();
   chime([523, 659, 784, 1047]);
-  caption(`🫂 Made it right! The ${PROP_WORD[was]} became stone${pearl ? ', and a pearl appeared' : ''}.`, 3200, 'love');
+  caption(`🫂 Made it right! The ${PROP_WORD[was]} became stone${pearl ? ', and a pearl appeared' : ''}. Pearls grow where something hurt.`, 3400, 'love');
 }
 holdable(document.getElementById('rightBtn'), 800, () => {
   if (!rotCount()) return caption('No wobbly props to fix. 👍', 2200, 'joy');
@@ -928,87 +1179,110 @@ holdable(document.getElementById('rightBtn'), 800, () => {
 });
 holdable(document.getElementById('fireBtn'), 1200, () => { document.getElementById('drawer').classList.remove('show'); fire(); });
 
+// The fire: a fuse runs through the tunnels. Pillars and braces fizzle it, the shield quenches one prop, rotten props flare.
+// Then tunnels cave in one by one, and anything standing on them tilts, hangs, and slides down into the hole.
 async function fire() {
   if (busy) return;
-  busy = true;
+  busy = true; placing = null; selected = null;
+  const F = forecast();
   dusk = true; render(); cam.ty = 0;
   chime([196, 247, 294]);
   caption('🔥 The fire shows what lasts.<em>Jesus is the foundation. He is safe, and so are you. (1 Corinthians 3)</em>', 0);
-  await wait(1500);
-  const dist = { [`${ENTRY.r},${ENTRY.c}`]: 0 }, q = [[ENTRY.r, ENTRY.c, 0]];
-  while (q.length) { const [r, c, d] = q.shift(); for (const [a, b] of around(r, c)) { const key = `${a},${b}`; if (key in dist || cell(a, b).s !== 'tunnel') continue; dist[key] = d + 1; q.push([a, b, d + 1]); } }
-  const deepRow = Math.max(...Object.keys(dist).map((k) => Number(k.split(',')[0])));
-  aim(Math.min(deepRow, 6));
-  for (const [key, d] of Object.entries(dist)) {
-    const [r, c] = key.split(',').map(Number), k = cell(r, c);
+  await wait(1600);
+  const fx = () => document.getElementById('fx');
+  const step = 170;
+  let maxD = 0;
+  for (const k2 of F.route.order) {
+    const d = F.route.dist[k2]; maxD = Math.max(maxD, d);
+    const [r, c] = unkey(k2), k = cell(r, c), p = F.route.parent[k2];
     setTimeout(() => {
-      particle('use', { href: '#flame', x: cx(c) + 11, y: cy(r) + 16 }, 'flame', BURNS.includes(k.prop) ? 1300 : 600);
-      if (BURNS.includes(k.prop)) scene.querySelector(`use[data-prop="${key}"]`)?.classList.add('char');
-    }, 300 + d * 130);
+      if (p) { const [r1, c1] = unkey(p); particle('line', { x1: cx(c1) + 26, y1: cy(r1) + 28, x2: cx(c) + 26, y2: cy(r) + 28, stroke: '#ffb02e', 'stroke-width': 7, 'stroke-linecap': 'round' }, 'fuseburn', 2600); }
+      particle('use', { href: '#flame', x: cx(c) + 11, y: cy(r) + 16 }, 'flame', BURNS.includes(k.prop) ? 1500 : 500);
+      if (k.pillar) { particle('circle', { cx: cx(c) + 26, cy: cy(r) + 25, r: 24, fill: 'none', stroke: '#7ab8ff', 'stroke-width': 5 }, 'beacon', 900); chime([1760, 2200], 'triangle'); }
+      if (F.quenched === k2) { particle('circle', { cx: cx(c) + 26, cy: cy(r) + 25, r: 26, fill: 'rgba(122,184,255,.4)', stroke: '#fff', 'stroke-width': 3 }, 'beacon', 1200); chime([1320, 1760, 2200]); }
+      else if (BURNS.includes(k.prop)) {
+        scene.querySelector(`use[data-prop="${k2}"]`)?.classList.add('char');
+        chime([180, 120], 'sawtooth'); if (r > 4) aim(r);
+      } else if (k.prop === 'stone') chime([1760]);
+    }, 300 + d * step);
   }
-  await wait(900 + Math.max(...Object.values(dist)) * 130 + 900);
-  cam.ty = 0;
-  document.getElementById('temple')?.classList.add('refine');
-  caption('✨ Gold and precious stones: refined!', 0, 'joy');
-  chime([660, 880, 1100, 1320]);
-  await wait(1800);
-  const loosen = looseCount();
-  const { burnt, lost } = caveInSet();
-  const fallen = new Set([...burnt.keys(), ...lost]);
+  await wait(300 + maxD * step + 1200);
+  // Cave-ins, one tunnel at a time.
+  const caveOrder = F.route.order.filter((k2) => F.down.has(k2));
+  for (const k2 of [...F.down]) if (!caveOrder.includes(k2)) caveOrder.push(k2);
   let buried = 0;
-  for (const key of fallen) { const [r, c] = key.split(',').map(Number), k = cell(r, c); if (k.pile) buried++; Object.assign(k, { s: 'rubble', prop: null, how: null }); }
-  if (fallen.has(`${S.mole.r},${S.mole.c}`)) S.mole = { ...ENTRY };
-  let dropped = 0;
-  if (loosen) {
-    caption('🏛 Too many wobbly props under the temple… the top stones are falling!', 0, 'danger');
-    await wait(1200);
-    [...scene.querySelectorAll('.tstone')].slice(-loosen).forEach((g, i) => {
-      const sl = slotsFor(S.level)[Number(g.dataset.ti)];
-      g.classList.remove('loose');
-      g.style.setProperty('--tx', `${cx(ENTRY.c) + 26 - sl.x}px`); g.style.setProperty('--ty', `${cy(2) - sl.y}px`);
-      g.style.setProperty('--rot', `${(Math.random() * 400 - 200).toFixed(0)}deg`); g.style.animationDelay = `${i * 0.15}s`;
-      g.classList.add('tumble');
+  const caved = new Set();
+  for (const k2 of caveOrder) {
+    const [r, c] = unkey(k2), k = cell(r, c);
+    if (k.pile) buried++;
+    Object.assign(k, { s: 'rubble', prop: null, how: null, pillar: null });
+    caved.add(k2);
+    render({ cavein: new Set([k2]) });
+    thud(); chime([200 - caved.size * 8], 'triangle');
+    for (let i = 0; i < 4; i++) particle('circle', { cx: cx(c) + 26, cy: cy(r) + 25, r: 6, fill: '#a68b6c', opacity: .7 }, 'dust', 1300, { '--sx': `${(Math.random() * 60 - 30).toFixed(0)}px`, '--sy': `${(Math.random() * 40 - 30).toFixed(0)}px` });
+    await wait(260);
+  }
+  // Burnt props in tunnels held by a pillar just burn away.
+  for (const k2 of F.held) { const [r, c] = unkey(k2); Object.assign(cell(r, c), { prop: 'stone', how: null }); }
+  if (F.quenched) S.shield = 0;
+  if (F.wingFall.length || F.plotFall.length) {
+    cam.ty = 0; render();
+    await wait(500);
+    caption('😮 The ground under it is gone…', 0, 'danger');
+    const things = [...F.wingFall.map((w) => ({ el: scene.querySelector(`.tstone[data-ti="${w.i}"]`), at: w.at, sl: slotsFor(S.level)[w.i] })),
+      ...F.plotFall.map((p) => ({ el: scene.querySelector(`.bld[data-plot="${p.id}"]`), at: p.at, plot: PLOTS.find((q) => q.id === p.id) }))];
+    things.forEach(({ el }) => { if (el) { el.classList.remove('loose'); el.classList.add('tilt'); } });
+    chime([300, 280]);
+    await wait(900);
+    things.forEach(({ el, at, sl, plot }, i) => {
+      if (!el) return;
+      const [r, c] = unkey(at), fromX = sl ? sl.x + sl.w / 2 : plot.x, fromY = sl ? sl.y : 220;
+      el.style.setProperty('--tx', `${cx(c) + 26 - fromX}px`); el.style.setProperty('--ty', `${cy(r) + 20 - fromY}px`);
+      el.style.setProperty('--rot', `${(Math.random() * 200 - 100).toFixed(0)}deg`); el.style.animationDelay = `${i * 0.12}s`;
+      el.classList.remove('tilt'); el.classList.add('tumble');
     });
-    chime([400, 300, 200]);
-    await wait(1800 + loosen * 150);
-    const spots = [...fallen].map((k) => k.split(',').map(Number));
-    for (let i = spots.length - 1; i >= 0; i--) if (cell(...spots[i]).pile) spots.splice(i, 1);
-    for (let r = 1; r < 8 && spots.length < loosen * 3; r++) for (let c = 0; c < COLS; c++) if (cell(r, c).s !== 'tunnel' && !cell(r, c).pile) spots.push([r, c]);
-    for (let i = 0; i < loosen; i++) {
-      const t = S.temple.pop(), [r, c] = spots.splice(Math.floor(Math.random() * Math.min(spots.length, 8)), 1)[0] || [1, 0];
-      if (cell(r, c).s === 'tunnel') cell(r, c).s = 'rubble';
-      cell(r, c).pile = t; dropped++;
+    aim(2);
+    await wait(1700 + things.length * 120);
+    thud(); scene.classList.remove('bigshake'); void scene.getBoundingClientRect(); scene.classList.add('bigshake');
+    for (const w of F.wingFall) { const [r, c] = unkey(w.at); cell(r, c).s = 'rubble'; if (!cell(r, c).pile) cell(r, c).pile = S.temple[w.i]; else S.chest[S.temple[w.i]]++; S.temple[w.i] = null; }
+    for (const p of F.plotFall) {
+      const [r, c] = unkey(p.at), rid = S.plots[p.id];
+      const gems = Object.fromEntries(Object.entries(R[rid].cost).filter(([t]) => t !== 'stone'));
+      Object.assign(cell(r, c), { s: 'rubble', boulder: { rid, gems } });
+      delete S.plots[p.id];
     }
   }
-  dusk = false;
-  aim(S.mole.r);
-  render({ cavein: fallen });
-  if (fallen.size) { thud(); scene.classList.remove('bigshake'); void scene.getBoundingClientRect(); scene.classList.add('bigshake'); }
-  for (const key of fallen) {
-    const [r, c] = key.split(',').map(Number);
-    for (let i = 0; i < 4; i++) particle('circle', { cx: cx(c) + 26, cy: cy(r) + 25, r: 6, fill: '#a68b6c', opacity: .7 }, 'dust', 1300, { '--sx': `${(Math.random() * 60 - 30).toFixed(0)}px`, '--sy': `${(Math.random() * 40 - 30).toFixed(0)}px` });
-  }
-  await wait(900);
-  // What lasted is rewarded (1 Cor 3:14): a swing for every 5 stone-propped tunnels that held, and a gold crown stone if nothing burned.
+  if (F.down.has(key(S.mole.r, S.mole.c))) S.mole = { ...ENTRY };
+  // What lasted is rewarded (1 Cor 3:14).
   let held = 0;
   for (const row of S.cells) for (const k of row) if (k.s === 'tunnel' && k.prop === 'stone' && !k.entry) held++;
   const bonus = Math.min(5, Math.floor(held / 5));
   S.swings += bonus;
-  const crown = !burnt.size && S.temple.length < slotsFor(S.level).length;
-  if (crown) S.temple.push('gold');
-  cam.ty = 0; render();
+  let crownAt = -1;
+  if (!F.burnt.length) { const slots = slotsFor(S.level); crownAt = S.temple.findIndex((x, j) => !x && j < slots.length); if (crownAt < 0 && S.temple.length < slots.length) crownAt = S.temple.length; if (crownAt >= 0) S.temple[crownAt] = 'gold'; }
+  let garden = null;
+  if (Object.values(S.plots).includes('garden')) { garden = GEM_IDS.reduce((a, b) => (S.chest[a] <= S.chest[b] ? a : b)); S.chest[garden]++; }
+  dusk = false; cam.ty = 0;
+  render();
   document.getElementById('temple')?.classList.add('refine');
-  if (fallen.size || dropped) {
+  const fellN = F.wingFall.length + F.plotFall.length, rescues = buried + F.wingFall.length + F.plotFall.length;
+  if (F.down.size || fellN) {
     chime([220, 180, 140]);
-    caption(`💥 ${fallen.size} tunnel${fallen.size === 1 ? '' : 's'} of old wood burned away.${buried ? ` ${buried} gem${buried === 1 ? ' is' : 's are'} buried.` : ''}${dropped ? ` ${dropped} temple stone${dropped === 1 ? '' : 's'} fell into the mine.` : ''}<em>You’re still safe on Jesus. Your work that lasted: +${bonus} ⛏. Let’s dig again!</em>`, 8000, 'danger');
+    caption(`🛡 held: ${held} · 💥 caved in: ${F.down.size}${fellN ? ` · 🏚 fell in: ${fellN}` : ''}${rescues ? ` · 🆘 to rescue: ${rescues}` : ''}<em>You’re still safe on Jesus. Work that lasted: +${bonus} ⛏${garden ? ` · 🌳 your garden grew a ${GEMS[garden][0]}` : ''}. Let’s go rescue!</em>`, 9000, 'danger');
   } else {
     confetti();
-    caption(`🕊️ Everything held! What you built with God remains.<em>${crown ? 'A gold crown stone for your temple, and ' : ''}+${bonus} ⛏</em>`, 6000, 'joy');
+    caption(`🕊️ Everything held! What you built with God remains.<em>${crownAt >= 0 ? 'A gold crown stone for your temple · ' : ''}+${bonus} ⛏${garden ? ` · 🌳 your garden grew a ${GEMS[garden][0]}` : ''}</em>`, 6000, 'joy');
   }
-  if (S.temple.length >= slotsFor(S.level).length) { await wait(2500); await finishBuilding(); }
+  if (templeCount() >= slotsFor(S.level).length) { await wait(2500); await finishBuilding(); }
   busy = false;
 }
 
+async function firstOpen() {
+  if (S.lastOpen === S.day) return;
+  S.lastOpen = S.day; save();
+  const f = fruitOfDay(), name = f === 'gold' ? 'Prayer' : GEMS[f][1];
+  await bigReveal(art(f), 2, `🌅 Good morning, ${kid.name}!<small>Today’s Fruit of the Day is <b>${name}</b>. Those gems grow bigger today!</small>`, null, { ms: 3600 });
+}
 document.getElementById('nextDay').onclick = () => { S.dayOffset = (S.dayOffset || 0) + 1; syncDay(); render(); firstOpen(); };
 document.getElementById('newMine').onclick = () => { if (confirm(`Start a new mine for ${kid.name}?`)) { S = freshState(); S.readAloud = kid.age < 8; render(); } };
 document.getElementById('autoWeek').onclick = () => { autoWeek(); document.getElementById('drawer').classList.remove('show'); };
@@ -1016,25 +1290,33 @@ function autoWeek() {
   const pick = (a) => a[Math.floor(Math.random() * a.length)];
   for (let d = 0; d < 7; d++) {
     S.dayOffset = (S.dayOffset || 0) + 1; syncDay();
-    for (let i = 0; i < 4; i++) { const a = pick(GOOD), n = 1 + Math.floor(Math.random() * 3); S.swings += n; seedGem(a.gem, a.e, n); }
+    for (let i = 0; i < 4; i++) { const a = pick(GOOD.slice(0, 10)), n = 1 + Math.floor(Math.random() * 3); S.swings += n; seedGem(a.gem, a.e, n); }
     if (Math.random() < 0.5) { const a = pick(SORRY); placeRot(a.prop, Math.random() < 0.7 ? 'owned' : 'noticed'); }
     let guard = 200;
     while (S.swings > 0 && guard--) {
       const opts = [];
-      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (diggable(r, c)) { const k = cell(r, c); opts.push({ r, c, s: (k.earned ? 10 : 0) + (k.content !== 'dirt' ? 2 : 0) + r * 0.3 + Math.random() }); }
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (diggable(r, c) && !cell(r, c).boulder) { const k = cell(r, c); opts.push({ r, c, s: (k.earned ? 10 : 0) + (k.content !== 'dirt' ? 2 : 0) + (r < 2 ? 3 : 0) + r * 0.2 + Math.random() }); }
       if (!opts.length) break;
       opts.sort((a, b) => b.s - a.s);
       const t = opts[0], k = cell(t.r, t.c);
       S.swings--; k.hits = (k.hits || 0) + 1;
       if (k.hits >= digCost(t.r, t.c)) {
         const found = k.pile || (k.content !== 'dirt' ? (k.content === 'geode' ? geodeGem(t.r) : k.content) : null);
-        Object.assign(k, { s: 'tunnel', prop: 'stone', content: 'dirt', hits: 0, earned: null, soft: false, pile: found, order: ++S.order });
+        Object.assign(k, { s: 'tunnel', prop: 'stone', content: 'dirt', hits: 0, earned: null, soft: false, pile: null, order: ++S.order });
+        if (found) S.chest[found]++;
+        S.chest.stone++;
         S.mole = { r: t.r, c: t.c };
       }
     }
-    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-      const k = cell(r, c), slots = slotsFor(S.level);
-      if (k.s === 'tunnel' && k.pile && Math.random() < 0.8) { S.temple.push(k.pile); k.pile = null; if (S.temple.length >= slots.length) { S.gallery.push(buildingName(S.level)); S.level++; S.temple = []; } }
+    // Build something when affordable, then put spare gems in the temple.
+    for (const rc of RECIPES) {
+      if (rc.kind === 'building' && !Object.values(S.plots).includes(rc.id) && has(costOf(rc.id))) { const free = PLOTS.find((p) => !S.plots[p.id]); if (free) { pay(costOf(rc.id)); S.plots[free.id] = rc.id; } }
+    }
+    const slots = slotsFor(S.level);
+    for (const t of TREASURE) while (S.chest[t] > 1 && S.chest.stone > 3) {
+      let i = S.temple.findIndex((x, j) => !x && j < slots.length); if (i < 0) i = S.temple.length;
+      if (i >= slots.length) break;
+      S.temple[i] = t; S.chest[t]--; S.chest.stone--;
     }
   }
   aim(S.mole.r); render();
@@ -1043,6 +1325,8 @@ function autoWeek() {
 // ---------- top bar ----------
 document.getElementById('goodBtn').onclick = () => openCards('good');
 document.getElementById('sorryBtn').onclick = () => openCards('sorry');
+document.getElementById('chestBtn').onclick = () => openChest();
+document.getElementById('lensBtn').onclick = () => { lens = !lens; render(); caption(lens ? '👁 Danger lens on: the orange path is where the fire will run. Red falls in.' : '👁 Danger lens off.', 2600, 'joy'); };
 document.getElementById('lookBtn').onclick = () => { cam.ty = cam.ty > 5 ? 0 : Math.max(0, Math.min(MAX_Y, (S.mole.r - 5) * CH)); };
 document.getElementById('speakBtn').onclick = () => { S.readAloud = !S.readAloud; render(); if (S.readAloud) speak('Read aloud is on.', true); };
 document.getElementById('grownBtn').onclick = async () => { if (await needPin()) document.getElementById('drawer').classList.add('show'); };
@@ -1058,12 +1342,11 @@ document.getElementById('kidGrid').addEventListener('click', (e) => {
   save(); loadKid(b.dataset.k); ov('kidsOv', false); aim(S.mole.r); render();
   if (S.lastOpen === S.day) caption(`${kid.av} Hi ${kid.name}! Let’s dig.`, 2000, 'joy'); else firstOpen();
 });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { makingRight = false; capEl.classList.remove('show'); } });
-capEl.style.pointerEvents = 'none';
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { makingRight = false; placing = null; render(); capEl.classList.remove('show'); } });
 
 // ---------- start ----------
 let startKid = 'judah';
-try { startKid = localStorage.getItem('mine3.kid') || 'judah'; } catch {}
+try { startKid = localStorage.getItem('mine4.kid') || 'judah'; } catch {}
 const params = new URLSearchParams(location.search);
 if (params.get('kid')) startKid = params.get('kid');
 loadKid(startKid);
@@ -1072,6 +1355,7 @@ for (let i = 0; i < (Number(params.get('weeks')) || 0); i++) autoWeek();
 aim(S.mole.r);
 render();
 if (!params.get('weeks') && !params.has('nointro')) firstOpen();
+
 </script>
 </body>
 </html>
