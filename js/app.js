@@ -28,6 +28,7 @@ const state = {
   view: null,        // 'picker' | 'tree' when chosen; null = by time of day (tree after the morning window)
   treeKid: null,     // child selected on the Fruit Tree screen
   tab: 'morning',    // routine shown on a child's screen: morning | extras | night
+  warmth: 0,         // current child's lifetime egg warmth
 };
 
 // ---------- helpers ----------
@@ -52,6 +53,33 @@ async function loadDay(kidId) {
   rec.nightDone ||= {};
   rec.extras ||= {};
   return rec;
+}
+
+// ---------- egg growth ----------
+// Every finished job warms the egg; extra chores warm it twice as much.
+// Lifetime warmth, so undoing a tick takes its warmth back. Stage 2 builds the farm on top of the hen.
+const EGG_STAGES = [
+  { at: 0, icon: '🥚', name: 'Egg', say: 'Something is growing…' },
+  { at: 10, icon: '🥚', name: 'Wobbly egg', say: 'Your egg is wobbling!', cls: 'wobble' },
+  { at: 25, icon: '🥚', name: 'Cracking egg', say: 'Crack! Something is in there…', cls: 'crack' },
+  { at: 45, icon: '🐣', name: 'Hatching!', say: "It's hatching!" },
+  { at: 70, icon: '🐥', name: 'Baby chick', say: 'Your chick is here! Keep caring for it.' },
+  { at: 100, icon: '🐔', name: 'Hen', say: 'Your hen is all grown up! Soon she can lay eggs on your farm.' },
+];
+const warmthOf = (day, r) => Object.keys(mapFor(day, r)).length * (r === 'extras' ? 2 : 1);
+const dayWarmth = (day) => warmthOf(day, 'morning') + warmthOf(day, 'night') + warmthOf(day, 'extras');
+
+async function warmthByKid() {
+  const out = {};
+  for (const d of await dayAll()) out[d.kidId] = (out[d.kidId] || 0) + dayWarmth({ done: {}, nightDone: {}, extras: {}, ...d });
+  return out;
+}
+
+function eggStage(w) {
+  let i = 0;
+  while (i + 1 < EGG_STAGES.length && w >= EGG_STAGES[i + 1].at) i++;
+  const next = EGG_STAGES[i + 1];
+  return { ...EGG_STAGES[i], index: i, next, toNext: next ? next.at - w : 0, pct: next ? (w - EGG_STAGES[i].at) / (next.at - EGG_STAGES[i].at) : 1 };
 }
 
 // When the child started: the Ready-set-go tap, or else their first tick.
@@ -195,6 +223,7 @@ function clockHTML() {
 
 async function renderPicker() {
   const days = await Promise.all(state.settings.kids.map((k) => loadDay(k.id)));
+  const warmth = await warmthByKid();
   const r = homeRoutine();
   const w = windowInfo(r);
   app.innerHTML = `
@@ -227,7 +256,7 @@ async function renderPicker() {
             <div class="dots" aria-label="${n} of ${list.length} done">
               ${list.map((h) => `<span class="dot ${map[h.id] ? 'on' : ''}">${map[h.id] ? '✓' : ''}</span>`).join('')}
             </div>
-            ${extras ? `<div class="extra-count">⭐ ${extras} extra chore${extras === 1 ? '' : 's'}</div>` : ''}
+            <div class="egg-badge">${eggStage(warmth[k.id] || 0).icon} ${eggStage(warmth[k.id] || 0).name}${extras ? ` · ⭐ ${extras} extra` : ''}</div>
             <div class="card-status">${status}</div>
           </button>`;
         }).join('')}
@@ -269,6 +298,22 @@ function tileHTML(k, h, d, nudgeId, r) {
       <span class="tile-icon">${h.icon}</span>
       <span class="tile-name">${esc(h.name)}</span>
       <span class="tile-sub">👇 Hold${r === 'extras' ? '' : ' when done'}</span>
+    </div>`;
+}
+
+function petBoxHTML(all, r) {
+  const st = eggStage(state.warmth);
+  return `
+    <div class="pet-box ${all ? 'happy' : ''}">
+      <div class="pet big ${st.cls || ''}">${st.icon}</div>
+      <div class="pet-name">${st.name}</div>
+      <div class="pet-caption">${st.say}</div>
+      ${st.next ? `
+        <div class="warmth" aria-label="Warmth">
+          <div class="warmth-fill" style="width:${(st.pct * 100).toFixed(0)}%"></div>
+          <span>🔥 ${st.toNext} more to grow</span>
+        </div>` : ''}
+      <div class="pet-tip">${r === 'extras' ? '⭐ Extra chores warm it twice as much!' : 'Every job warms your egg. Extra chores warm it ×2!'}</div>
     </div>`;
 }
 
@@ -338,10 +383,7 @@ function renderKid() {
           </div>`}
         </div>`}
         <aside class="side">
-          <div class="pet-box ${all ? 'happy' : ''}">
-            <div class="pet big">🥚</div>
-            <div class="pet-caption">${all ? (r === 'night' ? 'Your egg is snuggled in. 😴' : 'Your egg is wiggling!') : 'Something is growing…'}</div>
-          </div>
+          ${petBoxHTML(all, r)}
           ${r === 'extras' ? `<div class="habit-progress extras-progress"><span>⭐ × ${n}</span></div>` : `
           <div class="habit-progress" aria-label="${n} of ${total} done">
             <div class="habit-fill" style="width:${(n / total) * 100}%"></div>
@@ -357,6 +399,7 @@ async function render() {
   const showTree = state.view === 'tree';
   if (state.kidId) {
     state.day = await loadDay(state.kidId);
+    state.warmth = (await warmthByKid())[state.kidId] || 0;
     renderKid();
   } else if (showTree) {
     await tree.render();
@@ -435,6 +478,9 @@ function afterDone(habitId, allowUndo, r = 'morning') {
   const k = kid();
   const h = listFor(k, r).find((x) => x.id === habitId);
   const all = r !== 'extras' && doneCount(k, state.day, r) === listFor(k, r).length;
+  const before = eggStage(state.warmth);
+  state.warmth += r === 'extras' ? 2 : 1;
+  const grew = eggStage(state.warmth).index > before.index;
   if (allowUndo) {
     clearTimeout(state.undo?.timer);
     state.undo = { habitId, routine: r, timer: setTimeout(() => { state.undo = null; if (state.kidId === k.id && !state.prayer) renderKid(); }, UNDO_MS) };
@@ -447,7 +493,11 @@ function afterDone(habitId, allowUndo, r = 'morning') {
     pop(true);
     speak(r === 'night' ? `${h.name}, done! Night routine finished. Sleep tight!` : `${h.name}, done! You finished everything. Amazing!`);
     allDoneMoment(r);
-    state.autoHomeAt = Date.now() + ALL_DONE_HOME_MS;
+    if (grew) setTimeout(growMoment, 3600);
+    state.autoHomeAt = Date.now() + ALL_DONE_HOME_MS + (grew ? 4000 : 0);
+  } else if (grew) {
+    pop(true);
+    growMoment();
   } else {
     pop();
     speak(r === 'extras' ? `${h.name}, done! Thank you for helping!` : `${h.name}, done! ${pick(PRAISE)}`);
@@ -460,6 +510,7 @@ async function undo() {
   clearTimeout(state.undo.timer);
   state.undo = null;
   delete mapFor(state.day, routine)[habitId];
+  state.warmth -= routine === 'extras' ? 2 : 1;
   state.day.log.push({ t: clock.now().toISOString(), routine, habit: habitId, action: 'undo' });
   state.autoHomeAt = 0;
   await dayPut(state.day);
@@ -489,6 +540,24 @@ function allDoneMoment(r = 'morning') {
   setTimeout(() => burst(null, 30), 700);
   el.addEventListener('click', () => el.remove());
   setTimeout(() => el.remove(), 3500);
+}
+
+// The egg reached a new stage.
+function growMoment() {
+  const k = kid();
+  if (!k) return;
+  const st = eggStage(state.warmth);
+  const el = document.createElement('div');
+  el.className = 'all-done-moment grow-moment';
+  el.style.setProperty('--kid', k.color);
+  el.innerHTML = `<div><div class="big-emoji ${st.cls || ''}">${st.icon}</div><h2>${st.name}!</h2><p>${st.say}</p></div>`;
+  document.body.appendChild(el);
+  chime();
+  speak(st.say.replace('…', '.'));
+  setTimeout(() => burst(null, 30), 200);
+  el.addEventListener('click', () => el.remove());
+  setTimeout(() => el.remove(), 4000);
+  renderKid();
 }
 
 // ---------- ready, set, go ----------
