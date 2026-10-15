@@ -364,6 +364,7 @@ const GEMS = {
   amethyst:   ['Amethyst', 'Self-control', '#eaa8ff', '#a12cff', '#46087f'],
 };
 const GEM_IDS = Object.keys(GEMS);
+const mysteryGem = () => GEM_IDS[Math.floor(Math.random() * GEM_IDS.length)];
 const TREASURE = ['gold', 'pearl', ...GEM_IDS];
 // Draft list: swap in the family's own. Good things hide their gem; sorry things put in a wobbly prop.
 const GOOD = [
@@ -378,6 +379,7 @@ const GOOD = [
   { e: '🪶', t: 'I used a soft voice and gentle hands', gem: 'beryl' },
   { e: '😤', t: 'I calmed down when I was cross', gem: 'amethyst' },
   { e: '🤗', t: 'I helped my brother or sister', gem: 'hand', sib: true },
+  { e: '✝️', t: 'I shared the gospel', gem: 'gospel' }, // hides a mystery gem: any of the nine, found when dug
   { e: '👀', t: 'I saw God’s fruit in someone', spot: true },
 ];
 const SORRY = [
@@ -625,7 +627,7 @@ function rockFace(x, y, v, rubble) {
   if (rubble) return `<rect x="${x}" y="${y}" width="${CW}" height="${CH}" fill="#4a3a2c"/><g stroke="#2b2018" stroke-width="1.2"><ellipse cx="${x + 13}" cy="${y + 36}" rx="12" ry="10" fill="#8d7d6b"/><ellipse cx="${x + 36}" cy="${y + 38}" rx="14" ry="10" fill="#7b6b59"/><ellipse cx="${x + 25}" cy="${y + 20}" rx="12" ry="9" fill="#9a8a77"/><ellipse cx="${x + 42}" cy="${y + 14}" rx="8" ry="7" fill="#857562"/></g>`;
   return `<rect x="${x}" y="${y}" width="${CW}" height="${CH}" fill="${tints[v]}"/><path d="M${x + 6} ${y + 14 + v * 3} q8 -4 16 0 M${x + 26} ${y + 34 - v * 2} q8 4 18 -2" stroke="#5a412c" stroke-width="1.4" fill="none"/>`;
 }
-const art = (t) => t === 'gold' ? '#nugget' : t === 'pearl' ? '#pearlBig' : t === 'geode' ? '#geode' : t === 'stone' ? '#stoneBlock' : `#g-${t}`;
+const art = (t) => t === 'gold' ? '#nugget' : t === 'pearl' ? '#pearlBig' : t === 'geode' || t === 'gospel' ? '#geode' : t === 'stone' ? '#stoneBlock' : `#g-${t}`;
 const tname = (t) => t === 'gold' ? 'Gold' : t === 'pearl' ? 'Pearl' : t === 'stone' ? 'Stone' : t === 'hands' ? 'Helping hand' : GEMS[t][0];
 const ticon = (t, size = 26) => t === 'stone' ? '🪨' : t === 'hands' ? '🙌' : `<svg viewBox="-16 -16 32 32" width="${size}" height="${size}"><use href="${art(t)}" transform="scale(${t === 'pearl' ? 1.1 : t === 'gold' ? 1.1 : .95})"/></svg>`;
 
@@ -665,7 +667,7 @@ function render(fx = {}) {
           <g class="arrow"><rect x="${x - 8}" y="${y - 26}" width="68" height="26" rx="13" fill="#fff" stroke="#be185d" stroke-width="2"/><text x="${x + 26}" y="${y - 7}" text-anchor="middle" font-size="16" font-weight="900" fill="#be185d">${k.boulder ? '🙌 help!' : `🆘 help!${k.extra?.length ? ` ×${k.extra.length + 1}` : ''}`}</text></g>
           ${k.pile ? `<use href="${art(k.pile)}" x="${x + 26}" y="${y + 28}" opacity=".6"/>` : `<text x="${x + 26}" y="${y + 34}" text-anchor="middle" font-size="22">${R[k.boulder.rid]?.e || '🪨'}</text>`}</g>`;
       } else if (k.earned) {
-        const col = k.content === 'gold' ? '#ffd84d' : k.content === 'pearl' ? '#fff' : GEMS[k.content] ? GEMS[k.content][3] : '#fff';
+        const col = k.content === 'gold' ? '#ffd84d' : k.content === 'pearl' ? '#fff' : k.content === 'gospel' ? '#f0abfc' : GEMS[k.content] ? GEMS[k.content][3] : '#fff';
         items += `<g pointer-events="none"><circle cx="${x + 26}" cy="${y + 25}" r="20" fill="none" stroke="${col}" stroke-width="4" class="beacon"/>
           <use href="#star" x="${x + 26}" y="${y + 25}" fill="${col}" stroke="#fff" stroke-width="1"/>
           <g class="arrow"><text x="${x + 26}" y="${y - 4}" text-anchor="middle" font-size="20">${k.earned}</text></g></g>`;
@@ -940,7 +942,7 @@ function openCards(kind) {
   const logs = S.logs[S.day] || {};
   document.getElementById('cardGrid').innerHTML = pickList.map((a, i) => {
     const used = kind === 'good' && (logs[a.t] || 0) >= PER_CARD;
-    const tag = kind === 'good' ? (a.pray ? '🟨 breathe and pray' : a.spot ? '💌 tell them' : a.sib ? '🙌 for you both' : a.gem === 'hand' ? '🙌 helping hand' : a.gem === 'pearl' ? '⚪ pearl' : a.gem === 'gold' ? '🟨 gold' : `💎 ${GEMS[a.gem][0]}`) : '';
+    const tag = kind === 'good' ? (a.pray ? '🟨 breathe and pray' : a.spot ? '💌 tell them' : a.sib ? '🙌 for you both' : a.gem === 'hand' ? '🙌 helping hand' : a.gem === 'pearl' ? '⚪ pearl' : a.gem === 'gold' ? '🟨 gold' : a.gem === 'gospel' ? '❓ mystery gem' : `💎 ${GEMS[a.gem][0]}`) : '';
     return `<button class="tile ${kind === 'good' ? 'g' : 'b'} ${used ? 'done' : ''}" data-i="${i}"><span class="e">${a.e}</span>${a.t}<small>${used ? 'done twice today' : tag}</small></button>`;
   }).join('');
   document.getElementById('cardsOk').disabled = true;
@@ -1212,14 +1214,15 @@ async function logGood(a, n, who) {
     busy = false; return;
   }
   const fod = a.gem === fruitOfDay();
-  const size = Math.min(5, n + (fod ? 1 : 0));
+  const size = Math.min(5, n + (fod || a.gem === 'gospel' ? 1 : 0));
   const spot = seedGem(a.gem, a.e, size);
   if (n >= 4) seedGem('gold', '✨', 3);
-  const fruit = a.gem === 'gold' ? 'Prayer' : a.gem === 'pearl' ? 'Forgiveness' : GEMS[a.gem][1];
+  const fruit = a.gem === 'gold' ? 'Prayer' : a.gem === 'pearl' ? 'Forgiveness' : a.gem === 'gospel' ? 'Good news' : GEMS[a.gem][1];
   render();
   if (spot) aim(spot.r);
   await wait(350);
   caption(a.gem === 'gold' ? `🙏 God heard you. He loves talking with you.<em>Something golden is hidden by the mole.</em>`
+    : a.gem === 'gospel' ? `✝️ You shared the good news about Jesus!<em>A mystery gem is hidden by the mole. Dig it out to see which one!</em>`
     : `${a.e} God is growing ${fruit.toLowerCase()} in you!${fod ? ' 🌟' : ''}<em>${MEANING[a.gem]} · A gem is hidden by the mole.</em>`, 3400, 'joy');
   if (spot) {
     const from = { x: 400, y: cam.y + 120 };
@@ -1318,7 +1321,8 @@ function swing(r, c) {
   }
   const wasRubble = k.s === 'rubble', boulder = k.boulder;
   if (boulder) S.chest.hands--;
-  const found = k.pile || (k.content !== 'dirt' ? (k.content === 'geode' ? geodeGem(r) : k.content) : null);
+  const gospel = !k.pile && k.content === 'gospel';
+  const found = k.pile || (k.content !== 'dirt' ? (k.content === 'geode' ? geodeGem(r) : gospel ? mysteryGem() : k.content) : null);
   const size = k.size || 2, earned = k.earned, extras = k.extra || [];
   const stoneGot = 1;
   Object.assign(k, { s: 'tunnel', prop: 'stone', content: 'dirt', hits: 0, earned: null, soft: false, size: 0, pile: found, boulder: null, extra: null, order: ++S.order });
@@ -1347,6 +1351,7 @@ function swing(r, c) {
   const label = wasRubble ? `🆘 Rescued!<small>Your ${tname(found).toLowerCase()}${extras.length ? ` and ${extras.length} more stone${extras.length === 1 ? '' : 's'}` : ''} came through the fire and shine${extras.length ? '' : 's'} brighter!</small>`
     : found === 'gold' ? `🟨 Gold!<small>${earned === '✨' ? 'A bonus for a big-hearted choice' : earned === '☀️' || earned === '🌙' ? 'Faithful in little things (Luke 16:10)' : earned ? 'Time with God is precious' : 'A gold nugget'}</small>`
     : found === 'pearl' ? '⚪ A pearl!<small>Pearls grow where something hurt</small>'
+    : gospel ? `✝️ Mystery gem: ${size >= 4 ? 'Huge ' : ''}${GEMS[found][0]}!<small>For sharing the good news of Jesus. “How beautiful are the feet of those who bring good news!” (Romans 10:15)</small>`
     : `${flawless ? '🌈 Flawless ' : '💎 '}${size >= 4 ? 'Huge ' : ''}${GEMS[found][0]}!<small>${GEMS[found][1]}: ${MEANING[found]}${earned ? '' : ' · from a mystery geode!'}</small>`;
   busy = true;
   bigReveal(art(found), 1.5 + size * 0.25, label, screenOf(r, c), { hint: '👆 tap to put it in your treasure chest!', rainbow: flawless || wasRubble, ms: 4000 })
@@ -1715,7 +1720,7 @@ function autoWeek() {
       const t = opts[0], k = cell(t.r, t.c);
       S.swings--; k.hits = (k.hits || 0) + 1;
       if (k.hits >= digCost(t.r, t.c)) {
-        const found = k.pile || (k.content !== 'dirt' ? (k.content === 'geode' ? geodeGem(t.r) : k.content) : null);
+        const found = k.pile || (k.content !== 'dirt' ? (k.content === 'geode' ? geodeGem(t.r) : k.content === 'gospel' ? mysteryGem() : k.content) : null);
         Object.assign(k, { s: 'tunnel', prop: 'stone', content: 'dirt', hits: 0, earned: null, soft: false, pile: null, order: ++S.order });
         if (found) S.chest[found]++;
         S.chest.stone++;
