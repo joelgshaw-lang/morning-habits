@@ -73,3 +73,60 @@ Each child is an apprentice in a glowing forge, with a little fox blacksmith as 
 **Grace:** stopping at the wayside cross to own up makes the whole burden roll away. That's the most powerful grace moment of the three.
 
 **Extra:** Eliana could read an abridged Pilgrim's Progress alongside.
+
+---
+
+# Five gem concepts (Joel likes new precious stones appearing)
+
+## 1. Crystal Dragon (companion)
+**The idea:** a baby dragon hatches, and every scale is one of the child's gems.
+
+**Each day:**
+- Good choices give gems.
+- The child **chooses** which gem to feed it, and that gem becomes a new scale.
+
+**Bad choices:** sticky mud scales with flies, so the dragon is itchy and grumpy.
+
+**Weekly test:** the dragon breathes fire on itself and the mud burns off. A muddy dragon is sleepy for a day, but it never dies, and making it right cleans a scale.
+
+**Over months:** it grows from hatchling to young dragon to giant, and the colour patterns can be customised.
+
+## 2. Stained-Glass Window (picture reveal)
+**The idea:** each gem is a piece of coloured glass, and over weeks a Bible picture slowly appears (the Good Shepherd, then Noah's rainbow, then the empty tomb).
+
+**Each day:** the child **chooses** where each piece goes.
+
+**Bad choices:** soot and cobwebs on panes.
+
+**Weekly test:** "sunrise". Light shines through and the clean glass glows on the floor, but sooty panes stay dark and must be scrubbed by making it right.
+
+**Over months:** a finished window is hung in a cathedral gallery and a new picture starts.
+
+## 3. The High Priest's Breastplate (Exodus 28)
+**The idea:** 12 gem settings in gold, each stone engraved with a name, as Aaron carried the tribes' names "over his heart" (Exodus 28:29).
+
+**Each day:** good choices give rough stones to **polish** (rub to shine) and set. The child chooses whose name to engrave: someone they prayed for.
+
+**Bad choices:** mud dulls a stone.
+
+**Weekly test:** the lamp is lit and clean stones blaze while muddy ones stay dark.
+
+**Over months:** the breastplate, then the golden plate engraved "Holy to the Lord", then the full priestly garments.
+
+**The deepest picture:** Jesus is our High Priest who carries our names (Hebrews 4:14).
+
+## 4. Gem Mine (dig and discover)
+**The idea:** a cutaway hill. Each good choice gives a pickaxe swing, and the child **chooses where to dig** to uncover gem veins and gold nuggets, with a mole companion.
+
+**Bad choices:** rotten props and mouldy hay block the tunnels.
+
+**Weekly test:** a cave-in check. Tunnels shored up with rotten props collapse and bury the gems beyond them until the tunnel is cleared.
+
+**Over months:** a deeper and deeper mine with rarer gems and a growing treasure room.
+
+## 5. Gem Lighthouse (Matthew 5:14, "You are the light of the world")
+**The idea:** each gem becomes a panel in the lighthouse lens, and the beam gets brighter and more colourful.
+
+**Bad choices:** cracked, grimy panels.
+
+**Weekly test:** "storm night". The beam has to guide ships safely home, and a bright lens rescues more boats. Rescued sailors move into a growing harbour village, so good choices visibly help others.
