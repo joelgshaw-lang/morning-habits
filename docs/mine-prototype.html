@@ -196,7 +196,18 @@
   @keyframes sparkup { to { transform: translateY(-40px); opacity: 0; } }
   .bld text { pointer-events: none; }
   @media (max-width: 760px) { .gemgrid { grid-template-columns: repeat(4, 1fr); } .recipe { grid-template-columns: 44px 1fr 90px; } }
+  .dayend { position: absolute; inset: 0; z-index: 10; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px 40px; text-align: center; color: #fff;
+    background: radial-gradient(circle at 50% 38%, #4a3a10 0%, #1b1530 45%, #0b0a18 100%); }
+  .dayend.show { display: flex; animation: fadein .8s ease both; }
+  .dayend .glow { width: 150px; height: 110px; animation: breathe 4s ease-in-out infinite; }
+  .dayend .dl { font-size: 26px; font-weight: 800; line-height: 1.35; max-width: 820px; opacity: 0; animation: fadein 1.2s ease forwards; }
+  .dayend .dl small { display: block; font-size: 15px; font-weight: 700; color: #f7cf3d; margin-top: 4px; }
+  .dayend .dl.big { font-size: 32px; color: #fff4b0; }
+  .dayend button { margin-top: 10px; min-height: 64px; min-width: 200px; border: 0; border-radius: 20px; font: inherit; font-size: 24px; font-weight: 900; background: #f7cf3d; color: #3b2a00; opacity: 0; animation: fadein 1s ease forwards; cursor: pointer; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes breathe { 0%, 100% { filter: drop-shadow(0 0 8px #f7cf3d); } 50% { filter: drop-shadow(0 0 26px #fff4b0); } }
   @media (prefers-reduced-motion: reduce) {
+    .dayend .glow { animation: none; }
     .reveal .rays, .reveal .spinny, .glint, .beacon, .arrow, .weak, .loose, .bob, .wing { animation: none !important; }
   }
   @media (max-width: 760px) { .grid { grid-template-columns: repeat(3, 1fr); } .dock button { font-size: 20px; padding: 0 16px; } }
@@ -264,6 +275,9 @@
     <div class="pad" id="pinPad"></div>
     <div class="row"><button class="btn no" id="pinCancel">Cancel</button></div>
   </div></div>
+
+  <!-- end of the day's digging: a short moment that points beyond the game -->
+  <div class="dayend" id="dayEnd"></div>
 
   <!-- fireside talk after the fire -->
   <div class="ov" id="fireOv"><div class="sheet" style="text-align:center">
@@ -1223,7 +1237,7 @@ function swing(r, c) {
       .then(() => { busy = false; });
     return;
   }
-  if (!found) { chime([330]); return; }
+  if (!found) { chime([330]); if (S.swings === 0) setTimeout(maybeDayEnd, 1500); return; }
   chime(found === 'gold' ? [660, 880, 1100] : [660, 880, 1100, 1320, 1760]);
   const flawless = size >= 5 && !wasRubble;
   const label = wasRubble ? `🆘 Rescued!<small>Your ${tname(found).toLowerCase()}${extras.length ? ` and ${extras.length} more stone${extras.length === 1 ? '' : 's'}` : ''} came through the fire and shine${extras.length ? '' : 's'} brighter!</small>`
@@ -1248,6 +1262,33 @@ function collect(r, c) {
   particle('use', { href: art(t), x: cx(c) + 26, y: cy(r) + 30 }, 'fly-up', 950, { '--tx': `${p.x - cx(c) - 26}px`, '--ty': `${p.y - cy(r) - 30}px` });
   chime([880, 1320]);
   const btn = document.getElementById('chestBtn'); btn.classList.remove('pulse'); void btn.offsetWidth; btn.classList.add('pulse');
+  if (S.swings === 0) setTimeout(maybeDayEnd, 1500);
+}
+
+// ---------- end of the day: this is a game, but the Day is real (2 Cor 5:10, 1 Cor 3:11–15) ----------
+// Plays once a day per child, when their last swing is used.
+const DAY_END = (name) => [
+  { t: `🌙 Great digging today, ${name}.` },
+  { t: 'Even though this is just a game, you will actually stand before God on the Day of Judgment.', ref: '2 Corinthians 5:10', big: true },
+  { t: 'On that Day, God will show what lasted.', ref: '1 Corinthians 3:13' },
+  { t: 'If you trust Jesus, you are safe on him, the foundation. And he loves to reward what you build with him.', ref: '1 Corinthians 3:11–14' },
+  { t: 'So let’s build with gold, silver and precious stones. 💛' },
+];
+function maybeDayEnd() {
+  if (S.swings > 0 || S.dayEndShown === S.day || !S.logs[S.day]) return;
+  if (busy || document.getElementById('reveal').classList.contains('show')) { setTimeout(maybeDayEnd, 800); return; }
+  S.dayEndShown = S.day; save();
+  const lines = DAY_END(kid.name), el = document.getElementById('dayEnd'), gap = 4.2;
+  el.innerHTML = `<svg class="glow" viewBox="-75 -60 150 110"><polygon points="-40,-5 0,-38 40,-5" fill="url(#gold)" stroke="#8f6206"/><rect x="-32" y="-5" width="64" height="30" fill="url(#gold)" stroke="#8f6206"/><rect x="-60" y="26" width="120" height="16" rx="3" fill="#fff4b0" stroke="#d79f12"/></svg>`
+    + lines.map((l, i) => `<div class="dl ${l.big ? 'big' : ''}" style="animation-delay:${i * gap}s">${l.t}${l.ref ? `<small>${l.ref}</small>` : ''}</div>`).join('')
+    + `<button id="dayEndOk" style="animation-delay:${lines.length * gap}s">Amen 🙏</button>`;
+  el.classList.add('show');
+  chime([392, 523, 659], 'triangle');
+  if ('speechSynthesis' in window) {
+    speechSynthesis.cancel();
+    lines.forEach((l, i) => setTimeout(() => { if (!el.classList.contains('show')) return; const u = new SpeechSynthesisUtterance(l.t.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '')); u.lang = 'en-AU'; u.rate = 0.9; speechSynthesis.speak(u); }, i * gap * 1000 + 300));
+  }
+  document.getElementById('dayEndOk').onclick = () => { el.classList.remove('show'); if ('speechSynthesis' in window) speechSynthesis.cancel(); };
 }
 
 // ---------- treasure chest, temple and recipe book ----------
