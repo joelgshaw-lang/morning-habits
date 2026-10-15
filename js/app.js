@@ -130,6 +130,8 @@ function mineSwings(kidId) {
     return Math.max(0, (save?.swings || 0) + inbox.reduce((n, it) => n + (it.swings || 0), 0));
   } catch { return 0; }
 }
+// A grown-up opens the mine with the PIN (inside mine.html) for 20 minutes; 🔑 shows when it needs opening.
+function mineOpenLeft() { try { return Math.max(0, Number(localStorage.getItem('mine4.openUntil') || 0) - Date.now()); } catch { return 0; } }
 // Digging waits until the morning jobs are done, so the game never competes with getting ready.
 function mineLocked(k = kid()) {
   const w = windowInfo('morning');
@@ -374,7 +376,7 @@ function renderKid() {
     title = `⭐ Extra chores, ${esc(k.name)}!`;
     sub = n === 0 ? 'Help out any time today. Hold a job when you finish it.' : `${n} extra job${n === 1 ? '' : 's'} done today. Thank you for helping!`;
   }
-  const tabCount = (t) => (t === 'mine' ? (mineLocked(k) ? '🔒' : mineSwings(k.id) || '') : t === 'extras' ? doneCount(k, d, t) || '' : `${doneCount(k, d, t)}/${listFor(k, t).length}`);
+  const tabCount = (t) => (t === 'mine' ? (mineLocked(k) ? '🔒' : !mineOpenLeft() ? '🔑' : mineSwings(k.id) || '') : t === 'extras' ? doneCount(k, d, t) || '' : `${doneCount(k, d, t)}/${listFor(k, t).length}`);
   app.innerHTML = `
     <section class="screen morning tab-${r}" style="--kid:${k.color}">
       <header class="top">

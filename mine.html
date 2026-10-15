@@ -275,7 +275,7 @@
 
   <!-- grown-up PIN -->
   <div class="ov pin" id="pinOv"><div class="sheet" style="width:min(420px,94%)">
-    <div class="grown">👨‍👩‍👧 Grown-ups only</div><h3 id="pinTitle">Enter the grown-up PIN</h3>
+    <div class="grown" id="pinNote">👨‍👩‍👧 Grown-ups only</div><h3 id="pinTitle">Enter the grown-up PIN</h3>
     <div class="dots" id="pinDots"></div>
     <div class="pad" id="pinPad"></div>
     <div class="row"><button class="btn no" id="pinCancel">Cancel</button></div>
@@ -760,7 +760,8 @@ function galleryArt() {
 }
 
 function renderHud(F) {
-  document.getElementById('whoChip').innerHTML = `<span class="av">${kid.av}</span><span>${kid.name}<small>Day ${S.day}</small></span>`;
+  const left = mineLeft();
+  document.getElementById('whoChip').innerHTML = `<span class="av">${kid.av}</span><span>${kid.name}<small>${left ? `⏳ ${Math.ceil(left / 60e3)} min left` : `Day ${S.day}`}</small></span>`;
   const n = S.swings;
   document.getElementById('picks').title = hasUp('pick3') ? 'Golden Pickaxe' : hasUp('pick2') ? 'Strong Pickaxe' : 'Pickaxe';
   document.getElementById('picks').style.background = hasUp('pick3') ? '#fde68a' : hasUp('pick2') ? '#dbeafe' : '';
@@ -881,8 +882,11 @@ function bigReveal(artHref, scale, labelHTML, from, { soft = false, ms = 2800, h
 
 // ---------- grown-up PIN (set the first time; stays unlocked for 2 minutes) ----------
 let pinUntil = 0;
-function needPin() {
-  if (Date.now() < pinUntil) return Promise.resolve(true);
+// grace: entering the PIN keeps the grown-up controls open for 15 minutes. The mine gate passes grace=false,
+// so opening the mine for a child never unlocks the grown-up controls too.
+function needPin(grace = true, note = '') {
+  if (grace && Date.now() < pinUntil) return Promise.resolve(true);
+  document.getElementById('pinNote').textContent = note ? `👨‍👩‍👧 Grown-ups only · ${note}` : '👨‍👩‍👧 Grown-ups only';
   let saved = null; try { saved = localStorage.getItem('mine3.pin'); } catch {}
   return new Promise((res) => {
     let entry = '', first = null;
@@ -891,7 +895,7 @@ function needPin() {
     const show = () => { dots.textContent = '●'.repeat(entry.length) + '○'.repeat(4 - entry.length); };
     show();
     document.getElementById('pinPad').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map((d) => d === '' ? '<span></span>' : `<button class="btn no" data-d="${d}">${d}</button>`).join('');
-    const done = (ok) => { ov('pinOv', false); document.getElementById('pinPad').onclick = null; if (ok) pinUntil = Date.now() + 15 * 60e3; /* grown-up controls stay open for 15 minutes */ res(ok); };
+    const done = (ok) => { ov('pinOv', false); document.getElementById('pinPad').onclick = null; if (ok && grace) pinUntil = Date.now() + 15 * 60e3; /* grown-up controls stay open for 15 minutes */ res(ok); };
     document.getElementById('pinPad').onclick = (e) => {
       const b = e.target.closest('[data-d]'); if (!b) return;
       const d = b.dataset.d;
@@ -1757,6 +1761,36 @@ document.getElementById('kidGrid').addEventListener('click', (e) => {
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { makingRight = false; placing = null; render(); capEl.classList.remove('show'); } });
 
+// ---------- the mine is opened by a grown-up, for 20 minutes at a time ----------
+const MINE_OPEN_MS = 20 * 60e3;
+function mineLeft() { try { return Math.max(0, Number(localStorage.getItem('mine4.openUntil') || 0) - Date.now()); } catch { return 0; } }
+function leaveMine() {
+  save();
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  if (EMBED) parent.postMessage({ type: 'mine-close' }, location.origin);
+  else { document.getElementById('dayEnd').classList.remove('show'); mineGate().then((ok) => { if (ok) render(); }); }
+}
+async function mineGate() {
+  if (mineLeft() > 0) return true;
+  const ok = await needPin(false, 'opens the mine for 20 minutes');
+  if (ok) { try { localStorage.setItem('mine4.openUntil', String(Date.now() + MINE_OPEN_MS)); } catch {} render(); return true; }
+  if (EMBED) parent.postMessage({ type: 'mine-close' }, location.origin);
+  else caption('🔑 Ask a grown-up to open the mine.', 0, 'love');
+  return false;
+}
+let timeUpShown = false;
+setInterval(() => {
+  if (!S || params.get('weeks')) return;
+  if (!busy && !firing && !document.getElementById('reveal').classList.contains('show')) render(); // keeps the ⏳ minutes fresh
+  if (mineLeft() > 0) { timeUpShown = false; return; }
+  if (timeUpShown || busy || firing || document.getElementById('reveal').classList.contains('show')) return;
+  timeUpShown = true;
+  chime([784, 659, 523]);
+  caption(`⏰ Mine time is over for now. Great digging, ${kid.name}!<em>Ask a grown-up when it’s time to dig again.</em>`, 4500, 'joy');
+  speak(`Mine time is over for now. Great digging, ${kid.name}!`, true);
+  setTimeout(leaveMine, 4800);
+}, 10000);
+
 // ---------- start ----------
 let startKid = 'judah';
 try { startKid = localStorage.getItem('mine4.kid') || 'judah'; } catch {}
@@ -1768,6 +1802,7 @@ for (let i = 0; i < (Number(params.get('weeks')) || 0); i++) autoWeek();
 aim(S.mole.r);
 render();
 (async () => {
+  if (!params.get('weeks') && !(await mineGate())) return; // gifts and habit swings wait in their inboxes until it's opened
   if (!params.get('weeks') && !params.has('nointro')) await firstOpen();
   else if (!params.get('weeks')) await takeGifts();
   await takeInbox(); // after the welcome, so "your jobs paid off" is seen
