@@ -130,3 +130,25 @@ Each child is an apprentice in a glowing forge, with a little fox blacksmith as 
 **Bad choices:** cracked, grimy panels.
 
 **Weekly test:** "storm night". The beam has to guide ships safely home, and a bright lens rescues more boats. Rescued sailors move into a growing harbour village, so good choices visibly help others.
+
+---
+
+# The Mine and the Temple (gem mine + 1 Corinthians 3)
+
+Joel liked the gem mine (digging, choosing, pretty gems, collapse) but wanted a tighter link to 1 Corinthians 3.
+
+**Below ground, the mine:**
+- Each good choice is a pickaxe swing. The child taps where to dig and cracks open gold and gems.
+- Each bad choice means propping a tunnel with wood, hay or stubble, Paul's own materials. These props are mouldy and buzzing with flies.
+
+**Above ground, the temple:**
+- Mined gems ride up in a minecart, and the child chooses where to set them.
+- The temple sits on the foundation "Jesus Christ" (1 Cor 3:10–11, "each one should build with care").
+
+**Weekly fire (1 Cor 3:13):**
+- Fire sweeps down through the temple and the mine.
+- Gold and gems come out refined and brighter.
+- Every wood, hay or stubble prop burns and its tunnel caves in, burying the gems beyond it until they're dug out again.
+- The temple the child built is never wrecked; the loss happens underground.
+
+**Make it right:** owning up swaps a hay prop for stone before the fire.
