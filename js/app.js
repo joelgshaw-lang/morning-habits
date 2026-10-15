@@ -960,6 +960,12 @@ function migrate(s) {
     const k = s.kids.find((x) => x.id === dk.id);
     if (k) for (const [key, val] of Object.entries(dk)) if (!(key in k)) k[key] = structuredClone(val);
   }
+  // New default extra chores join the saved list (before "Another helpful job"), keeping any edits.
+  for (const c of DEFAULT_SETTINGS.extraChores) {
+    if (s.extraChores.some((x) => x.id === c.id)) continue;
+    const other = s.extraChores.findIndex((x) => x.id === 'other');
+    s.extraChores.splice(other < 0 ? s.extraChores.length : other, 0, structuredClone(c));
+  }
   s.version = DEFAULT_SETTINGS.version;
   return s;
 }

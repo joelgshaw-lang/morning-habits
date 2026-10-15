@@ -19,7 +19,7 @@ const nightHabits = () => [
 
 // Bump version when adding fields; app.js fills missing fields into saved settings.
 export const DEFAULT_SETTINGS = {
-  version: 3,
+  version: 4,
   windowOpen: '06:30',
   windowClose: '07:30',
   nightOpen: '18:00',
@@ -34,6 +34,14 @@ export const DEFAULT_SETTINGS = {
     { id: 'plants', name: 'Water the plants', icon: '🪴' },
     { id: 'cook', name: 'Help with dinner', icon: '🍳' },
     { id: 'toys', name: 'Pack away toys', icon: '🧸' },
+    { id: 'dishes', name: 'Do the dishes', icon: '🫧' },
+    { id: 'settable', name: 'Set the table', icon: '🍴' },
+    { id: 'clothes', name: 'Put clothes away', icon: '🧦' },
+    { id: 'shoes', name: 'Line up the shoes', icon: '👟' },
+    { id: 'shopping', name: 'Unpack the shopping', icon: '🛍️' },
+    { id: 'sink', name: 'Wipe the bathroom sink', icon: '🧼' },
+    { id: 'yard', name: 'Help in the yard', icon: '🍂' },
+    { id: 'sibling', name: 'Help a brother or sister', icon: '🤗' },
     { id: 'other', name: 'Another helpful job', icon: '🙌' },
   ],
   kids: [

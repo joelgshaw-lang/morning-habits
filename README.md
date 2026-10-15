@@ -58,7 +58,7 @@ Tips for a shared kitchen iPad:
 - Tap your card on **Who are you?** It's the home screen all day, with a **🌳 Fruit Tree** card next to the kids.
 - Each child's screen has three tabs and opens on the right one for the time of day:
   - **☀️ Morning** (6:30–7:30am window)
-  - **⭐ Extra chores**: any time of day, once each per day (clean the floor, take out the trash, wipe the table, fold washing, water plants, help with dinner, pack away toys, another helpful job). A chore that's already in a child's own routine is left out of their list.
+  - **⭐ Extra chores**: any time of day, once each per day. 16 jobs: clean the floor, take out the trash, wipe the table, fold washing, water the plants, help with dinner, pack away toys, do the dishes, set the table, put clothes away, line up the shoes, unpack the shopping, wipe the bathroom sink, help in the yard, help a brother or sister, and another helpful job. A chore that's already in a child's own routine is left out of their list.
   - **🌙 Night** (6–8pm window): shower or bath, pyjamas, brush teeth, tidy my room, pack my bag.
 - Tap the big **Ready, set, go!** button: a traffic-light countdown starts the morning and saves the start time. Then the habit tiles appear.
 - **Your egg grows with every job.** Each finished habit or chore warms it 🔥, and extra chores warm it twice as much. It grows: egg → wobbly egg → cracking egg → hatching 🐣 → baby chick 🐥 → hen 🐔 (at 10, 25, 45, 70 and 100 warmth), with a celebration at each stage. The hen will lay eggs on the farm in Stage 2.
