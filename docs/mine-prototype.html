@@ -80,6 +80,34 @@
   button.wide { grid-column: 1 / 3; }
   button:disabled { opacity: .4; }
   .log { font-size: 13px; color: var(--muted); font-weight: 600; min-height: 34px; margin: 8px 0 0; }
+  /* gem jump-out reveal */
+  .reveal { position: absolute; inset: 0; z-index: 5; display: none; align-items: center; justify-content: center; flex-direction: column; cursor: pointer; }
+  .reveal.show { display: flex; }
+  .reveal .dim { position: absolute; inset: 0; background: radial-gradient(circle, rgba(0,0,0,.25), rgba(0,0,0,.65)); animation: fadein .3s; }
+  .reveal .rays { position: absolute; width: 520px; height: 520px; border-radius: 50%; background: repeating-conic-gradient(from 0deg, rgba(255,240,170,.55) 0 10deg, transparent 10deg 30deg);
+    -webkit-mask: radial-gradient(circle, #000 20%, transparent 70%); mask: radial-gradient(circle, #000 20%, transparent 70%); animation: spin 6s linear infinite, fadein .4s; }
+  .reveal svg.big { position: relative; width: 260px; height: 260px; overflow: visible; }
+  .reveal .jump { animation: jump .9s cubic-bezier(.2,1.5,.4,1) both; transform-origin: center; }
+  .reveal .spinny { animation: wobble 2.2s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+  .reveal .label { position: relative; margin-top: 10px; color: #fff; text-align: center; font-weight: 900; font-size: 40px; text-shadow: 0 3px 10px rgba(0,0,0,.6); animation: rise .6s .35s both; }
+  .reveal .label small { display: block; font-size: 22px; font-weight: 800; opacity: .95; }
+  .reveal .hint { position: relative; margin-top: 12px; color: #fff; opacity: .75; font-weight: 700; font-size: 16px; animation: rise .5s .9s both; }
+  .reveal .spark { position: absolute; width: 14px; height: 14px; background: #fff; clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); animation: burst 1.1s ease-out forwards; }
+  .reveal.bad .dim { background: radial-gradient(circle, rgba(40,30,0,.35), rgba(20,15,0,.75)); }
+  .reveal.bad .rays { display: none; }
+  @keyframes jump { 0% { transform: translate(var(--fx), var(--fy)) scale(.15) rotate(-40deg); opacity: 0; } 60% { opacity: 1; } 100% { transform: none; } }
+  @keyframes wobble { 0%, 100% { transform: rotate(-6deg) scale(1); } 50% { transform: rotate(6deg) scale(1.06); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadein { from { opacity: 0; } }
+  @keyframes rise { from { transform: translateY(20px); opacity: 0; } }
+  @keyframes burst { 0% { transform: translate(0,0) scale(.3); opacity: 1; } 100% { transform: translate(var(--bx), var(--by)) scale(1.4) rotate(120deg); opacity: 0; } }
+  /* action cards */
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .act { display: flex; align-items: center; gap: 8px; text-align: left; min-height: 58px; padding: 6px 10px; font-size: 14px; line-height: 1.15; }
+  .act .e { font-size: 26px; flex: none; }
+  .act.good { background: #f0fdf4; }
+  .act.badc { background: #fef2f2; color: #7f1d1d; }
+  details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   @media (max-width: 900px) { .app { grid-template-columns: 1fr; grid-template-rows: 66vh auto; height: auto; } }
 </style>
 </head>
@@ -94,6 +122,9 @@
     </div>
     <div class="mode" id="mode">🫂 Tap a rotten prop to make it right</div>
     <div class="caption" id="caption"></div>
+    <div class="reveal" id="reveal"><div class="dim"></div><div class="rays"></div>
+      <svg class="big" viewBox="-40 -40 80 80"><g class="jump" id="revealJump"><g class="spinny" id="revealArt"></g></g></svg>
+      <div class="label" id="revealLabel"></div><div class="hint">tap to keep going</div></div>
   </div>
   <aside class="panel">
     <div class="box">
@@ -109,19 +140,29 @@
       <div id="templeInfo"></div>
     </div>
     <div class="box">
-      <h2>Try it (simulate days)</h2>
+      <div class="btns" style="margin-bottom:12px">
+        <button data-act="right" class="right">🫂 Make it right</button>
+        <button data-act="send" class="send">🛒 Send gems up</button>
+        <button class="fire" data-act="fire">🔥 Test by fire</button>
+      </div>
+      <h2>😊 Good things I did</h2>
+      <div class="cards" id="goodCards"></div>
+      <h2 style="margin-top:12px">😣 Things to own up to</h2>
+      <div class="cards" id="badCards"></div>
+      <p class="note">Each good thing hides its own gem in the rock nearby and gives you a ⛏ to dig it out.</p>
+    </div>
+    <div class="box">
+      <details><summary>Prototype tools (simulate whole days)</summary><div style="height:8px"></div>
       <div class="btns">
         <button data-act="great">🌟 Great day</button>
         <button data-act="mixed">🙂 Mixed day</button>
         <button data-act="hard">😣 Hard day</button>
-        <button data-act="right" class="right">🫂 Make it right</button>
-        <button data-act="send" class="send wide">🛒 Send all gems up to the temple</button>
-        <button class="fire" data-act="fire">🔥 Test by fire</button>
         <button data-act="auto">⏩ Auto-play a week</button>
         <button data-act="reset">↺ New mine</button>
         <button data-act="look" class="wide">🏛 Look up at my temple / ⛏ back to the mine</button>
       </div>
-      <p class="log" id="log">Tap 🌟 Great day to get pickaxe swings, then tap a rock next to the shaft.</p>
+      </details>
+      <p class="log" id="log">Tap a good thing you did, then dig out the gem it hid in the rock.</p>
     </div>
   </aside>
 </div>
@@ -144,6 +185,28 @@ const BURNS = ['wood', 'hay', 'stubble'];
 const PROP_NAME = { stone: 'Stone prop', wood: 'Rotten wood prop', hay: 'Mouldy hay prop', stubble: 'Stubble prop' };
 const PROP_SRC = { wood: 'fighting', hay: 'a tantrum', stubble: 'rude words' };
 const treasureName = (t) => t === 'gold' ? 'Gold nugget' : t === 'pearl' ? 'Pearl' : `${GEMS[t][0]} (${GEMS[t][1]})`;
+
+// ---------- actions kids can log (draft list: swap in the family's own) ----------
+// Good actions hide their own gem in the rock (prayer hides gold). Bad actions prop a tunnel with rot.
+const GOOD = [
+  { e: '🙏', t: 'I stopped to pray', gem: 'gold' },
+  { e: '⏳', t: 'I waited patiently', gem: 'chalcedony' },
+  { e: '😤', t: 'I stayed calm when I was cross', gem: 'amethyst' },
+  { e: '🤝', t: 'I helped without being asked', gem: 'emerald' },
+  { e: '🎁', t: 'I shared', gem: 'carnelian' },
+  { e: '🙋', t: 'I told the truth', gem: 'chrysolite' },
+  { e: '🕊️', t: 'I made peace', gem: 'sapphire' },
+  { e: '😄', t: 'I chose a happy attitude', gem: 'topaz' },
+  { e: '🤞', t: 'I kept my promise', gem: 'jasper' },
+  { e: '🪶', t: 'Gentle words and hands', gem: 'beryl' },
+];
+const BAD = [
+  { e: '😡', t: 'I lashed out in anger', prop: 'wood' },
+  { e: '👊', t: 'I fought with my sibling', prop: 'wood' },
+  { e: '😭', t: 'I had a tantrum', prop: 'hay' },
+  { e: '🙉', t: 'I disobeyed', prop: 'hay' },
+  { e: '🗯️', t: 'I spoke rudely', prop: 'stubble' },
+];
 
 // ---------- mine layout ----------
 const COLS = 14, ROWS = 24, CW = 52, CH = 50, MX = 36, MY = 270;
@@ -443,10 +506,14 @@ function dig(r, c, quiet = false) {
   render({ found: found ? `${r},${c}` : null });
   for (let i = 0; i < 9; i++) particle('rect', { x: cx(c) + 22, y: cy(r) + 22, width: 6, height: 5, fill: '#8a6a4c' }, 'shard', 800,
     { '--sx': `${(Math.random() * 80 - 40).toFixed(0)}px`, '--sy': `${(Math.random() * 60 - 40).toFixed(0)}px` });
-  if (found === 'gold') { chime([660, 880]); caption('🟨 Gold nugget!', 1800, 'joy'); }
-  else if (found && GEMS[found]) { chime([660, 880, 1100, 1320]); caption(`💎 You found a ${GEMS[found][0]}!<em>${GEMS[found][1]}: tap it to send it up to your temple</em>`, 3000, 'joy'); }
-  else if (found === 'pearl') { chime([880, 1100]); caption('⚪ A buried pearl!', 1800, 'joy'); }
-  else chime([330]);
+  if (found) {
+    chime(found === 'gold' ? [660, 880, 1100] : [660, 880, 1100, 1320, 1760]);
+    const label = found === 'gold' ? '🟨 Gold!<small>Prayer · tap it to send it up to your temple</small>'
+      : found === 'pearl' ? '⚪ A pearl!<small>Made it right</small>'
+      : `💎 ${GEMS[found][0]}!<small>${GEMS[found][1]} · tap it to send it up to your temple</small>`;
+    busy = true;
+    bigReveal(artFor(found), label, screenOf(r, c)).then(() => { busy = false; });
+  } else chime([330]);
   return true;
 }
 
@@ -512,6 +579,80 @@ function fixProp(r, c) {
   caption(`🫂 Made it right! The ${was} prop is now stone, and you found a pearl.`, 3000, 'joy');
   log(`Made it right: a ${was} prop became stone.`);
   return true;
+}
+
+// ---------- the big jump-out ----------
+const revealEl = document.getElementById('reveal');
+let revealDone = null;
+function screenOf(r, c) {
+  const pt = scene.createSVGPoint(); pt.x = cx(c) + 26; pt.y = cy(r) + 30;
+  const p = pt.matrixTransform(scene.getScreenCTM());
+  const box = document.getElementById('stage').getBoundingClientRect();
+  return { x: p.x - box.left - box.width / 2, y: p.y - box.top - box.height / 2 };
+}
+// Shows art big in the middle of the screen, jumping out from (r, c). Resolves when tapped or after a moment.
+function bigReveal(artHTML, labelHTML, from, bad = false, ms = 2600) {
+  const jump = document.getElementById('revealJump');
+  document.getElementById('revealArt').innerHTML = artHTML;
+  document.getElementById('revealLabel').innerHTML = labelHTML;
+  const f = from || { x: 0, y: 200 };
+  jump.style.setProperty('--fx', `${f.x / 3.25}px`); jump.style.setProperty('--fy', `${f.y / 3.25}px`);
+  jump.classList.remove('jump'); void jump.getBoundingClientRect(); jump.classList.add('jump');
+  revealEl.classList.toggle('bad', bad);
+  revealEl.querySelectorAll('.spark').forEach((x) => x.remove());
+  if (!bad) for (let i = 0; i < 18; i++) {
+    const sp = document.createElement('div'); sp.className = 'spark';
+    const a = (i / 18) * Math.PI * 2, d = 140 + Math.random() * 120;
+    sp.style.setProperty('--bx', `${Math.cos(a) * d}px`); sp.style.setProperty('--by', `${Math.sin(a) * d}px`);
+    sp.style.animationDelay = `${0.3 + Math.random() * 0.3}s`;
+    sp.style.background = ['#fff', '#ffe27a', '#ffd1f0', '#bfe9ff'][i % 4];
+    revealEl.appendChild(sp);
+  }
+  revealEl.classList.add('show');
+  return new Promise((res) => {
+    const finish = () => { clearTimeout(t); revealEl.classList.remove('show'); revealEl.onclick = null; res(); };
+    const t = setTimeout(finish, ms);
+    revealEl.onclick = finish;
+  });
+}
+const artFor = (t) => t === 'gold' ? '<use href="#nugget" transform="scale(2.1)"/>' : t === 'pearl' ? '<circle r="22" fill="url(#pearl)"/><ellipse cx="-8" cy="-8" rx="8" ry="4" fill="#fff" opacity=".9"/>' : `<use href="#g-${t}" transform="scale(2)"/>`;
+
+// A good action hides its gem in a rock right next to the tunnels, and gives a swing to dig it out.
+function seedGem(gem) {
+  const spots = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const k = cells[r][c];
+    if (k.state !== 'tunnel' && diggable(r, c) && k.content === 'dirt' && !k.pile) spots.push([r, c]);
+  }
+  if (!spots.length) for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (cells[r][c].state !== 'tunnel' && diggable(r, c) && !cells[r][c].pile) spots.push([r, c]);
+  if (!spots.length) return null;
+  const [r, c] = spots[Math.floor(Math.random() * spots.length)];
+  cells[r][c].content = gem;
+  return { r, c };
+}
+async function logGood(a) {
+  if (busy) return;
+  busy = true;
+  swings++;
+  const spot = seedGem(a.gem);
+  const name = a.gem === 'gold' ? 'Gold' : GEMS[a.gem][0], fruit = a.gem === 'gold' ? 'Prayer' : GEMS[a.gem][1];
+  chime([523, 659, 784, 1047]);
+  await bigReveal(artFor(a.gem), `${a.e} ${fruit}!<small>A ${name.toLowerCase()} is hidden in the rock. +1 ⛏ to dig it out!</small>`, null, false, 2400);
+  render();
+  if (spot) { aim(spot.r); setTimeout(() => { const g = scene.querySelector(`.cell[data-r="${spot.r}"][data-c="${spot.c}"]`); g?.classList.add('shake'); }, 300); }
+  log(`${a.e} ${a.t} → a ${name.toLowerCase()} was hidden in the rock, and you got a swing.`);
+  busy = false;
+}
+async function logBad(a) {
+  if (busy) return;
+  busy = true;
+  const ok = rot(a.prop);
+  chime([200, 170]);
+  await bigReveal(`<use href="#p-${a.prop}" transform="translate(-26 -25)"/><g transform="translate(0 -10)"><g><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="1.2s" repeatCount="indefinite"/><g transform="translate(18 0)"><use href="#fly"/></g></g></g><g transform="translate(0 4)"><g><animateTransform attributeName="transform" type="rotate" from="0" to="-360" dur="1.6s" repeatCount="indefinite"/><g transform="translate(24 0)"><use href="#fly"/></g></g></g>`,
+    `${a.e} ${a.t}<small>${ok ? `Your newest tunnel is now held up by ${a.prop === 'wood' ? 'rotten wood' : a.prop === 'hay' ? 'mouldy hay' : 'stubble'}. Make it right before the fire!` : 'Dig some tunnels first.'}</small>`, null, true, 3000);
+  render();
+  log(`${a.e} ${a.t} → a ${a.prop} prop went into your newest tunnel.`);
+  busy = false;
 }
 
 // ---------- the fire ----------
@@ -592,7 +733,7 @@ function autoWeek() {
 }
 
 // ---------- input ----------
-function setButtons(on) { document.querySelectorAll('button[data-act]').forEach((b) => { b.disabled = !on; }); }
+function setButtons(on) { document.querySelectorAll('button[data-act], button.act').forEach((b) => { b.disabled = !on; }); }
 document.querySelector('.panel').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-act]');
   if (!b || busy) return;
@@ -628,6 +769,13 @@ scene.addEventListener('click', (e) => {
   }
 });
 
+document.getElementById('goodCards').innerHTML = GOOD.map((a, i) => `<button class="act good" data-good="${i}"><span class="e">${a.e}</span>${a.t}</button>`).join('');
+document.getElementById('badCards').innerHTML = BAD.map((a, i) => `<button class="act badc" data-bad="${i}"><span class="e">${a.e}</span>${a.t}</button>`).join('');
+document.querySelector('.panel').addEventListener('click', (e) => {
+  const g = e.target.closest('[data-good]'), b = e.target.closest('[data-bad]');
+  if (g) logGood(GOOD[Number(g.dataset.good)]);
+  if (b) logBad(BAD[Number(b.dataset.bad)]);
+});
 newMine();
 const params = new URLSearchParams(location.search);
 for (let i = 0; i < (Number(params.get('weeks')) || 0); i++) autoWeek();
