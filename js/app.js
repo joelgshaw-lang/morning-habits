@@ -293,8 +293,35 @@ async function startNight() {
   renderKid();
   burst(app.querySelector('.tiles'), 16);
   pop(true);
-  speak(coins ? `Go ${k.name}! ${coins} coins for a quick start!` : `Go ${k.name}! Let's get ready for bed.`);
+  speak(`Go ${k.name}! ${coins ? `${coins} coins for a quick start! ` : ''}Finish in 20 minutes for 10 coins.`);
   if (coins) toast(`🪙 +${coins} for a quick start!`);
+}
+
+// The night chores clock: green for the first 20 minutes, then amber until 40.
+function nightTimerText(startIso, finishedMs) {
+  const took = (finishedMs || nowMs()) - new Date(startIso).getTime();
+  const min20 = 20 * 60000;
+  const min40 = 40 * 60000;
+  if (finishedMs) {
+    return took <= min20 ? `⚡ Done in ${fmtMinutes(took)}! Super fast: 🪙 10` : took <= min40 ? `✅ Done in ${fmtMinutes(took)}! Under 40 minutes: 🪙 5` : `✅ Done in ${fmtMinutes(took)}. Try for under 40 tomorrow!`;
+  }
+  const t = clock.fmtDuration(took);
+  if (took < min20) return `⏱ ${t} · finish in ${clock.fmtDuration(min20 - took)} for 🪙 10`;
+  if (took < min40) return `⏱ ${t} · finish in ${clock.fmtDuration(min40 - took)} for 🪙 5`;
+  return `⏱ ${t} · keep going, nearly bedtime!`;
+}
+
+function nightTimerHTML(k, d) {
+  const fin = nightFinishedAt(k, d);
+  const took = (fin || nowMs()) - new Date(d.nightStartedAt).getTime();
+  const left = Math.max(0, 1 - took / (40 * 60000));
+  const zone = took < 20 * 60000 ? 'fast' : took < 40 * 60000 ? 'ok' : 'late';
+  return `
+    <div class="night-timer ${zone} ${fin ? 'finished' : ''}" ${fin ? '' : `data-night-start="${d.nightStartedAt}"`}>
+      <div class="night-timer-fill" style="width:${(left * 100).toFixed(1)}%"></div>
+      <span class="night-timer-mark" title="20 minutes"></span>
+      <div class="night-timer-label">${nightTimerText(d.nightStartedAt, fin)}</div>
+    </div>`;
 }
 
 function raceBarHTML() {
@@ -517,9 +544,10 @@ function renderKid() {
   const nudgeId = r === 'morning' && n === 0 && !state.runs[k.id] ? list[0]?.id : null;
   const started = firstDoneTime(d);
   const notStarted = r === 'morning' && !started && !state.runs[k.id];
-  // After a grown-up taps "Dinner's finished", night jobs start with a button worth more the sooner it's pressed.
-  const nightGate = r === 'night' && dinnerToday() && !d.nightStartedAt && !nightFinishedAt(k, d);
-  const offer = nightGate ? startOffer(dinnerToday(), nowMs()) : null;
+  // Night jobs start with a big button, which starts the 20/40-minute clock. After a grown-up taps
+  // "Dinner's finished", pressing it quickly earns extra too.
+  const nightGate = r === 'night' && !d.nightStartedAt && !nightFinishedAt(k, d) && n === 0;
+  const offer = nightGate && dinnerToday() ? startOffer(dinnerToday(), nowMs()) : null;
   const lastDone = Object.values(mapFor(d, r)).sort().at(-1);
   let title;
   let sub;
@@ -557,14 +585,15 @@ function renderKid() {
             <span>${icon}</span> ${name} <small>${tabCount(id)}</small>
           </button>`).join('')}
       </nav>
-      ${r === 'extras' ? '' : windowBarHTML(r)}
+      ${r === 'extras' ? '' : r === 'night' && d.nightStartedAt ? nightTimerHTML(k, d) : windowBarHTML(r)}
       <div class="morning-body">
         ${nightGate ? `
         <div class="start-panel">
           <button class="go-btn night-go" data-action="start-night">
             <span class="go-icon">🌙</span>
-            <span class="go-text">Start my night jobs!</span>
-            <span class="go-sub" data-offer="${dinnerToday()}">${offer.coins ? `Start now for 🪙 ${offer.coins} · drops in ${clock.fmtDuration(offer.msToDrop)}` : 'Start now. The family is waiting!'}</span>
+            <span class="go-text">Start night chores!</span>
+            <span class="go-sub">⏱ Under 20 min = 🪙 10 · under 40 min = 🪙 5</span>
+            ${offer ? `<span class="go-sub" data-offer="${dinnerToday()}">${offer.coins ? `Start now for 🪙 ${offer.coins} · drops in ${clock.fmtDuration(offer.msToDrop)}` : 'Start now. The family is waiting!'}</span>` : ''}
           </button>
         </div>` : notStarted ? `
         <div class="start-panel">
@@ -632,6 +661,14 @@ function tick() {
   app.querySelectorAll('[data-offer]').forEach((el) => {
     const o = startOffer(el.dataset.offer, nowMs());
     el.textContent = o.coins ? `Start now for 🪙 ${o.coins} · drops in ${clock.fmtDuration(o.msToDrop)}` : 'Start now. The family is waiting!';
+  });
+  app.querySelectorAll('[data-night-start]').forEach((el) => {
+    const took = nowMs() - new Date(el.dataset.nightStart).getTime();
+    el.querySelector('.night-timer-label').textContent = nightTimerText(el.dataset.nightStart);
+    el.querySelector('.night-timer-fill').style.width = `${(Math.max(0, 1 - took / (40 * 60000)) * 100).toFixed(1)}%`;
+    el.classList.toggle('ok', took >= 20 * 60000 && took < 40 * 60000);
+    el.classList.toggle('late', took >= 40 * 60000);
+    el.classList.toggle('fast', took < 20 * 60000);
   });
   app.querySelectorAll('[data-race]').forEach((el) => { el.textContent = fmtMinutes(nowMs() - new Date(el.dataset.race).getTime()); });
   const idle = Date.now() - state.lastTouch > (state.mineOpen ? 3 * IDLE_MS : IDLE_MS) && state.prayer?.phase !== 'confirm';

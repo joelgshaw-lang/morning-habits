@@ -6,6 +6,8 @@ export const COINS = {
   startStep: 2,     // …then 2 fewer coins for every 5 minutes of waiting
   startStepMin: 5,
   nightDone: 10,    // all night jobs done
+  under40: 5,       // all night jobs done within 40 minutes of pressing Start…
+  under20: 5,       // …and 5 more if it took under 20 minutes
   bedtime: 5,       // toilet, teeth and in bed by bedtime
   familyWin: 5,     // everyone finished their night jobs (each child gets this)
   beatLast: 5,      // the family finished faster than last time
@@ -90,7 +92,11 @@ function dayCoins(settings, kid, day, fam) {
   if (!day) return items;
   const start = startCoins(fam?.dinner, day.nightStartedAt);
   if (start) items.push({ coins: start, why: 'Quick start after dinner' });
-  if (nightFinishedAt(kid, day)) items.push({ coins: COINS.nightDone, why: 'Night jobs done' });
+  const finished = nightFinishedAt(kid, day);
+  if (finished) items.push({ coins: COINS.nightDone, why: 'Night jobs done' });
+  const took = finished && day.nightStartedAt ? finished - ms(day.nightStartedAt) : null;
+  if (took != null && took <= 40 * 60000) items.push({ coins: COINS.under40, why: 'Done in under 40 minutes' });
+  if (took != null && took <= 20 * 60000) items.push({ coins: COINS.under20, why: 'Super fast: under 20 minutes' });
   if (bedtimeBonus(kid, day, settings.nightClose)) items.push({ coins: COINS.bedtime, why: 'In bed on time' });
   if (fam?.win) items.push({ coins: COINS.familyWin, why: 'Family win' });
   if (fam?.beatLast) items.push({ coins: COINS.beatLast, why: 'Faster than last time' });

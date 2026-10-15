@@ -56,6 +56,7 @@ Tips for a shared kitchen iPad:
 ## How kids use it
 
 - **Secret code and screen time:** the first time a child taps their card, they make a 4-number secret code; after that they type it to sign in ("Forgot my code" lets a grown-up reset it with the grown-up PIN). Each sign-in gives **2 minutes** on screen (⏳ top right). When it runs out they get a **2-minute screen break** (😴 on their card). Prayer-timer time and mine time don't count, and 2 minutes away refills it.
+- **Start night chores:** every night the Night tab starts with a big **Start night chores!** button, which starts a clock. All night jobs done within 40 minutes 🪙 5, within 20 minutes 🪙 5 more (🪙 10 in total). The bar is green for 20 minutes, then amber, then red.
 - **After-dinner race:** in the evening a grown-up taps **🍽️ Dinner's finished** (grown-up PIN). Each child taps **Start my night jobs**: worth 🪙 10 within 5 minutes, then 2 fewer every 5 minutes. All night jobs done 🪙 10. Toilet, teeth and in bed by 8pm 🪙 5. When everyone finishes it's a **🏆 Family win** (🪙 5 each), plus 🪙 5 for beating last time and 🪙 5 more for a new family record.
 - **Streaks 🔥:** days in a row with every morning and night job done.
 - Tap your card on **Who are you?** It's the home screen all day. Each card shows the egg and how many ⛏ swings are waiting in the mine.
