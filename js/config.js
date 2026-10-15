@@ -15,15 +15,18 @@ const nightHabits = () => [
   { id: 'teeth', name: 'Brush teeth', icon: '🪥' },
   { id: 'room', name: 'Tidy my room', icon: '🧺' },
   { id: 'bag', name: 'Pack my bag', icon: '🎒' },
+  // Toilet, teeth and in bed by bedtime earn the bedtime bonus.
+  { id: 'toilet', name: 'Go to the toilet', icon: '🚽' },
+  { id: 'inbed', name: 'In bed', icon: '🛌' },
 ];
 
 // Bump version when adding fields; app.js fills missing fields into saved settings.
 export const DEFAULT_SETTINGS = {
-  version: 5,
+  version: 6,
   windowOpen: '06:30',
   windowClose: '07:30',
   nightOpen: '18:00',
-  nightClose: '20:00',
+  nightClose: '20:00', // bedtime for everyone
   dayStartHour: 3, // a new day starts at 3:00am
   // Extra chores any child can do any time of day, once each per day.
   extraChores: [

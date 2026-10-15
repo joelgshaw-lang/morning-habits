@@ -415,6 +415,53 @@ button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulat
 .egg-badge { font-size: 20px; font-weight: 800; color: var(--muted); }
 @keyframes egg-wobble { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-9deg); } 40% { transform: rotate(8deg); } 60% { transform: rotate(-5deg); } 80% { transform: rotate(3deg); } }
 
+/* ----- secret-code PIN pad ----- */
+.pin-ov { position: fixed; inset: 0; z-index: 70; background: rgba(20, 22, 30, 0.6); display: grid; place-items: center; }
+.pin-sheet {
+  background: #fff; border-radius: 32px; padding: 26px 30px 22px; width: min(440px, 92vw);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); text-align: center; border-top: 14px solid var(--kid);
+}
+.pin-sheet.shake { animation: wiggle-sm 0.4s ease-in-out 2; }
+.pin-note { font-size: 34px; }
+.pin-sheet h2 { margin: 4px 0 12px; font-size: 28px; line-height: 1.15; }
+.pin-dots { display: flex; justify-content: center; gap: 18px; margin-bottom: 16px; }
+.pin-dots span { width: 26px; height: 26px; border-radius: 50%; border: 4px solid var(--kid); }
+.pin-dots span.on { background: var(--kid); }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.pin-pad button {
+  min-height: 74px; border: 0; border-radius: 20px; background: #f3eee6;
+  font-size: 34px; font-weight: 900; box-shadow: 0 4px 0 rgba(0, 0, 0, 0.1);
+}
+.pin-pad button:active { transform: translateY(3px); box-shadow: none; }
+.pin-pad .pin-soft { background: #fff; color: var(--muted); }
+.pin-forgot { margin-top: 12px; border: 0; background: none; font-size: 19px; font-weight: 800; color: var(--muted); min-height: 48px; text-decoration: underline; }
+
+/* ----- screen time, coins, streaks ----- */
+.chips { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.session-chip, .coin-chip { background: #fff; box-shadow: var(--shadow); border-radius: 16px; padding: 6px 14px; font-size: 22px; font-weight: 900; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.session-chip.low { background: #fee2e2; color: #b91c1c; }
+.coin-line { font-size: 26px; font-weight: 900; display: flex; gap: 18px; }
+.coin-line span { color: #ea580c; }
+.kid-card.resting { filter: grayscale(0.7); opacity: 0.75; }
+.picker .cards { grid-template-columns: repeat(3, 1fr); }
+.kid-card .avatar { width: 112px; height: 112px; font-size: 66px; }
+.kid-card { gap: 8px; }
+.dinner-btn { margin-left: auto; background: #fde68a; font-size: 24px; }
+.dinner-btn + .clock { margin-left: 0; }
+.race-bar {
+  background: #fff7ed; border: 3px solid #fdba74; border-radius: 22px; padding: 8px 20px;
+  font-size: 24px; font-weight: 900; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline;
+}
+.race-bar small { font-size: 18px; color: var(--muted); }
+.race-bar.won { background: #fef9c3; border-color: #facc15; }
+.go-btn.night-go { background: linear-gradient(135deg, #4f46e5, var(--kid)); }
+.go-btn .go-icon { font-size: 90px; line-height: 1; }
+.tab-night .tiles { grid-template-columns: repeat(4, 1fr); }
+.tab-night .tile { min-height: 150px; }
+.tab-night .tile-icon { font-size: 60px; }
+.tab-night .tile-name { font-size: 24px; text-align: center; line-height: 1.1; }
+.times-up { background: color-mix(in srgb, #1f2430 90%, transparent); }
+
 /* ----- toast ----- */
 #toast {
   position: fixed;

@@ -1,6 +1,8 @@
 import { openDB, kvGet, kvSet, dayGet, dayPut, dayDelete, dayAll } from './db.js';
 import * as clock from './clock.js';
 import { DEFAULT_SETTINGS } from './config.js';
+import { summarize, startOffer, startCoins, fmtMinutes, nightFinishedAt } from './family.js';
+import { askPin } from './pinpad.js';
 
 const app = document.getElementById('app');
 const overlay = document.getElementById('overlay');
@@ -10,6 +12,8 @@ const IDLE_MS = 60 * 1000;        // shared iPad: back to "Who are you?" after 1
 const ALL_DONE_HOME_MS = 12000;   // ...or 12s after finishing everything
 const HOLD_MS = 800;              // press-and-hold to tick a habit, so exploring taps don't count
 const UNDO_MS = 8000;
+const SESSION_MS = 2 * 60 * 1000;  // screen time per sign-in (the prayer timer and the mine don't count)
+const COOLDOWN_MS = 2 * 60 * 1000; // screen break after using it all
 const PRAISE = ['Great job!', 'Awesome!', 'You did it!', 'Super star!', 'Way to go!', 'Nice work!', 'Brilliant!', 'Keep it up!', 'Fantastic!', 'Well done!'];
 
 const state = {
@@ -27,6 +31,8 @@ const state = {
   mineOpen: false,   // the Mine and the Temple is open over the child's screen
   tab: 'morning',    // routine shown on a child's screen: morning | extras | night
   warmth: 0,         // current child's lifetime egg warmth
+  dinners: {},       // dayKey -> when a grown-up tapped "Dinner's finished"
+  sum: null,         // coins, streaks and tonight's family race (from family.js)
 };
 
 // ---------- helpers ----------
@@ -163,6 +169,149 @@ window.addEventListener('message', (e) => {
   if (e.data?.type === 'mine-close') closeMine();
 });
 
+// ---------- coins, streaks, dinner race ----------
+
+async function refreshSummary() {
+  state.dinners = (await kvGet('dinners')) || {};
+  state.sum = summarize(state.settings, await dayAll(), state.dinners, todayKey());
+}
+const coinsOf = (id) => state.sum?.coins[id] || 0;
+const streakOf = (id) => state.sum?.streak[id] || 0;
+const dinnerToday = () => state.dinners[todayKey()];
+
+// ---------- secret codes and screen-time limit ----------
+// Each child signs in with their own 4-digit code and gets 2 minutes on screen. When it's used up
+// they get a 2-minute break. Time away for 2 minutes also refills it. Prayer timer and mine time don't count.
+
+const readJSON = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; } };
+const writeJSON = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
+const sessions = readJSON('sessions', {});
+const nowMs = () => clock.now().getTime();
+const cooldownLeft = (id) => Math.max(0, (sessions[id]?.cooldownUntil || 0) - nowMs());
+const sessionLeft = (id) => Math.max(0, SESSION_MS - (sessions[id]?.used || 0));
+const sessionPaused = () => !!state.prayer || state.mineOpen;
+
+function beginSession(id) {
+  const s = (sessions[id] ||= { used: 0, lastSeen: 0, cooldownUntil: 0 });
+  if (nowMs() - s.lastSeen >= COOLDOWN_MS) { s.used = 0; s.warned = false; }
+  s.lastSeen = nowMs();
+  writeJSON('sessions', sessions);
+}
+
+let timesUpShown = false;
+function sessionTick() {
+  const s = state.kidId && sessions[state.kidId];
+  if (!s || timesUpShown) return;
+  const n = nowMs();
+  const dt = Math.max(0, Math.min(5000, n - s.lastSeen)); // ignore jumps (iPad asleep, dev time skips)
+  s.lastSeen = n;
+  if (!sessionPaused()) s.used += dt;
+  writeJSON('sessions', sessions);
+  const chip = app.querySelector('.session-chip');
+  if (chip) {
+    chip.textContent = sessionPaused() ? '⏸ Paused' : `⏳ ${clock.fmtDuration(sessionLeft(state.kidId))}`;
+    chip.classList.toggle('low', sessionLeft(state.kidId) <= 30000);
+  }
+  if (s.used >= SESSION_MS) return timesUp();
+  if (!s.warned && SESSION_MS - s.used <= 30000) { s.warned = true; speak('30 seconds left.'); }
+}
+
+function timesUp() {
+  const k = kid();
+  const s = sessions[k.id];
+  s.used = 0;
+  s.warned = false;
+  s.cooldownUntil = nowMs() + COOLDOWN_MS;
+  writeJSON('sessions', sessions);
+  timesUpShown = true;
+  const el = document.createElement('div');
+  el.className = 'all-done-moment times-up';
+  el.style.setProperty('--kid', k.color);
+  el.innerHTML = `<div><div class="big-emoji">⏰</div><h2>Time's up, ${esc(k.name)}!</h2><p>Off you go and do your jobs. Come back in 2 minutes.</p></div>`;
+  document.body.appendChild(el);
+  speak(`Time's up, ${k.name}! Off you go and do your jobs. Come back in 2 minutes.`, true);
+  setTimeout(() => { el.remove(); timesUpShown = false; goHome(); }, 4000);
+}
+
+async function grownUp(note) {
+  // Same grown-up PIN as the mine uses.
+  let saved = null;
+  try { saved = localStorage.getItem('mine3.pin'); } catch {}
+  if (saved) return !!(await askPin({ title: 'Enter the grown-up PIN', note: `👨‍👩‍👧 Grown-ups only · ${note}`, expect: String(saved) }));
+  const code = await askPin({ title: 'Choose a 4-digit grown-up PIN', note: `👨‍👩‍👧 Grown-ups only · ${note}`, create: true });
+  if (code) { try { localStorage.setItem('mine3.pin', code); } catch {} }
+  return !!code;
+}
+
+async function signIn(id) {
+  unlockAudio();
+  const k = kid(id);
+  const cd = cooldownLeft(id);
+  if (cd) {
+    toast(`😴 Screen break, ${esc(k.name)}. Back in ${clock.fmtDuration(cd)}`);
+    if (readAloudOn(id)) speak(`Screen break, ${k.name}. Go and do your jobs, then come back.`, true);
+    return;
+  }
+  const pins = readJSON('kidPins', {});
+  if (readAloudOn(id)) speak(pins[id] ? `Hi ${k.name}! Type your secret code.` : `Hi ${k.name}! Make a secret code with 4 numbers.`, true);
+  if (!pins[id]) {
+    const code = await askPin({ title: `Make your secret code, ${esc(k.name)}`, note: `${k.avatar || ''} 4 numbers only you know`, color: k.color, create: true });
+    if (!code) return;
+    pins[id] = code;
+    writeJSON('kidPins', pins);
+  } else {
+    const r = await askPin({ title: `Hi ${esc(k.name)}! Type your secret code`, note: k.avatar || '', color: k.color, expect: pins[id], forgot: true });
+    if (r === 'forgot') {
+      if (!(await grownUp(`reset ${k.name}'s code`))) return;
+      delete pins[id];
+      writeJSON('kidPins', pins);
+      toast(`Code cleared. ${esc(k.name)} can make a new one.`);
+      return signIn(id);
+    }
+    if (!r) return;
+  }
+  beginSession(id);
+  return openKid(id);
+}
+
+async function dinnerFinished() {
+  if (!(await grownUp("Dinner's finished"))) return;
+  state.dinners[todayKey()] = clock.now().toISOString();
+  await kvSet('dinners', state.dinners);
+  speak("Dinner's finished! Race to your night jobs. Start quickly for more coins!", true);
+  await render();
+}
+
+async function startNight() {
+  const k = kid();
+  if (state.day.nightStartedAt) return;
+  state.day.nightStartedAt = clock.now().toISOString();
+  state.day.log.push({ t: state.day.nightStartedAt, routine: 'night', action: 'start' });
+  await dayPut(state.day);
+  const coins = startCoins(dinnerToday(), state.day.nightStartedAt);
+  await refreshSummary();
+  renderKid();
+  burst(app.querySelector('.tiles'), 16);
+  pop(true);
+  speak(coins ? `Go ${k.name}! ${coins} coins for a quick start!` : `Go ${k.name}! Let's get ready for bed.`);
+  if (coins) toast(`🪙 +${coins} for a quick start!`);
+}
+
+function raceBarHTML() {
+  const din = dinnerToday();
+  if (homeRoutine() !== 'night' || clock.now().getHours() < 16) return '';
+  const fam = state.sum?.family;
+  if (!din) return '';
+  const best = fam?.bestTime != null ? `Record ${fmtMinutes(fam.bestTime)}` : '';
+  const last = fam?.lastTime != null ? `Last time ${fmtMinutes(fam.lastTime)}` : '';
+  const compare = [last, best].filter(Boolean).join(' · ');
+  if (fam?.win) {
+    const how = fam.record ? '⚡ New family record!' : fam.beatLast ? '🚀 Faster than last time!' : '';
+    return `<div class="race-bar won">🏆 Family win${fam.time != null ? ` in ${fmtMinutes(fam.time)}` : ''}! ${how} <small>${compare}</small></div>`;
+  }
+  return `<div class="race-bar">🍽️ Race on since ${clock.fmtTime(new Date(din))} · ⏱ <span data-race="${din}">${fmtMinutes(nowMs() - new Date(din).getTime())}</span> <small>${compare || 'First race: set the record!'}</small></div>`;
+}
+
 // ---------- speech & sound ----------
 
 // Default on for kids under 8 (Judah can't read much yet); each child can toggle it.
@@ -269,9 +418,11 @@ async function renderPicker() {
     <section class="screen picker">
       <header class="top">
         <h1>Who are you?</h1>
+        ${r === 'night' && clock.now().getHours() >= 16 && !dinnerToday() ? '<button class="btn dinner-btn" data-action="dinner">🍽️ Dinner\'s finished</button>' : ''}
         ${clockHTML()}
       </header>
       ${windowBarHTML(r)}
+      ${raceBarHTML()}
       <div class="cards">
         ${state.settings.kids.map((k, i) => {
           const d = days[i];
@@ -287,15 +438,18 @@ async function renderPicker() {
           else if (started && r === 'morning') status = `Started ${clock.fmtTime(started)}`;
           else if (started) status = `${n} of ${list.length} done`;
           else status = w.phase === 'closed' ? (r === 'night' ? 'Sleep well' : 'See you tomorrow') : '👆 Tap to start';
-          const nudge = !started && !state.runs[k.id] && w.phase !== 'closed' && (r === 'morning' || w.phase === 'open');
+          const cd = cooldownLeft(k.id);
+          if (cd) status = `😴 Back in <span data-cooldown="${k.id}">${clock.fmtDuration(cd)}</span>`;
+          const nudge = !cd && !started && !state.runs[k.id] && w.phase !== 'closed' && (r === 'morning' || w.phase === 'open');
           return `
-          <button class="kid-card ${all ? 'all-done' : ''} ${nudge ? 'nudge' : ''}" style="--kid:${k.color}" data-action="open-kid" data-kid="${k.id}">
+          <button class="kid-card ${all ? 'all-done' : ''} ${nudge ? 'nudge' : ''} ${cd ? 'resting' : ''}" style="--kid:${k.color}" data-action="open-kid" data-kid="${k.id}">
             <div class="avatar">${k.avatar || '🙂'}</div>
             <div class="kid-name">${esc(k.name)}</div>
             <div class="dots" aria-label="${n} of ${list.length} done">
               ${list.map((h) => `<span class="dot ${map[h.id] ? 'on' : ''}">${map[h.id] ? '✓' : ''}</span>`).join('')}
             </div>
             <div class="egg-badge">${eggStage(warmth[k.id] || 0).icon} ${eggStage(warmth[k.id] || 0).name}${extras ? ` · ⭐ ${extras} extra` : ''}${mineSwings(k.id) ? ` · ⛏ ${mineSwings(k.id)}` : ''}</div>
+            <div class="coin-line">🪙 ${coinsOf(k.id)} <span>🔥 ${streakOf(k.id)}</span></div>
             <div class="card-status">${status}</div>
           </button>`;
         }).join('')}
@@ -363,6 +517,9 @@ function renderKid() {
   const nudgeId = r === 'morning' && n === 0 && !state.runs[k.id] ? list[0]?.id : null;
   const started = firstDoneTime(d);
   const notStarted = r === 'morning' && !started && !state.runs[k.id];
+  // After a grown-up taps "Dinner's finished", night jobs start with a button worth more the sooner it's pressed.
+  const nightGate = r === 'night' && dinnerToday() && !d.nightStartedAt && !nightFinishedAt(k, d);
+  const offer = nightGate ? startOffer(dinnerToday(), nowMs()) : null;
   const lastDone = Object.values(mapFor(d, r)).sort().at(-1);
   let title;
   let sub;
@@ -386,6 +543,10 @@ function renderKid() {
           <h1>${title}</h1>
           <p>${sub}</p>
         </div>
+        <div class="chips">
+          <div class="session-chip" title="Screen time left">⏳ ${clock.fmtDuration(sessionLeft(k.id))}</div>
+          <div class="coin-chip">🪙 ${coinsOf(k.id)} · 🔥 ${streakOf(k.id)}</div>
+        </div>
         <button class="btn speak ${readAloudOn() ? 'on' : ''}" data-action="toggle-speak" aria-pressed="${readAloudOn()}" aria-label="Read aloud">
           ${readAloudOn() ? '🔊' : '🔇'}
         </button>
@@ -398,7 +559,14 @@ function renderKid() {
       </nav>
       ${r === 'extras' ? '' : windowBarHTML(r)}
       <div class="morning-body">
-        ${notStarted ? `
+        ${nightGate ? `
+        <div class="start-panel">
+          <button class="go-btn night-go" data-action="start-night">
+            <span class="go-icon">🌙</span>
+            <span class="go-text">Start my night jobs!</span>
+            <span class="go-sub" data-offer="${dinnerToday()}">${offer.coins ? `Start now for 🪙 ${offer.coins} · drops in ${clock.fmtDuration(offer.msToDrop)}` : 'Start now. The family is waiting!'}</span>
+          </button>
+        </div>` : notStarted ? `
         <div class="start-panel">
           <button class="go-btn" data-action="go">
             <span class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></span>
@@ -429,6 +597,7 @@ function renderKid() {
 
 async function render() {
   state.renderedDay = todayKey();
+  await refreshSummary();
   if (state.kidId) {
     state.day = await loadDay(state.kidId);
     state.warmth = (await warmthByKid())[state.kidId] || 0;
@@ -454,6 +623,17 @@ function tick() {
   }
   const c = app.querySelector('.clock');
   if (c) c.outerHTML = clockHTML();
+  sessionTick();
+  app.querySelectorAll('[data-cooldown]').forEach((el) => {
+    const left = cooldownLeft(el.dataset.cooldown);
+    if (!left) return render();
+    el.textContent = clock.fmtDuration(left);
+  });
+  app.querySelectorAll('[data-offer]').forEach((el) => {
+    const o = startOffer(el.dataset.offer, nowMs());
+    el.textContent = o.coins ? `Start now for 🪙 ${o.coins} · drops in ${clock.fmtDuration(o.msToDrop)}` : 'Start now. The family is waiting!';
+  });
+  app.querySelectorAll('[data-race]').forEach((el) => { el.textContent = fmtMinutes(nowMs() - new Date(el.dataset.race).getTime()); });
   const idle = Date.now() - state.lastTouch > (state.mineOpen ? 3 * IDLE_MS : IDLE_MS) && state.prayer?.phase !== 'confirm';
   const away = state.kidId || state.prayer;
   if (away && (idle || (state.autoHomeAt && Date.now() > state.autoHomeAt))) goHome();
@@ -499,7 +679,10 @@ async function completeHabit(habitId) {
   mapFor(state.day, r)[habitId] = at;
   state.day.log.push({ t: at, routine: r, habit: habitId, action: 'done' });
   await dayPut(state.day);
+  const before = state.sum;
+  await refreshSummary();
   afterDone(habitId, h.type !== 'timer', r);
+  coinNews(before);
 }
 
 // Shared feedback after any habit is completed (tile tap or prayer timer).
@@ -535,6 +718,32 @@ function afterDone(habitId, allowUndo, r = 'morning') {
   }
 }
 
+// Celebrate coins just earned: night jobs done, bedtime bonus, and the family win.
+function coinNews(before) {
+  const id = state.kidId;
+  const gained = coinsOf(id) - (before?.coins[id] || 0);
+  const famWon = state.sum?.family?.win && !before?.family?.win;
+  const had = new Set((before?.todayCoins[id] || []).map((c) => c.why));
+  const fresh = (state.sum.todayCoins[id] || []).filter((c) => !had.has(c.why)).map((c) => c.why);
+  if (gained > 0) setTimeout(() => toast(`🪙 +${gained} coins! ${fresh.join(' · ')}`), 600);
+  if (famWon) setTimeout(familyWinMoment, 3700);
+}
+
+function familyWinMoment() {
+  const fam = state.sum.family;
+  const el = document.createElement('div');
+  el.className = 'all-done-moment family-win';
+  const how = fam.record ? '⚡ New family record!' : fam.beatLast ? '🚀 Faster than last time!' : 'Everyone finished their night jobs!';
+  el.innerHTML = `<div><div class="big-emoji">🏆</div><h2>Family win!</h2><p>${how}${fam.time != null ? ` ${fmtMinutes(fam.time)} from dinner.` : ''}</p></div>`;
+  document.body.appendChild(el);
+  chime();
+  speak(`Family win! ${how}`, true);
+  setTimeout(() => burst(null, 40), 200);
+  setTimeout(() => burst(null, 40), 900);
+  el.addEventListener('click', () => el.remove());
+  setTimeout(() => el.remove(), 5000);
+}
+
 async function undo() {
   if (!state.undo || !state.day) return;
   const { habitId, routine } = state.undo;
@@ -546,6 +755,7 @@ async function undo() {
   state.day.log.push({ t: clock.now().toISOString(), routine, habit: habitId, action: 'undo' });
   state.autoHomeAt = 0;
   await dayPut(state.day);
+  await refreshSummary();
   renderKid();
 }
 
@@ -917,6 +1127,10 @@ async function devAction(action, el) {
     if (!confirm("Clear today's ticks for all kids?")) return;
     state.runs = {};
     await Promise.all(state.settings.kids.map((k) => dayDelete(`${todayKey()}|${k.id}`)));
+    delete state.dinners[todayKey()];
+    await kvSet('dinners', state.dinners);
+    for (const id of Object.keys(sessions)) delete sessions[id];
+    writeJSON('sessions', sessions);
   } else if (action === 'dev-export') return exportData();
   else if (action === 'dev-hide') setDev(false);
   await render();
@@ -943,7 +1157,9 @@ document.addEventListener('click', async (e) => {
   const a = el.dataset.action;
   if (a.startsWith('dev-')) return devAction(a, el);
   switch (a) {
-    case 'open-kid': return openKid(el.dataset.kid);
+    case 'open-kid': return signIn(el.dataset.kid);
+    case 'dinner': return dinnerFinished();
+    case 'start-night': return startNight();
     case 'home': return goHome();
     case 'go': return readySetGo();
     case 'mine': return openMine();
@@ -997,6 +1213,11 @@ function migrate(s) {
     if (s.extraChores.some((x) => x.id === c.id)) continue;
     const other = s.extraChores.findIndex((x) => x.id === 'other');
     s.extraChores.splice(other < 0 ? s.extraChores.length : other, 0, structuredClone(c));
+  }
+  // New default night jobs (toilet, in bed) join each child's saved night routine.
+  for (const dk of DEFAULT_SETTINGS.kids) {
+    const k = s.kids.find((x) => x.id === dk.id);
+    for (const h of dk.nightHabits) if (k && !k.nightHabits.some((x) => x.id === h.id)) k.nightHabits.push(structuredClone(h));
   }
   s.version = DEFAULT_SETTINGS.version;
   return s;
