@@ -8,24 +8,49 @@ const baseHabits = (chore) => [
   chore,
 ];
 
+// Night routine: the same for everyone to start with; editable in parent settings (Stage 3).
+const nightHabits = () => [
+  { id: 'shower', name: 'Shower or bath', icon: '🛁' },
+  { id: 'pjs', name: 'Pyjamas on', icon: '👕' },
+  { id: 'teeth', name: 'Brush teeth', icon: '🪥' },
+  { id: 'room', name: 'Tidy my room', icon: '🧺' },
+  { id: 'bag', name: 'Pack my bag', icon: '🎒' },
+];
+
 // Bump version when adding fields; app.js fills missing fields into saved settings.
 export const DEFAULT_SETTINGS = {
-  version: 2,
+  version: 3,
   windowOpen: '06:30',
   windowClose: '07:30',
+  nightOpen: '18:00',
+  nightClose: '20:00',
   dayStartHour: 3, // a new day starts at 3:00am
+  // Extra chores any child can do any time of day, once each per day.
+  extraChores: [
+    { id: 'floor', name: 'Clean the floor', icon: '🧹' },
+    { id: 'trash', name: 'Take out the trash', icon: '🗑️' },
+    { id: 'table', name: 'Wipe the table', icon: '🧽' },
+    { id: 'washing', name: 'Fold washing', icon: '👚' },
+    { id: 'plants', name: 'Water the plants', icon: '🪴' },
+    { id: 'cook', name: 'Help with dinner', icon: '🍳' },
+    { id: 'toys', name: 'Pack away toys', icon: '🧸' },
+    { id: 'other', name: 'Another helpful job', icon: '🙌' },
+  ],
   kids: [
     {
       id: 'eliana', name: 'Eliana', age: 12, avatar: '🦋', color: '#7c3aed', prayerMinutes: 10,
       habits: baseHabits({ id: 'trash', name: 'Take out trash', icon: '🗑️' }),
+      nightHabits: nightHabits(),
     },
     {
       id: 'annabelle', name: 'Annabelle', age: 8, avatar: '🌸', color: '#db2777', prayerMinutes: 5,
       habits: baseHabits({ id: 'dishwasher', name: 'Dishwasher', icon: '🍽️' }),
+      nightHabits: nightHabits(),
     },
     {
       id: 'judah', name: 'Judah', age: 6, avatar: '🚀', color: '#2563eb', prayerMinutes: 3,
       habits: baseHabits({ id: 'utensils', name: 'Utensils', icon: '🥄' }),
+      nightHabits: nightHabits(),
     },
   ],
 };

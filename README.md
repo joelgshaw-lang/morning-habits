@@ -55,7 +55,11 @@ Tips for a shared kitchen iPad:
 
 ## How kids use it
 
-- Tap your card on **Who are you?**
+- Tap your card on **Who are you?** It's the home screen all day, with a **🌳 Fruit Tree** card next to the kids.
+- Each child's screen has three tabs and opens on the right one for the time of day:
+  - **☀️ Morning** (6:30–7:30am window)
+  - **⭐ Extra chores**: any time of day, once each per day (clean the floor, take out the trash, wipe the table, fold washing, water plants, help with dinner, pack away toys, another helpful job). A chore that's already in a child's own routine is left out of their list.
+  - **🌙 Night** (6–8pm window): shower or bath, pyjamas, brush teeth, tidy my room, pack my bag.
 - Tap the big **Ready, set, go!** button: a traffic-light countdown starts the morning and saves the start time. Then the habit tiles appear.
 - **Hold** a habit tile for about a second to tick it (a quick tap only says the habit name and shows "Keep your finger down"). This stops exploring taps from ticking things.
 - **↩️ Undo** shows on a tile for 8 seconds after ticking it.
@@ -66,7 +70,7 @@ Tips for a shared kitchen iPad:
 
 ## Fruit Tree
 
-A shared family tree for the rest of the day (concept: `docs/fruit-tree-concept.md`). After the 7:30am window it becomes the home screen; in the morning, tap **🌳 Fruit Tree**.
+A shared family tree for the rest of the day (concept: `docs/fruit-tree-concept.md`). Tap the **🌳 Fruit Tree** card on the home screen.
 
 - Tap your face, then **💧 I stopped to pray**. Rain falls on the roots. Each child sees only their own weekly count.
 - **Hold** a moment card (e.g. "I stayed calm when I was cross") to grow fruit. A blossom pops on, then ripens. Up to 5 a day each. **↩️ Undo** in the message at the bottom.

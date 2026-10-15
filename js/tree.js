@@ -155,7 +155,7 @@ export function createTree(ctx) {
       <section class="screen tree-screen" style="--kid:${sel?.color || '#16a34a'}">
         <header class="top">
           <h1>🌳 Our Fruit Tree</h1>
-          <button class="btn" data-action="tree-morning">☀️ Morning</button>
+          <button class="btn" data-action="home">🏠 Home</button>
           ${ctx.clockHTML()}
         </header>
         <div class="tree-body">
@@ -418,7 +418,6 @@ export function createTree(ctx) {
   async function action(a, el) {
     switch (a) {
       case 'tree-open': state.view = 'tree'; return ctx.render();
-      case 'tree-morning': state.view = 'picker'; state.treeKid = null; return ctx.render();
       case 'tree-pick': {
         ctx.unlockAudio();
         state.treeKid = el.dataset.kid;

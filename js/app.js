@@ -27,6 +27,7 @@ const state = {
   reloadPending: false,
   view: null,        // 'picker' | 'tree' when chosen; null = by time of day (tree after the morning window)
   treeKid: null,     // child selected on the Fruit Tree screen
+  tab: 'morning',    // routine shown on a child's screen: morning | extras | night
 };
 
 // ---------- helpers ----------
@@ -34,7 +35,12 @@ const state = {
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const kid = (id = state.kidId) => state.settings.kids.find((k) => k.id === id);
 const todayKey = () => clock.dayKey(clock.now(), state.settings.dayStartHour);
-const doneCount = (k, day) => k.habits.filter((h) => day.done[h.id]).length;
+// Three routines per child: morning (timed), extra chores (any time), night (timed).
+// An extra chore that's already in the child's own routine (Eliana's trash) is left out.
+const listFor = (k, r) => (r === 'morning' ? k.habits : r === 'night' ? k.nightHabits
+  : state.settings.extraChores.filter((c) => ![...k.habits, ...k.nightHabits].some((h) => h.id === c.id)));
+const mapFor = (day, r) => (r === 'morning' ? day.done : r === 'night' ? day.nightDone : day.extras);
+const doneCount = (k, day, r = 'morning') => listFor(k, r).filter((h) => mapFor(day, r)[h.id]).length;
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 async function loadDay(kidId) {
@@ -43,6 +49,8 @@ async function loadDay(kidId) {
   rec.log ||= []; // every done/undo, so Stage 2 coins can't be farmed by tick-undo-tick
   rec.drops ||= []; // Fruit Tree: times this child stopped to pray
   rec.fruit ||= []; // Fruit Tree: moments planted
+  rec.nightDone ||= {};
+  rec.extras ||= {};
   return rec;
 }
 
@@ -52,15 +60,26 @@ function firstDoneTime(day) {
   return times.length ? new Date(times[0]) : null;
 }
 
-function windowInfo() {
+function windowInfo(r = 'morning') {
   const s = state.settings;
   const now = clock.now();
-  const open = clock.atTime(s.windowOpen, s.dayStartHour);
-  const close = clock.atTime(s.windowClose, s.dayStartHour);
+  const open = clock.atTime(r === 'night' ? s.nightOpen : s.windowOpen, s.dayStartHour);
+  const close = clock.atTime(r === 'night' ? s.nightClose : s.windowClose, s.dayStartHour);
   if (now < open) return { phase: 'before', open, close, left: 1, mins: Math.ceil((open - now) / 60000) };
   if (now < close) return { phase: 'open', open, close, left: (close - now) / (close - open), mins: Math.ceil((close - now) / 60000) };
   return { phase: 'closed', open, close, left: 0, mins: 0 };
 }
+
+// Which tab a child's screen opens on: morning until 11am, night from an hour before it opens.
+function defaultTab() {
+  const now = clock.now();
+  if (now.getHours() < 11 && now.getHours() >= state.settings.dayStartHour) return 'morning';
+  const night = clock.atTime(state.settings.nightOpen, state.settings.dayStartHour);
+  return now >= new Date(night - 3600000) || now.getHours() < state.settings.dayStartHour ? 'night' : 'extras';
+}
+
+// The routine the home screen shows: morning before noon, night after.
+const homeRoutine = () => (clock.now().getHours() < 12 && clock.now().getHours() >= state.settings.dayStartHour ? 'morning' : 'night');
 
 function greeting() {
   const h = clock.now().getHours();
@@ -149,24 +168,25 @@ function pop(big = false) {
 
 // ---------- rendering ----------
 
-function windowBarHTML() {
-  const w = windowInfo();
+function windowBarHTML(r = 'morning') {
+  const w = windowInfo(r);
   const openTxt = clock.fmtTime(w.open);
   const closeTxt = clock.fmtTime(w.close);
+  const night = r === 'night';
   let label;
-  if (w.phase === 'before') label = `🐦 Early bird time! Start now`;
-  else if (w.phase === 'open') label = `${w.mins} min left`;
-  else label = `🌙 Morning finished. See you tomorrow!`;
+  if (w.phase === 'before') label = night ? `🌙 Night routine starts at ${openTxt}` : `🐦 Early bird time! Start now`;
+  else if (w.phase === 'open') label = night ? `${w.mins} min until bedtime` : `${w.mins} min left`;
+  else label = night ? '😴 Bedtime. Sleep well!' : '🌙 Morning finished. See you tomorrow!';
   // Fill turns green → yellow → red as the morning runs out.
   const fill = w.phase === 'open' ? `hsl(${Math.round(120 * w.left)}, 80%, 50%)` : '';
   const pct = (w.left * 100).toFixed(1);
   return `
-    <div class="window-bar ${w.phase}" role="progressbar" aria-valuenow="${Math.round(w.left * 100)}" aria-valuemin="0" aria-valuemax="100">
+    <div class="window-bar ${w.phase} ${night ? 'night' : ''}" data-routine="${r}" role="progressbar" aria-valuenow="${Math.round(w.left * 100)}" aria-valuemin="0" aria-valuemax="100">
       <div class="window-fill" style="width:${pct}%;${fill ? `background:${fill}` : ''}"></div>
-      ${w.phase === 'open' ? `<span class="sun-edge" style="left:${pct}%">☀️</span>` : ''}
+      ${w.phase === 'open' ? `<span class="sun-edge" style="left:${pct}%">${night ? '🌙' : '☀️'}</span>` : ''}
       <div class="window-label">${label}</div>
     </div>
-    <div class="window-ends"><span>${w.phase === 'before' ? `Opens ${openTxt}` : openTxt}</span><span>Ends ${closeTxt}</span></div>`;
+    <div class="window-ends"><span>${w.phase === 'before' ? `Opens ${openTxt}` : openTxt}</span><span>${night ? 'Bedtime' : 'Ends'} ${closeTxt}</span></div>`;
 }
 
 function clockHTML() {
@@ -175,47 +195,58 @@ function clockHTML() {
 
 async function renderPicker() {
   const days = await Promise.all(state.settings.kids.map((k) => loadDay(k.id)));
-  const w = windowInfo();
+  const r = homeRoutine();
+  const w = windowInfo(r);
   app.innerHTML = `
     <section class="screen picker">
       <header class="top">
         <h1>Who are you?</h1>
-        <button class="btn tree-btn" data-action="tree-open">🌳 Fruit Tree</button>
         ${clockHTML()}
       </header>
-      ${windowBarHTML()}
+      ${windowBarHTML(r)}
       <div class="cards">
         ${state.settings.kids.map((k, i) => {
           const d = days[i];
-          const n = doneCount(k, d);
-          const all = n === k.habits.length;
-          const started = firstDoneTime(d);
+          const list = listFor(k, r);
+          const map = mapFor(d, r);
+          const n = doneCount(k, d, r);
+          const all = n === list.length;
+          const started = r === 'morning' ? firstDoneTime(d) : n > 0;
+          const extras = doneCount(k, d, 'extras');
           let status;
           if (state.runs[k.id]) status = `🙏 Praying <span data-countdown="${k.id}">${clock.fmtDuration(runLeft(k.id))}</span>`;
-          else if (all) status = '🎉 All done!';
-          else if (started) status = `Started ${clock.fmtTime(started)}`;
-          else status = w.phase === 'closed' ? 'See you tomorrow' : '👆 Tap to start';
-          const nudge = !started && !state.runs[k.id] && w.phase !== 'closed';
+          else if (all) status = r === 'night' ? '🌙 All done!' : '🎉 All done!';
+          else if (started && r === 'morning') status = `Started ${clock.fmtTime(started)}`;
+          else if (started) status = `${n} of ${list.length} done`;
+          else status = w.phase === 'closed' ? (r === 'night' ? 'Sleep well' : 'See you tomorrow') : '👆 Tap to start';
+          const nudge = !started && !state.runs[k.id] && w.phase !== 'closed' && (r === 'morning' || w.phase === 'open');
           return `
           <button class="kid-card ${all ? 'all-done' : ''} ${nudge ? 'nudge' : ''}" style="--kid:${k.color}" data-action="open-kid" data-kid="${k.id}">
             <div class="avatar">${k.avatar || '🙂'}</div>
             <div class="kid-name">${esc(k.name)}</div>
-            <div class="dots" aria-label="${n} of ${k.habits.length} done">
-              ${k.habits.map((h) => `<span class="dot ${d.done[h.id] ? 'on' : ''}">${d.done[h.id] ? '✓' : ''}</span>`).join('')}
+            <div class="dots" aria-label="${n} of ${list.length} done">
+              ${list.map((h) => `<span class="dot ${map[h.id] ? 'on' : ''}">${map[h.id] ? '✓' : ''}</span>`).join('')}
             </div>
+            ${extras ? `<div class="extra-count">⭐ ${extras} extra chore${extras === 1 ? '' : 's'}</div>` : ''}
             <div class="card-status">${status}</div>
           </button>`;
         }).join('')}
+        <button class="kid-card tree-card" data-action="tree-open">
+          <div class="avatar">🌳</div>
+          <div class="kid-name">Fruit Tree</div>
+          <div class="tree-card-sub">💧 Pray · 🍇 Grow fruit</div>
+          <div class="card-status">🌧️ Stop &amp; Pray</div>
+        </button>
       </div>
     </section>`;
 }
 
-function tileHTML(k, h, d, nudgeId) {
-  const at = d.done[h.id];
+function tileHTML(k, h, d, nudgeId, r) {
+  const at = mapFor(d, r)[h.id];
   const open = clock.atTime(state.settings.windowOpen, state.settings.dayStartHour);
   if (at) {
-    const early = new Date(at) < open;
-    const undo = state.undo?.habitId === h.id;
+    const early = r === 'morning' && new Date(at) < open;
+    const undo = state.undo?.habitId === h.id && state.undo?.routine === r;
     return `
       <div class="tile done" role="button" data-action="habit" data-habit="${h.id}">
         ${early ? '<span class="early" title="Early bird">🐦</span>' : ''}
@@ -237,34 +268,57 @@ function tileHTML(k, h, d, nudgeId) {
     <div class="tile ${nudgeId === h.id ? 'nudge' : ''}" role="button" data-hold data-habit="${h.id}">
       <span class="tile-icon">${h.icon}</span>
       <span class="tile-name">${esc(h.name)}</span>
-      <span class="tile-sub">👇 Hold when done</span>
+      <span class="tile-sub">👇 Hold${r === 'extras' ? '' : ' when done'}</span>
     </div>`;
 }
 
-function renderMorning() {
+const TABS = [['morning', '☀️', 'Morning'], ['extras', '⭐', 'Extra chores'], ['night', '🌙', 'Night']];
+
+function renderKid() {
   const k = kid();
   const d = state.day;
-  const n = doneCount(k, d);
-  const total = k.habits.length;
-  const all = n === total;
-  // Nudge the first unfinished habit when nothing has been ticked yet.
-  const nudgeId = n === 0 && !state.runs[k.id] ? k.habits[0]?.id : null;
+  const r = state.tab;
+  const list = listFor(k, r);
+  const n = doneCount(k, d, r);
+  const total = list.length;
+  const all = r !== 'extras' && n === total;
+  const nudgeId = r === 'morning' && n === 0 && !state.runs[k.id] ? list[0]?.id : null;
   const started = firstDoneTime(d);
-  const notStarted = !started && !state.runs[k.id];
+  const notStarted = r === 'morning' && !started && !state.runs[k.id];
+  const lastDone = Object.values(mapFor(d, r)).sort().at(-1);
+  let title;
+  let sub;
+  if (r === 'morning') {
+    title = all ? `🎉 Amazing, ${esc(k.name)}!` : `${greeting()}, ${esc(k.name)}!`;
+    sub = notStarted ? '🚦 Tap the big button to start your morning!' : all ? `All done by ${clock.fmtTime(new Date(lastDone))}. What a start!` : n === 0 ? `☀️ Started ${clock.fmtTime(started)}. Pick a habit!` : `${n} of ${total} done${started ? ` · started ${clock.fmtTime(started)}` : ''}. Keep going!`;
+  } else if (r === 'night') {
+    title = all ? `🌙 Sleep tight, ${esc(k.name)}!` : `${greeting()}, ${esc(k.name)}!`;
+    sub = all ? `Night routine done at ${clock.fmtTime(new Date(lastDone))}. Sweet dreams!` : n === 0 ? '🌙 Time to get ready for bed.' : `${n} of ${total} done. Nearly there!`;
+  } else {
+    title = `⭐ Extra chores, ${esc(k.name)}!`;
+    sub = n === 0 ? 'Help out any time today. Hold a job when you finish it.' : `${n} extra job${n === 1 ? '' : 's'} done today. Thank you for helping!`;
+  }
+  const tabCount = (t) => (t === 'extras' ? doneCount(k, d, t) || '' : `${doneCount(k, d, t)}/${listFor(k, t).length}`);
   app.innerHTML = `
-    <section class="screen morning" style="--kid:${k.color}">
+    <section class="screen morning tab-${r}" style="--kid:${k.color}">
       <header class="top">
         <button class="btn back" data-action="home" aria-label="Back to Who are you">🏠</button>
         <div class="me">${k.avatar || '🙂'}</div>
         <div class="hello">
-          <h1>${all ? `🎉 Amazing, ${esc(k.name)}!` : `${greeting()}, ${esc(k.name)}!`}</h1>
-          <p>${notStarted ? '🚦 Tap the big button to start your morning!' : all ? `All done by ${clock.fmtTime(new Date(Object.values(d.done).sort().at(-1)))}. What a start!` : n === 0 ? `☀️ Started ${clock.fmtTime(started)}. Pick a habit!` : `${n} of ${total} done${started ? ` · started ${clock.fmtTime(started)}` : ''}. Keep going!`}</p>
+          <h1>${title}</h1>
+          <p>${sub}</p>
         </div>
         <button class="btn speak ${readAloudOn() ? 'on' : ''}" data-action="toggle-speak" aria-pressed="${readAloudOn()}" aria-label="Read aloud">
           ${readAloudOn() ? '🔊' : '🔇'}
         </button>
       </header>
-      ${windowBarHTML()}
+      <nav class="tabs">
+        ${TABS.map(([id, icon, name]) => `
+          <button class="tab ${id === r ? 'on' : ''}" data-action="tab" data-tab="${id}">
+            <span>${icon}</span> ${name} <small>${tabCount(id)}</small>
+          </button>`).join('')}
+      </nav>
+      ${r === 'extras' ? '' : windowBarHTML(r)}
       <div class="morning-body">
         ${notStarted ? `
         <div class="start-panel">
@@ -274,23 +328,25 @@ function renderMorning() {
             <span class="go-sub">Start my morning</span>
           </button>
         </div>` : `
-        <div class="tiles">
-          ${k.habits.map((h) => tileHTML(k, h, d, nudgeId)).join('')}
+        <div class="tiles ${r === 'extras' ? 'extras' : ''}">
+          ${list.map((h) => tileHTML(k, h, d, nudgeId, r)).join('')}
+          ${r === 'extras' ? '' : `
           <div class="tile finish ${all ? 'lit' : ''}" aria-hidden="true">
-            <span class="tile-icon">🏆</span>
-            <span class="tile-name">${all ? 'You did it!' : 'Finish line'}</span>
+            <span class="tile-icon">${r === 'night' ? '🌙' : '🏆'}</span>
+            <span class="tile-name">${all ? (r === 'night' ? 'Sleep tight!' : 'You did it!') : 'Finish line'}</span>
             <span class="tile-sub">${n} / ${total}</span>
-          </div>
+          </div>`}
         </div>`}
         <aside class="side">
           <div class="pet-box ${all ? 'happy' : ''}">
             <div class="pet big">🥚</div>
-            <div class="pet-caption">${all ? 'Your egg is wiggling!' : 'Something is growing…'}</div>
+            <div class="pet-caption">${all ? (r === 'night' ? 'Your egg is snuggled in. 😴' : 'Your egg is wiggling!') : 'Something is growing…'}</div>
           </div>
+          ${r === 'extras' ? `<div class="habit-progress extras-progress"><span>⭐ × ${n}</span></div>` : `
           <div class="habit-progress" aria-label="${n} of ${total} done">
             <div class="habit-fill" style="width:${(n / total) * 100}%"></div>
             <span>${'⭐'.repeat(n)}${'☆'.repeat(total - n)}</span>
-          </div>
+          </div>`}
         </aside>
       </div>
     </section>`;
@@ -298,10 +354,10 @@ function renderMorning() {
 
 async function render() {
   state.renderedDay = todayKey();
-  const showTree = state.view ? state.view === 'tree' : windowInfo().phase === 'closed';
+  const showTree = state.view === 'tree';
   if (state.kidId) {
     state.day = await loadDay(state.kidId);
-    renderMorning();
+    renderKid();
   } else if (showTree) {
     await tree.render();
   } else {
@@ -319,7 +375,7 @@ function tick() {
   const bar = app.querySelector('.window-bar');
   if (bar) {
     const tmp = document.createElement('div');
-    tmp.innerHTML = windowBarHTML();
+    tmp.innerHTML = windowBarHTML(bar.dataset.routine);
     bar.nextElementSibling.remove();
     bar.replaceWith(...tmp.children);
   }
@@ -337,11 +393,17 @@ function openKid(id) {
   const k = kid(id);
   state.kidId = id;
   state.autoHomeAt = 0;
-  const w = windowInfo();
+  state.tab = defaultTab();
+  const w = windowInfo(state.tab);
   // Speak before any await so iOS treats it as part of the tap.
-  speak(w.phase === 'open' ? `Good morning ${k.name}! You have ${w.mins} minutes. Let's go!`
-    : w.phase === 'before' ? `Good morning ${k.name}! Early bird! Let's start the day.`
-    : `Hi ${k.name}!`);
+  if (state.tab === 'morning') {
+    speak(w.phase === 'open' ? `Good morning ${k.name}! You have ${w.mins} minutes. Let's go!`
+      : w.phase === 'before' ? `Good morning ${k.name}! Early bird! Let's start the day.` : `Hi ${k.name}!`);
+  } else if (state.tab === 'night') {
+    speak(`Good evening ${k.name}! Time for your night routine.`);
+  } else {
+    speak(`Hi ${k.name}! Want to do an extra job to help?`);
+  }
   return render();
 }
 
@@ -359,49 +421,49 @@ function goHome() {
 }
 
 async function completeHabit(habitId) {
-  const k = kid();
-  const h = k.habits.find((x) => x.id === habitId);
+  const r = state.tab;
+  const h = listFor(kid(), r).find((x) => x.id === habitId);
   const at = clock.now().toISOString();
-  state.day.done[habitId] = at;
-  state.day.log.push({ t: at, habit: habitId, action: 'done' });
+  mapFor(state.day, r)[habitId] = at;
+  state.day.log.push({ t: at, routine: r, habit: habitId, action: 'done' });
   await dayPut(state.day);
-  afterDone(habitId, h.type !== 'timer');
+  afterDone(habitId, h.type !== 'timer', r);
 }
 
 // Shared feedback after any habit is completed (tile tap or prayer timer).
-function afterDone(habitId, allowUndo) {
+function afterDone(habitId, allowUndo, r = 'morning') {
   const k = kid();
-  const h = k.habits.find((x) => x.id === habitId);
-  const all = doneCount(k, state.day) === k.habits.length;
+  const h = listFor(k, r).find((x) => x.id === habitId);
+  const all = r !== 'extras' && doneCount(k, state.day, r) === listFor(k, r).length;
   if (allowUndo) {
     clearTimeout(state.undo?.timer);
-    state.undo = { habitId, timer: setTimeout(() => { state.undo = null; if (state.kidId === k.id && !state.prayer) renderMorning(); }, UNDO_MS) };
+    state.undo = { habitId, routine: r, timer: setTimeout(() => { state.undo = null; if (state.kidId === k.id && !state.prayer) renderKid(); }, UNDO_MS) };
   }
-  renderMorning();
+  renderKid();
   const tile = app.querySelector(`[data-habit="${habitId}"]`);
   tile?.classList.add('just-done');
   burst(tile);
   if (all) {
     pop(true);
-    speak(`${h.name}, done! You finished everything. Amazing!`);
-    allDoneMoment();
+    speak(r === 'night' ? `${h.name}, done! Night routine finished. Sleep tight!` : `${h.name}, done! You finished everything. Amazing!`);
+    allDoneMoment(r);
     state.autoHomeAt = Date.now() + ALL_DONE_HOME_MS;
   } else {
     pop();
-    speak(`${h.name}, done! ${pick(PRAISE)}`);
+    speak(r === 'extras' ? `${h.name}, done! Thank you for helping!` : `${h.name}, done! ${pick(PRAISE)}`);
   }
 }
 
 async function undo() {
   if (!state.undo || !state.day) return;
-  const habitId = state.undo.habitId;
+  const { habitId, routine } = state.undo;
   clearTimeout(state.undo.timer);
   state.undo = null;
-  delete state.day.done[habitId];
-  state.day.log.push({ t: clock.now().toISOString(), habit: habitId, action: 'undo' });
+  delete mapFor(state.day, routine)[habitId];
+  state.day.log.push({ t: clock.now().toISOString(), routine, habit: habitId, action: 'undo' });
   state.autoHomeAt = 0;
   await dayPut(state.day);
-  renderMorning();
+  renderKid();
 }
 
 function burst(fromEl, count = 14) {
@@ -416,12 +478,12 @@ function burst(fromEl, count = 14) {
   setTimeout(() => box.remove(), 1600);
 }
 
-function allDoneMoment() {
+function allDoneMoment(r = 'morning') {
   const k = kid();
   const el = document.createElement('div');
   el.className = 'all-done-moment';
   el.style.setProperty('--kid', k.color);
-  el.innerHTML = `<div><div class="big-emoji">🎉</div><h2>All done, ${esc(k.name)}!</h2><p>Finished at ${clock.fmtTime(clock.now())}</p></div>`;
+  el.innerHTML = `<div><div class="big-emoji">${r === 'night' ? '🌙' : '🎉'}</div><h2>${r === 'night' ? 'Sleep tight' : 'All done'}, ${esc(k.name)}!</h2><p>Finished at ${clock.fmtTime(clock.now())}</p></div>`;
   document.body.appendChild(el);
   setTimeout(() => burst(null, 30), 150);
   setTimeout(() => burst(null, 30), 700);
@@ -472,7 +534,7 @@ async function readySetGo() {
   state.day.startedAt = at;
   state.day.log.push({ t: at, action: 'start' });
   await dayPut(state.day);
-  renderMorning();
+  renderKid();
   burst(app.querySelector('.tiles'), 20);
   speak(`Let's go, ${k.name}!`);
 }
@@ -484,8 +546,7 @@ let hold = null;
 function startHold(tile) {
   cancelHold();
   unlockAudio();
-  const k = kid();
-  const h = k.habits.find((x) => x.id === tile.dataset.habit);
+  const h = listFor(kid(), state.tab).find((x) => x.id === tile.dataset.habit);
   tile.classList.remove('hint');
   tile.classList.add('holding');
   speak(h.name);
@@ -617,7 +678,7 @@ function closePrayer() {
   closeOverlay();
   state.lastTouch = Date.now();
   if (finished) afterDone('pray', false);
-  else renderMorning();
+  else renderKid();
 }
 
 const RING_R = 150;
@@ -789,13 +850,20 @@ document.addEventListener('click', async (e) => {
     case 'toggle-speak': {
       state.prefs.readAloud[state.kidId] = !readAloudOn();
       await kvSet('prefs', state.prefs);
-      renderMorning();
+      renderKid();
       if (readAloudOn()) speak('Read aloud is on.', true);
       return;
     }
+    case 'tab': {
+      state.tab = el.dataset.tab;
+      state.undo = null;
+      renderKid();
+      const name = TABS.find((t) => t[0] === state.tab)[2];
+      return speak(state.tab === 'extras' ? 'Extra chores. Thank you for helping!' : `${name} routine.`);
+    }
     case 'habit': {
-      const h = kid().habits.find((x) => x.id === el.dataset.habit);
-      if (state.day.done[h.id]) return speak(`${h.name} is already done. Nice!`);
+      const h = listFor(kid(), state.tab).find((x) => x.id === el.dataset.habit);
+      if (mapFor(state.day, state.tab)[h.id]) return speak(`${h.name} is already done. Nice!`);
       if (h.type === 'timer') return openPrayer();
       return;
     }
