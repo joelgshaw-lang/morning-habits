@@ -212,6 +212,7 @@
     <button class="chip chestbtn" id="chestBtn"></button>
     <div class="chip warnchip" id="warn"></div>
     <div class="spacer"></div>
+    <button class="chip round" id="wallBtn" aria-label="Family wall">🧱</button>
     <button class="chip round" id="lensBtn" aria-label="Danger lens">👁</button>
     <button class="chip round" id="lookBtn" aria-label="Look at the temple">🏛</button>
     <button class="chip round" id="speakBtn" aria-label="Read aloud">🔈</button>
@@ -262,6 +263,21 @@
     <div class="dots" id="pinDots"></div>
     <div class="pad" id="pinPad"></div>
     <div class="row"><button class="btn no" id="pinCancel">Cancel</button></div>
+  </div></div>
+
+  <!-- who did you help? -->
+  <div class="ov" id="sibOv"><div class="sheet">
+    <h3>🤗 Who did you help?</h3><div class="sub">You’ll both get a helping hand, and a brick goes on the family wall.</div>
+    <div class="kids" id="sibGrid" style="grid-template-columns:repeat(2,1fr)"></div>
+    <div class="row"><button class="btn no" id="sibCancel">Back</button></div>
+  </div></div>
+
+  <!-- the family wall (shared by everyone) -->
+  <div class="ov" id="wallOv"><div class="sheet">
+    <div style="display:flex;justify-content:space-between;align-items:center"><h3>🧱 Our family wall</h3><button class="btn no" id="wallClose" style="flex:none;width:90px;min-height:48px">Close</button></div>
+    <div class="sub">Every time someone helps a brother or sister, a brick goes on. Every 10 bricks, everyone gets a family feast!</div>
+    <svg id="wallArt" viewBox="0 0 604 72" style="width:100%;height:auto;margin:8px 0"></svg>
+    <div id="wallInfo" style="font-weight:800;line-height:1.5"></div>
   </div></div>
 
   <!-- who's digging -->
@@ -316,6 +332,7 @@ const GOOD = [
   { e: '⏳', t: 'I waited patiently', gem: 'chalcedony' },
   { e: '😌', t: 'I stayed calm when I was cross', gem: 'amethyst' },
   { e: '🤝', t: 'I helped without being asked', gem: 'emerald' },
+  { e: '🤗', t: 'I helped my brother or sister', gem: 'hand', sib: true },
   { e: '🎁', t: 'I shared', gem: 'carnelian' },
   { e: '🙋', t: 'I told the truth', gem: 'chrysolite' },
   { e: '🕊️', t: 'I made peace', gem: 'sapphire' },
@@ -337,9 +354,9 @@ const SORRY_EX = { 1: 'A grumpy word or an eye roll', 3: 'Yelled at a sibling or
 const BURNS = ['wood', 'hay', 'stubble'];
 const PROP_WORD = { wood: 'rotten wood', hay: 'mouldy hay', stubble: 'dry stubble' };
 const KIDS = [
-  { id: 'eliana', name: 'Eliana', av: '🦋', age: 12 },
-  { id: 'annabelle', name: 'Annabelle', av: '🌸', age: 8 },
-  { id: 'judah', name: 'Judah', av: '🚀', age: 6 },
+  { id: 'eliana', name: 'Eliana', av: '🦋', age: 12, col: '#7c3aed' },
+  { id: 'annabelle', name: 'Annabelle', av: '🌸', age: 8, col: '#db2777' },
+  { id: 'judah', name: 'Judah', av: '🚀', age: 6, col: '#2563eb' },
 ];
 const DAILY_LOGS = 6, PER_CARD = 2; // so gems can't be farmed by tapping
 
@@ -353,6 +370,9 @@ const RECIPES = [
   { id: 'lantern', e: '🏮', name: 'Lantern', kind: 'building', cost: { topaz: 2, beryl: 2, stone: 4 }, does: 'Lights up hidden geodes near the mole, and they break in one swing.', verse: 'A lamp for my feet (Ps 119:105)' },
 ];
 const R = Object.fromEntries(RECIPES.map((r) => [r.id, r]));
+// Recipes open up as the temple grows (0 = from the start, 1 = after the Altar, 2 = after the Chapel), so there's less to learn at once.
+const UNLOCK = { brace: 0, lantern: 0, bell: 1, shield: 1, pillar: 1, garden: 2 };
+const unlocked = (rid) => (S.level || 0) >= UNLOCK[rid];
 
 // ---------- mine, temple and hill layout ----------
 const COLS = 14, CW = 52, CH = 50, MX = 36, MY = 270;
@@ -852,7 +872,7 @@ function openCards(kind) {
   const logs = S.logs[S.day] || {};
   document.getElementById('cardGrid').innerHTML = pickList.map((a, i) => {
     const used = kind === 'good' && (logs[a.t] || 0) >= PER_CARD;
-    const tag = kind === 'good' ? (a.gem === 'hand' ? '🙌 helping hand' : a.gem === 'pearl' ? '⚪ pearl' : a.gem === 'gold' ? '🟨 gold' : `💎 ${GEMS[a.gem][0]}`) : '';
+    const tag = kind === 'good' ? (a.sib ? '🙌 for you both' : a.gem === 'hand' ? '🙌 helping hand' : a.gem === 'pearl' ? '⚪ pearl' : a.gem === 'gold' ? '🟨 gold' : `💎 ${GEMS[a.gem][0]}`) : '';
     return `<button class="tile ${kind === 'good' ? 'g' : 'b'} ${used ? 'done' : ''}" data-i="${i}"><span class="e">${a.e}</span>${a.t}<small>${used ? 'done twice today' : tag}</small></button>`;
   }).join('');
   document.getElementById('cardsOk').disabled = true;
@@ -874,10 +894,76 @@ document.getElementById('cardsOk').onclick = async () => {
     const logs = S.logs[S.day] || {}, total = Object.values(logs).reduce((x, y) => x + y, 0);
     if (total >= DAILY_LOGS || (logs[a.t] || 0) >= PER_CARD) { caption(`${a.e} Noticed! 💛<em>You’ve found all your gems for today. Keep being kind anyway!</em>`, 3200, 'love'); return; }
   }
-  const r = await askRating(a, good);
+  let who = null;
+  if (a.sib) { who = await askSibling(); if (!who) return; }
+  const r = await askRating(who ? { ...a, t: `I helped ${KIDS.find((k) => k.id === who).name}` } : a, good);
   if (!r) return;
-  if (good) logGood(a, r.n); else logSorry(a, r.n, r.how);
+  if (good) logGood(a, r.n, who); else logSorry(a, r.n, r.how);
 };
+
+function askSibling() {
+  return new Promise((res) => {
+    document.getElementById('sibGrid').innerHTML = KIDS.filter((k) => k.id !== kid.id).map((k) => `<button class="kid" data-k="${k.id}"><span class="av">${k.av}</span>${k.name}</button>`).join('');
+    const done = (v) => { ov('sibOv', false); document.getElementById('sibGrid').onclick = null; res(v); };
+    document.getElementById('sibGrid').onclick = (e) => { const b = e.target.closest('[data-k]'); if (b) done(b.dataset.k); };
+    document.getElementById('sibCancel').onclick = () => done(null);
+    ov('sibOv', true);
+    speak('Who did you help?');
+  });
+}
+
+// ---------- helping each other: gifts and the family wall (shared on this iPad) ----------
+const kidById = (id) => KIDS.find((k) => k.id === id);
+function sendGift(to, gift) {
+  try { const key = `mine4.gifts.${to}`, list = JSON.parse(localStorage.getItem(key) || '[]'); list.push(gift); localStorage.setItem(key, JSON.stringify(list)); } catch {}
+}
+function loadWall() { try { return JSON.parse(localStorage.getItem('mine4.family')) || { bricks: [] }; } catch { return { bricks: [] }; } }
+function addBrick(from, to) {
+  const wall = loadWall();
+  wall.bricks.push({ from, to, day: S.day });
+  try { localStorage.setItem('mine4.family', JSON.stringify(wall)); } catch {}
+  const feast = wall.bricks.length % 10 === 0;
+  if (feast) KIDS.forEach((k) => sendGift(k.id, { feast: wall.bricks.length / 10, gold: 1, hands: 1 }));
+  return { n: wall.bricks.length, feast };
+}
+// Opened when a child's mine loads: gifts from siblings and family feasts.
+async function takeGifts() {
+  let list = [];
+  try { const key = `mine4.gifts.${kid.id}`; list = JSON.parse(localStorage.getItem(key) || '[]'); localStorage.removeItem(key); } catch {}
+  if (!list.length) return;
+  let hands = 0, gold = 0;
+  const helpers = [], feasts = [];
+  for (const g of list) { hands += g.hands || 0; gold += g.gold || 0; if (g.from) helpers.push(kidById(g.from)?.name); if (g.feast) feasts.push(g.feast); }
+  S.chest.hands += hands; S.chest.gold += gold;
+  save(); render();
+  const names = [...new Set(helpers.filter(Boolean))];
+  const who = names.length ? `💌 ${names.join(' and ')} helped you!` : '🎉 Family feast!';
+  const body = [names.length ? `Say thank you to ${names.join(' and ')}!` : '', feasts.length ? `The family wall reached ${feasts[feasts.length - 1] * 10} bricks: a feast for everyone!` : '',
+    `You got ${hands ? `${hands} 🙌 helping hand${hands === 1 ? '' : 's'}` : ''}${hands && gold ? ' and ' : ''}${gold ? `${gold} 🟨 gold` : ''}.`].filter(Boolean).join(' ');
+  chime([523, 659, 784, 1047, 1319]);
+  await bigReveal('<text y="14" text-anchor="middle" font-size="44">💌</text>', 1.4, `${who}<small>${body}</small>`, null, { ms: 4200, rainbow: !!feasts.length });
+}
+function openWall() {
+  const wall = loadWall(), n = wall.bricks.length, rows = Math.max(2, Math.ceil((n + 1) / 10));
+  const bw = 56, bh = 28, ground = rows * bh + 4;
+  let svg = `<rect x="0" y="${ground}" width="600" height="12" rx="4" fill="#7a5a3a"/>`;
+  for (let i = 0; i < rows * 10; i++) {
+    const row = Math.floor(i / 10), col = i % 10, x = 4 + col * 59 + (row % 2 ? 4 : 0), y = ground - (row + 1) * bh;
+    const b = wall.bricks[i], k = b && kidById(b.from);
+    svg += b ? `<rect x="${x}" y="${y}" width="${bw}" height="${bh - 3}" rx="4" fill="${k?.col || '#999'}"/><text x="${x + bw / 2}" y="${y + 18}" text-anchor="middle" font-size="14">${k?.av || ''}${kidById(b.to)?.av || ''}</text>`
+      : `<rect x="${x}" y="${y}" width="${bw}" height="${bh - 3}" rx="4" fill="none" stroke="#c9b8a0" stroke-width="2" stroke-dasharray="5 4"/>`;
+    if (col === 9 && i >= n) svg += `<text x="${x + bw / 2}" y="${y + 19}" text-anchor="middle" font-size="16">🎉</text>`;
+  }
+  document.getElementById('wallArt').setAttribute('viewBox', `0 0 604 ${ground + 12}`);
+  document.getElementById('wallArt').innerHTML = svg;
+  const per = KIDS.map((k) => `${k.av} ${wall.bricks.filter((b) => b.from === k.id).length}`).join(' · ');
+  const last = wall.bricks.slice(-3).reverse().map((b) => `${kidById(b.from)?.name} helped ${kidById(b.to)?.name}`).join(' · ');
+  document.getElementById('wallInfo').innerHTML = `${n} brick${n === 1 ? '' : 's'} · next family feast at ${Math.floor(n / 10) * 10 + 10}<br><span style="color:var(--muted)">Bricks laid: ${per}</span>${last ? `<br><span style="color:var(--muted)">Latest: ${last}</span>` : ''}`;
+  ov('wallOv', true);
+  speak(`Our family wall has ${n} bricks.`);
+}
+document.getElementById('wallBtn').onclick = openWall;
+document.getElementById('wallClose').onclick = () => ov('wallOv', false);
 
 function askRating(a, good) {
   return new Promise((res) => {
@@ -919,11 +1005,22 @@ function seedGem(gem, emoji, size) {
   return spot;
 }
 function fruitOfDay() { const ids = ['gold', ...GEM_IDS]; return ids[(S.start + S.day) % ids.length]; }
-async function logGood(a, n) {
+async function logGood(a, n, who) {
   busy = true;
   const logs = S.logs[S.day] = S.logs[S.day] || {};
   logs[a.t] = (logs[a.t] || 0) + 1;
   S.swings += n;
+  if (who) {
+    S.chest.hands++;
+    sendGift(who, { from: kid.id, hands: 1 });
+    const wall = addBrick(kid.id, who);
+    render();
+    chime([523, 659, 784, 1047]);
+    const sib = kidById(who);
+    await bigReveal('<text y="14" text-anchor="middle" font-size="44">🤗</text>', 1.4, `You helped ${sib.name}! +${n} ⛏<small>You both get a 🙌 helping hand (${sib.name} will find it in their mine). A ${kid.av} brick went on the family wall: ${wall.n} now!${wall.feast ? ' 🎉 That’s a family feast for everyone!' : ''}</small>`, null, { ms: 4200, rainbow: wall.feast });
+    if (wall.feast) await takeGifts();
+    busy = false; return;
+  }
   if (a.gem === 'hand') {
     S.chest.hands++;
     render();
@@ -1094,13 +1191,15 @@ function openChest() {
   const ch = S.chest;
   document.getElementById('chestGems').innerHTML = TREASURE.map((t) => `<button class="gemtile ${ch[t] ? '' : 'none'}" data-gem="${t}">${ticon(t, 34)}<b>${ch[t]}</b><small>${t === 'gold' ? 'Prayer' : t === 'pearl' ? 'Forgiveness' : GEMS[t][1]}</small></button>`).join('')
     + `<div class="gemtile none">🪨<b>${ch.stone}</b><small>Stone</small></div><div class="gemtile none">🙌<b>${ch.hands}</b><small>Helping hands</small></div>`;
-  document.getElementById('recipes').innerHTML = [...RECIPES].sort((a, b) => has(costOf(b.id)) - has(costOf(a.id))).map((rc) => {
+  const nextLock = RECIPES.filter((rc) => !unlocked(rc.id)).reduce((m, rc) => Math.min(m, UNLOCK[rc.id]), 99);
+  const soon = RECIPES.filter((rc) => UNLOCK[rc.id] === nextLock);
+  document.getElementById('recipes').innerHTML = [...RECIPES].filter((rc) => unlocked(rc.id)).sort((a, b) => has(costOf(b.id)) - has(costOf(a.id))).map((rc) => {
     const cost = costOf(rc.id), can = has(cost);
     const built = rc.kind === 'building' && Object.values(S.plots).includes(rc.id);
     const shieldFull = rc.id === 'shield' && S.shield;
     return `<div class="recipe ${can && !built && !shieldFull ? 'can' : ''}"><div class="re">${rc.e}</div><div class="rbody"><b>${rc.name}</b>${S.ruined[rc.id] && rc.kind === 'building' ? ' <small>(rebuild)</small>' : ''}<div class="rdoes">${rc.does}</div><div class="rcost">${costHTML(cost)}</div><div class="rverse">${rc.verse}</div></div>
       <button class="btn yes" data-build="${rc.id}" ${!can || built || shieldFull ? 'disabled' : ''}>${built ? 'Built ✓' : shieldFull ? 'Holding 🛡️' : 'Build'}</button></div>`;
-  }).join('');
+  }).join('') + (soon.length ? `<div class="recipe" style="opacity:.6"><div class="re">🔒</div><div class="rbody"><b>More recipes soon</b><div class="rdoes">Finish your ${buildingName(nextLock - 1)} to unlock ${soon.map((rc) => `${rc.e} ${rc.name}`).join(', ')}.</div></div></div>` : '');
   document.getElementById('tradeRow').innerHTML = tradeGive
     ? `<span>Swap 3 ${ticon(tradeGive, 22)} for 1:</span>` + TREASURE.filter((t) => t !== tradeGive && t !== 'pearl').map((t) => `<button class="gemmini" data-get="${t}">${ticon(t, 26)}</button>`).join('') + '<button class="gemmini" data-get="">✕</button>'
     : `<span>Market: tap a gem you have 3 of, then “Swap”.</span>`;
@@ -1186,11 +1285,13 @@ async function finishBuilding() {
     `⛪ ${name} finished!<small>Built on Jesus, the foundation. Next: the ${buildingName(S.level + 1)}!</small>`, null, { ms: 4200 });
   S.gallery.push(name); S.level++; S.temple = [];
   render();
+  const fresh = RECIPES.filter((rc) => UNLOCK[rc.id] === S.level);
+  if (fresh.length) { chime([880, 1320, 1760]); caption(`📜 New recipe${fresh.length === 1 ? '' : 's'} unlocked: ${fresh.map((rc) => `${rc.e} ${rc.name}`).join(', ')}!<em>Open your treasure chest to see.</em>`, 4200, 'joy'); }
 }
 
 function startBuild(rid) {
   const rc = R[rid], cost = costOf(rid);
-  if (!has(cost)) return;
+  if (!has(cost) || !unlocked(rid)) return;
   if (rc.kind === 'once') { pay(cost); S.shield = 1; ov('chestOv', false); render(); chime([660, 880, 1320]); caption('🛡️ Shield of Faith ready! The next fire skips one wobbly prop.', 3200, 'joy'); return; }
   placing = { rid, kind: rc.kind };
   ov('chestOv', false);
@@ -1359,10 +1460,11 @@ async function fire() {
 }
 
 async function firstOpen() {
-  if (S.lastOpen === S.day) return;
+  if (S.lastOpen === S.day) return takeGifts();
   S.lastOpen = S.day; save();
   const f = fruitOfDay(), name = f === 'gold' ? 'Prayer' : GEMS[f][1];
   await bigReveal(art(f), 2, `🌅 Good morning, ${kid.name}!<small>Today’s Fruit of the Day is <b>${name}</b>. Those gems grow bigger today!</small>`, null, { ms: 3600 });
+  await takeGifts();
 }
 document.getElementById('nextDay').onclick = () => { S.dayOffset = (S.dayOffset || 0) + 1; syncDay(); render(); firstOpen(); };
 document.getElementById('newMine').onclick = () => { if (confirm(`Start a new mine for ${kid.name}?`)) { S = freshState(); S.readAloud = kid.age < 8; render(); } };
@@ -1392,7 +1494,7 @@ function autoWeek() {
     }
     // Build something when affordable, then put spare gems in the temple.
     for (const rc of RECIPES) {
-      if (rc.kind === 'building' && !Object.values(S.plots).includes(rc.id) && has(costOf(rc.id))) { const free = PLOTS.find((p) => !S.plots[p.id]); if (free) { const paid = costOf(rc.id); pay(paid); delete S.ruined[rc.id]; (S.plotPaid = S.plotPaid || {})[free.id] = Object.fromEntries(Object.entries(paid).filter(([t]) => t !== 'stone')); S.plots[free.id] = rc.id; } }
+      if (rc.kind === 'building' && unlocked(rc.id) && !Object.values(S.plots).includes(rc.id) && has(costOf(rc.id))) { const free = PLOTS.find((p) => !S.plots[p.id]); if (free) { const paid = costOf(rc.id); pay(paid); delete S.ruined[rc.id]; (S.plotPaid = S.plotPaid || {})[free.id] = Object.fromEntries(Object.entries(paid).filter(([t]) => t !== 'stone')); S.plots[free.id] = rc.id; } }
     }
     for (const t of TREASURE) while (S.chest[t] > 2) {
       const i = nextSlot(), need = slotStone();
@@ -1426,7 +1528,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && S)
 document.getElementById('kidGrid').addEventListener('click', (e) => {
   const b = e.target.closest('[data-k]'); if (!b) return;
   save(); loadKid(b.dataset.k); ov('kidsOv', false); aim(S.mole.r); render();
-  if (S.lastOpen === S.day) caption(`${kid.av} Hi ${kid.name}! Let’s dig.`, 2000, 'joy'); else firstOpen();
+  if (S.lastOpen === S.day) { caption(`${kid.av} Hi ${kid.name}! Let’s dig.`, 2000, 'joy'); takeGifts(); } else firstOpen();
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { makingRight = false; placing = null; render(); capEl.classList.remove('show'); } });
 
@@ -1441,6 +1543,7 @@ for (let i = 0; i < (Number(params.get('weeks')) || 0); i++) autoWeek();
 aim(S.mole.r);
 render();
 if (!params.get('weeks') && !params.has('nointro')) firstOpen();
+else if (!params.get('weeks')) takeGifts();
 
 </script>
 </body>

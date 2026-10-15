@@ -17,7 +17,7 @@ There is no official "game evaluation" GitHub repo. The useful GitHub lists, [aw
 
 ## Scorecard
 
-Y/N items are yes/no checks. The other items are scored 1–5, where 5 is best. "Before" is v4 and "Now" is v5.
+Y/N items are yes/no checks. The other items are scored 1–5, where 5 is best. "Before" is v4 and "Now" is v6 (v5 plus sibling help and recipe unlocks).
 
 | # | Check | Before | Now | Notes |
 |---|---|---|---|---|
@@ -34,20 +34,20 @@ Y/N items are yes/no checks. The other items are scored 1–5, where 5 is best. 
 | **Usability for kids** |||||
 | 9 | A non-reader can play (icons + read-aloud) | Y | Y | Read-aloud is on by default for under-8s |
 | 10 | Touch targets of 44pt or more | Y | Y | 56–84px |
-| 11 | Taught one thing at a time | 3 | 3 | Recipes still appear all at once; could unlock gradually |
+| 11 | Taught one thing at a time | 3 | 4 | Recipes unlock as the temple grows: 2 at the start, 3 more after the Altar, the Garden after the Chapel |
 | 12 | Undo / cancel | N | Y | New ✕ Cancel button when placing |
 | 13 | Progress saves reliably | N | Y | A fire is now saved all at once (closing mid-fire used to half-apply it) |
 | **Motivation** |||||
 | 14 | Autonomy: choose what and where to build | 4 | 4 | Plots now show green (safe) or red (risky) |
 | 15 | Competence: visible progress | 4 | 5 | "Need 2 more" on recipes; temple tiers |
-| 16 | Relatedness | 2 | 2 | Siblings don't interact yet |
+| 16 | Relatedness | 2 | 4 | "I helped my brother or sister": both kids get a helping hand, and the sibling gets a "💌 … helped you! Say thank you" gift |
 | 17 | Good deeds feel like celebration, not payment | 3 | 3 | Worth watching: gems are a reward |
 | **Fairness** |||||
 | 18 | Fire is predictable and explained | Y | Y | Lens (with the Bell Tower) plus red support lines |
 | 19 | Risks can be fixed before the fire | Y | Y | Make it right, pillars, shield |
 | 20 | Every loss is recoverable | Y | Y | Rescues return everything, including stacked stones |
 | 21 | Feels like repair, not punishment | 3 | 4 | The ending jumps straight to the rescue |
-| 22 | Works for ages 6 and 12 | 3 | 3 | Same recipes for all; could scale costs by age |
+| 22 | Works for ages 6 and 12 | 3 | 3 | Joel chose the same recipes for every age |
 | **Accessibility** |||||
 | 23 | Large text | Y | Y | |
 | 24 | Not colour alone | Y | Y | Flies, ⚠️ and shapes |
@@ -62,7 +62,7 @@ Y/N items are yes/no checks. The other items are scored 1–5, where 5 is best. 
 | 32 | Data stays on the device | Y | Y | localStorage only |
 | **Family** |||||
 | 33 | Parent's job takes under 30 s | Y | Y | |
-| 34 | Siblings cooperate, not compete | 2 | 2 | Biggest gap (see below) |
+| 34 | Siblings cooperate, not compete | 2 | 4 | Shared family wall: one brick per sibling help; every 10 bricks, a family feast for everyone |
 | 35 | Natural stopping points | Y | Y | Swings run out |
 
 ## What changed in v5
@@ -115,14 +115,25 @@ The simulation ran 30 kids × 12 weeks per profile, using the game's real rules.
 - **Falling:** a hard month (more sorry, little made right, no defending) caves in about 40 tunnels. About 26 stones and buildings fall into the mine, and temple growth roughly halves.
 - **Recovering:** good weeks plus rescues bring everything back within one week, then growth returns to normal.
 
+## v6: helping each other (Joel's choice)
+
+- **The card:** a new good-deed card, "🤗 I helped my brother or sister". The child picks who they helped, then a grown-up rates it as usual.
+- **Rewards:**
+  - The helper gets swings and a 🙌 helping hand.
+  - The sibling gets a 🙌 helping hand too. It waits as a gift ("💌 Eliana helped you! Say thank you to Eliana!") until they next open their mine.
+- **The family wall** (🧱 button, top bar): shared by everyone. Each help adds a brick in the helper's colour, showing who helped whom. Every 10 bricks is a family feast: everyone gets 1 gold and 1 helping hand.
+- **Recipes unlock as the temple grows:**
+  - From the start: Stone Brace and Lantern.
+  - After the Altar: Golden Pillar, Shield and Bell Tower.
+  - After the Chapel: Garden.
+  - A 🔒 line shows what's next.
+- **Ages:** recipe costs stay the same for every age (Joel's call).
+
 ## Still open (for Joel)
 
-1. **Siblings (items 16 and 34).** This is the biggest gap. One idea: a shared "family wall" every child adds to, where helping a sibling gives a helping hand to both.
-2. **Age scaling (item 22).** Should Judah's recipes cost less than Eliana's?
-3. **Unlocking recipes gradually (item 11).** Show 2 at first, then more as the temple grows?
-4. **Earlier decisions still waiting:**
-   - an evening review;
-   - a sorry scale vs. make-it-right steps;
-   - confession cleansing;
-   - your own action list;
-   - a forgot-PIN reset.
+These earlier decisions are still waiting:
+- an evening review;
+- a sorry scale vs. make-it-right steps;
+- confession cleansing;
+- your own action list;
+- a forgot-PIN reset.
