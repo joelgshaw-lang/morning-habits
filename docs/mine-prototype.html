@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Mine and the Temple</title>
 <!-- Design prototype for "The Mine and the Temple" (1 Corinthians 3). Not wired into the app yet.
-     Kids tap "I did something good" or "I need to say sorry". A grown-up rates it 1–5 (press and hold).
+     Kids tap "I did something good" or "I need to say sorry". A grown-up rates it 1–5.
      Good things hide their own gem next to the mole, plus pickaxe swings to dig it out. Every rock gives stone.
      Gems go into a treasure chest: put them in the temple, or spend gem combinations (Catan-style) on reinforcements and
      buildings. The temple's middle stands on Jesus, the foundation; its wings and the hill buildings stand over the mine.
@@ -265,6 +265,13 @@
     <div class="row"><button class="btn no" id="pinCancel">Cancel</button></div>
   </div></div>
 
+  <!-- fireside talk after the fire -->
+  <div class="ov" id="fireOv"><div class="sheet" style="text-align:center">
+    <div class="grown">🔥 Fireside talk · <span id="fireStep"></span></div>
+    <h3 id="fireQ" style="font-size:28px;line-height:1.3;margin:18px 0 22px"></h3>
+    <div class="row"><button class="btn yes" id="fireNext">Next →</button></div>
+  </div></div>
+
   <!-- who did you help? -->
   <div class="ov" id="sibOv"><div class="sheet">
     <h3>🤗 Who did you help?</h3><div class="sub">You’ll both get a helping hand, and a brick goes on the family wall.</div>
@@ -275,7 +282,7 @@
   <!-- the family wall (shared by everyone) -->
   <div class="ov" id="wallOv"><div class="sheet">
     <div style="display:flex;justify-content:space-between;align-items:center"><h3>🧱 Our family wall</h3><button class="btn no" id="wallClose" style="flex:none;width:90px;min-height:48px">Close</button></div>
-    <div class="sub">Every time someone helps a brother or sister, a brick goes on. Every 10 bricks, everyone gets a family feast!</div>
+    <div class="sub">Every time someone helps a brother or sister, or sees God’s fruit in them, a brick goes on. Every 10 bricks, everyone gets a family feast!</div>
     <svg id="wallArt" viewBox="0 0 604 72" style="width:100%;height:auto;margin:8px 0"></svg>
     <div id="wallInfo" style="font-weight:800;line-height:1.5"></div>
   </div></div>
@@ -308,6 +315,7 @@
     <h4>Prototype tools</h4>
     <button class="plain" id="autoWeek">⏩ Auto-play a week (this child)</button>
     <button class="plain" id="newMine">↺ New mine for this child</button>
+    <button class="plain" id="lockNow">🔒 Lock grown-up controls now</button>
   </div>
 </div>
 
@@ -328,19 +336,19 @@ const GEM_IDS = Object.keys(GEMS);
 const TREASURE = ['gold', 'pearl', ...GEM_IDS];
 // Draft list: swap in the family's own. Good things hide their gem; sorry things put in a wobbly prop.
 const GOOD = [
-  { e: '🙏', t: 'I stopped to pray', gem: 'gold' },
-  { e: '⏳', t: 'I waited patiently', gem: 'chalcedony' },
-  { e: '😌', t: 'I stayed calm when I was cross', gem: 'amethyst' },
+  { e: '🙏', t: 'I talked to God', gem: 'gold' },
+  { e: '🎁', t: 'I put someone else first', gem: 'carnelian' },
+  { e: '😄', t: 'I was happy for someone else', gem: 'topaz' },
+  { e: '🕊️', t: 'I stopped a fight or let it go', gem: 'sapphire' },
+  { e: '⏳', t: 'I waited without whining', gem: 'chalcedony' },
   { e: '🤝', t: 'I helped without being asked', gem: 'emerald' },
+  { e: '🙋', t: 'I told the truth when it was hard', gem: 'chrysolite' },
+  { e: '✋', t: 'I did what I said I’d do', gem: 'jasper' },
+  { e: '🪶', t: 'I used a soft voice and gentle hands', gem: 'beryl' },
+  { e: '😤', t: 'I calmed down when I was cross', gem: 'amethyst' },
   { e: '🤗', t: 'I helped my brother or sister', gem: 'hand', sib: true },
-  { e: '🎁', t: 'I shared', gem: 'carnelian' },
-  { e: '🙋', t: 'I told the truth', gem: 'chrysolite' },
-  { e: '🕊️', t: 'I made peace', gem: 'sapphire' },
-  { e: '😄', t: 'I chose a happy attitude', gem: 'topaz' },
-  { e: '✋', t: 'I kept my promise', gem: 'jasper' },
-  { e: '🪶', t: 'Gentle words and hands', gem: 'beryl' },
-  { e: '🫂', t: 'I forgave someone', gem: 'pearl' },
-  { e: '🧹', t: 'I did an extra chore', gem: 'hand' },
+  { e: '👀', t: 'I saw God’s fruit in someone', spot: true },
+  { e: '🧹', t: 'I did an extra job', gem: 'hand' },
 ];
 const SORRY = [
   { e: '😡', t: 'I hit or yelled when I was mad', prop: 'wood' },
@@ -348,10 +356,14 @@ const SORRY = [
   { e: '😭', t: 'I had a tantrum', prop: 'hay' },
   { e: '🙅', t: 'I didn’t listen', prop: 'hay' },
   { e: '🗯️', t: 'I used unkind words', prop: 'stubble' },
+  { e: '🤥', t: 'I wasn’t truthful', prop: 'wood' },
 ];
 const GOOD_EX = { 1: 'Said thank you without being reminded', 3: 'Helped a sibling finish their job', 5: 'Forgave someone who really hurt them, or gave up something they really wanted' };
 const SORRY_EX = { 1: 'A grumpy word or an eye roll', 3: 'Yelled at a sibling or slammed a door', 5: 'Hurt someone on purpose, or a big lie' };
 const BURNS = ['wood', 'hay', 'stubble'];
+// Kid-sized meanings, shown when a gem appears: the fruit is God's work in them (1 Cor 3:6–7, Gal 5:22).
+const MEANING = { carnelian: 'putting others first', topaz: 'being glad in God and for others', sapphire: 'making and keeping things calm', chalcedony: 'waiting with a calm heart',
+  emerald: 'doing something nice for someone', chrysolite: 'doing right even when it’s hard', jasper: 'keeping your word', beryl: 'soft hands, soft words', amethyst: 'my body listens to me, not my mad feelings' };
 const PROP_WORD = { wood: 'rotten wood', hay: 'mouldy hay', stubble: 'dry stubble' };
 const KIDS = [
   { id: 'eliana', name: 'Eliana', av: '🦋', age: 12, col: '#7c3aed' },
@@ -364,14 +376,21 @@ const DAILY_LOGS = 6, PER_CARD = 2; // so gems can't be farmed by tapping
 const RECIPES = [
   { id: 'brace', e: '🧱', name: 'Stone Brace', kind: 'reinforce', cost: { jasper: 1, stone: 4 }, does: 'Put it beside a wobbly prop (not on it: make that right!). A cave-in can’t spread past it.', verse: 'Faithful in little things (Luke 16:10)' },
   { id: 'pillar', e: '🏛️', name: 'Golden Pillar', kind: 'reinforce', cost: { gold: 3, chalcedony: 2, stone: 4 }, does: 'Put it under a building. Whatever stands above it holds, even if a prop next to it burns.', verse: 'A pillar in the temple of my God (Rev 3:12)' },
-  { id: 'shield', e: '🛡️', name: 'Shield of Faith', kind: 'once', cost: { jasper: 1, sapphire: 1, gold: 1 }, does: 'The next fire skips one wobbly prop. You can hold one.', verse: 'It puts out the flaming arrows (Eph 6:16)' },
+  { id: 'shield', e: '🛡️', name: 'Shield of Faith', kind: 'once', cost: { jasper: 1, sapphire: 1, gold: 1 }, does: 'Faith in Jesus protects you: the next fire skips one wobbly prop. You can hold one.', verse: 'It puts out the flaming arrows (Eph 6:16)' },
   { id: 'bell', e: '🔔', name: 'Bell Tower', kind: 'building', cost: { carnelian: 3, sapphire: 2, stone: 6 }, does: 'Unlocks the 👁 danger lens: see the fire’s path all week.', verse: 'The watchman blows the trumpet (Ezek 33:6)' },
   { id: 'garden', e: '🌳', name: 'Garden', kind: 'building', cost: { emerald: 2, beryl: 2, chrysolite: 2, chalcedony: 2, stone: 4 }, does: 'After each fire it grows a gem of your rarest fruit.', verse: 'Remain in me and you will bear much fruit (John 15:5)' },
   { id: 'lantern', e: '🏮', name: 'Lantern', kind: 'building', cost: { topaz: 2, beryl: 2, stone: 4 }, does: 'Lights up hidden geodes near the mole, and they break in one swing.', verse: 'A lamp for my feet (Ps 119:105)' },
 ];
+// Workshop upgrades: practise the fruit and you get better at it. Bought once, kept for good.
+RECIPES.push(
+  { id: 'pick2', e: '⛏️', name: 'Strong Pickaxe', kind: 'upgrade', cost: { jasper: 2, chalcedony: 1, stone: 6 }, does: 'Hard rock takes one less swing, so you can dig deeper.', verse: 'Let us not become weary in doing good (Gal 6:9)' },
+  { id: 'polish', e: '✨', name: 'Polishing Table', kind: 'upgrade', cost: { beryl: 2, amethyst: 1, stone: 6 }, does: 'God’s Spirit is polishing you! Every gem in your temple sparkles, and wing stones need just 1 stone.', verse: 'Transformed into his likeness with ever-increasing glory (2 Cor 3:18)' },
+  { id: 'pick3', e: '🌟', name: 'Golden Pickaxe', kind: 'upgrade', cost: { gold: 3, topaz: 2, stone: 8 }, does: 'Every rock breaks in one swing, so you can dig really deep. (Get the Strong Pickaxe first.)', verse: 'Work at it with all your heart (Col 3:23)' },
+);
 const R = Object.fromEntries(RECIPES.map((r) => [r.id, r]));
-// Recipes open up as the temple grows (0 = from the start, 1 = after the Altar, 2 = after the Chapel), so there's less to learn at once.
-const UNLOCK = { brace: 0, lantern: 0, bell: 1, shield: 1, pillar: 1, garden: 2 };
+const hasUp = (id) => !!(S.upgrades && S.upgrades[id]);
+// Recipes open up as the temple grows (0 = from the start, 1 = after the Altar, 2 = after the Chapel, 3 = after the Temple), so there's less to learn at once.
+const UNLOCK = { brace: 0, lantern: 0, bell: 1, shield: 1, pillar: 1, pick2: 1, garden: 2, polish: 2, pick3: 3 };
 const unlocked = (rid) => (S.level || 0) >= UNLOCK[rid];
 
 // ---------- mine, temple and hill layout ----------
@@ -459,7 +478,7 @@ const key = (r, c) => `${r},${c}`;
 const unkey = (k) => k.split(',').map(Number);
 const diggable = (r, c) => cell(r, c).s !== 'tunnel' && around(r, c).some(([a, b]) => cell(a, b).s === 'tunnel');
 const litGeode = (r, c) => cell(r, c).content === 'geode' && Object.values(S.plots).includes('lantern') && Math.abs(r - S.mole.r) + Math.abs(c - S.mole.c) <= 3;
-const digCost = (r, c) => { const k = cell(r, c); return k.soft || litGeode(r, c) ? 1 : k.s === 'rubble' ? Math.max(1, hardness(r) - 1) : hardness(r); };
+const digCost = (r, c) => { const k = cell(r, c), up = hasUp('pick2') ? 1 : 0; return k.soft || litGeode(r, c) || hasUp('pick3') ? 1 : k.s === 'rubble' ? Math.max(1, hardness(r) - 1 - up) : Math.max(1, hardness(r) - up); };
 const templeCount = () => S.temple.filter(Boolean).length;
 function deepest() { let d = 0; for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (cell(r, c).s === 'tunnel') d = Math.max(d, r); return d; }
 function rotCount() { let n = 0; for (const row of S.cells) for (const k of row) if (k.s === 'tunnel' && BURNS.includes(k.prop)) n++; return n; }
@@ -678,7 +697,7 @@ function templeArt(fallingWing) {
   let s = '<g id="temple">';
   slots.forEach((sl, i) => {
     const t = S.temple[i];
-    if (t) s += `<g class="tstone ${fallingWing.has(i) ? 'loose' : ''}" data-ti="${i}" style="animation-delay:${(i % 4) * -.12}s"><use href="#t-${t}" transform="translate(${sl.x} ${sl.y}) scale(${sl.w / 30} ${sl.h / 22})"/>${fallingWing.has(i) ? `<rect x="${sl.x}" y="${sl.y}" width="${sl.w}" height="${sl.h}" fill="none" stroke="#ff3b3b" stroke-width="2"/>` : ''}</g>`;
+    if (t) s += `<g class="tstone ${fallingWing.has(i) ? 'loose' : ''}" data-ti="${i}" style="animation-delay:${(i % 4) * -.12}s"><use href="#t-${t}" transform="translate(${sl.x} ${sl.y}) scale(${sl.w / 30} ${sl.h / 22})"/>${hasUp('polish') ? `<path d="M${sl.x + sl.w * .2} ${sl.y + sl.h * .25} l${sl.w * .25} 0" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".85"/>${i % 5 === 0 ? `<use href="#star" x="${sl.x + sl.w * .7}" y="${sl.y + sl.h * .3}" fill="#fff" class="glint" style="animation-delay:${(i % 7) * .35}s"/>` : ''}` : ''}${fallingWing.has(i) ? `<rect x="${sl.x}" y="${sl.y}" width="${sl.w}" height="${sl.h}" fill="none" stroke="#ff3b3b" stroke-width="2"/>` : ''}</g>`;
     else s += `<rect x="${sl.x + .5}" y="${sl.y + .5}" width="${sl.w - 1}" height="${sl.h - 1}" rx="2" fill="rgba(255,255,255,.2)" stroke="#fff" stroke-dasharray="2 2" opacity=".6"/>`;
   });
   const top = Math.max(cam.y + 108, slots.reduce((m, sl) => Math.min(m, sl.y), 999) - 8);
@@ -705,6 +724,8 @@ function galleryArt() {
 function renderHud(F) {
   document.getElementById('whoChip').innerHTML = `<span class="av">${kid.av}</span><span>${kid.name}<small>Day ${S.day}</small></span>`;
   const n = S.swings;
+  document.getElementById('picks').title = hasUp('pick3') ? 'Golden Pickaxe' : hasUp('pick2') ? 'Strong Pickaxe' : 'Pickaxe';
+  document.getElementById('picks').style.background = hasUp('pick3') ? '#fde68a' : hasUp('pick2') ? '#dbeafe' : '';
   document.getElementById('picks').innerHTML = n ? `${'⛏'.repeat(Math.min(n, 5))}${n > 5 ? `<small style="display:inline;margin-left:4px">+${n - 5}</small>` : ''}` : '⛏ 0';
   const ch = S.chest, gems = TREASURE.reduce((a, t) => a + ch[t], 0);
   document.getElementById('chestBtn').innerHTML = `🧰 <b>${gems}</b><small>🪨 ${ch.stone}${ch.hands ? ` · 🙌 ${ch.hands}` : ''}</small>`;
@@ -832,7 +853,7 @@ function needPin() {
     const show = () => { dots.textContent = '●'.repeat(entry.length) + '○'.repeat(4 - entry.length); };
     show();
     document.getElementById('pinPad').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map((d) => d === '' ? '<span></span>' : `<button class="btn no" data-d="${d}">${d}</button>`).join('');
-    const done = (ok) => { ov('pinOv', false); document.getElementById('pinPad').onclick = null; if (ok) pinUntil = Date.now() + 15e3; res(ok); };
+    const done = (ok) => { ov('pinOv', false); document.getElementById('pinPad').onclick = null; if (ok) pinUntil = Date.now() + 15 * 60e3; /* grown-up controls stay open for 15 minutes */ res(ok); };
     document.getElementById('pinPad').onclick = (e) => {
       const b = e.target.closest('[data-d]'); if (!b) return;
       const d = b.dataset.d;
@@ -872,7 +893,7 @@ function openCards(kind) {
   const logs = S.logs[S.day] || {};
   document.getElementById('cardGrid').innerHTML = pickList.map((a, i) => {
     const used = kind === 'good' && (logs[a.t] || 0) >= PER_CARD;
-    const tag = kind === 'good' ? (a.sib ? '🙌 for you both' : a.gem === 'hand' ? '🙌 helping hand' : a.gem === 'pearl' ? '⚪ pearl' : a.gem === 'gold' ? '🟨 gold' : `💎 ${GEMS[a.gem][0]}`) : '';
+    const tag = kind === 'good' ? (a.spot ? '💌 tell them' : a.sib ? '🙌 for you both' : a.gem === 'hand' ? '🙌 helping hand' : a.gem === 'pearl' ? '⚪ pearl' : a.gem === 'gold' ? '🟨 gold' : `💎 ${GEMS[a.gem][0]}`) : '';
     return `<button class="tile ${kind === 'good' ? 'g' : 'b'} ${used ? 'done' : ''}" data-i="${i}"><span class="e">${a.e}</span>${a.t}<small>${used ? 'done twice today' : tag}</small></button>`;
   }).join('');
   document.getElementById('cardsOk').disabled = true;
@@ -880,35 +901,38 @@ function openCards(kind) {
   speak(document.getElementById('cardsTitle').textContent);
 }
 document.getElementById('cardGrid').addEventListener('click', (e) => {
-  const t = e.target.closest('.tile'); if (!t || t.classList.contains('done')) return;
+  const t = e.target.closest('.tile'); if (!t || t.classList.contains('done') || t.dataset.i === undefined) return;
   pickIdx = Number(t.dataset.i);
   document.querySelectorAll('#cardGrid .tile').forEach((x) => x.classList.toggle('sel', x === t));
   document.getElementById('cardsOk').disabled = false;
   speak(pickList[pickIdx].t, pickList === GOOD);
 });
 document.getElementById('cardsCancel').onclick = () => ov('cardsOv', false);
-document.getElementById('cardsOk').onclick = async () => {
+const cardsOkHandler = async () => {
   const a = pickList[pickIdx], good = pickList === GOOD;
   ov('cardsOv', false);
   if (good) {
     const logs = S.logs[S.day] || {}, total = Object.values(logs).reduce((x, y) => x + y, 0);
     if (total >= DAILY_LOGS || (logs[a.t] || 0) >= PER_CARD) { caption(`${a.e} Noticed! 💛<em>You’ve found all your gems for today. Keep being kind anyway!</em>`, 3200, 'love'); return; }
   }
+  if (a.spot) return spotFruit(a);
   let who = null;
   if (a.sib) { who = await askSibling(); if (!who) return; }
   const r = await askRating(who ? { ...a, t: `I helped ${KIDS.find((k) => k.id === who).name}` } : a, good);
   if (!r) return;
   if (good) logGood(a, r.n, who); else logSorry(a, r.n, r.how);
 };
+document.getElementById('cardsOk').onclick = cardsOkHandler;
 
-function askSibling() {
+function askSibling(title = '🤗 Who did you help?', sub = 'You’ll both get a helping hand, and a brick goes on the family wall.') {
   return new Promise((res) => {
+    document.querySelector('#sibOv h3').textContent = title; document.querySelector('#sibOv .sub').textContent = sub;
     document.getElementById('sibGrid').innerHTML = KIDS.filter((k) => k.id !== kid.id).map((k) => `<button class="kid" data-k="${k.id}"><span class="av">${k.av}</span>${k.name}</button>`).join('');
     const done = (v) => { ov('sibOv', false); document.getElementById('sibGrid').onclick = null; res(v); };
     document.getElementById('sibGrid').onclick = (e) => { const b = e.target.closest('[data-k]'); if (b) done(b.dataset.k); };
     document.getElementById('sibCancel').onclick = () => done(null);
     ov('sibOv', true);
-    speak('Who did you help?');
+    speak(title.replace(/^\S+\s/, ''));
   });
 }
 
@@ -932,14 +956,18 @@ async function takeGifts() {
   try { const key = `mine4.gifts.${kid.id}`; list = JSON.parse(localStorage.getItem(key) || '[]'); localStorage.removeItem(key); } catch {}
   if (!list.length) return;
   let hands = 0, gold = 0;
-  const helpers = [], feasts = [];
-  for (const g of list) { hands += g.hands || 0; gold += g.gold || 0; if (g.from) helpers.push(kidById(g.from)?.name); if (g.feast) feasts.push(g.feast); }
+  const helpers = [], feasts = [], saw = [];
+  for (const g of list) { hands += g.hands || 0; gold += g.gold || 0; if (g.saw) saw.push(`${kidById(g.from)?.name} saw ${GEMS[g.saw][1].toLowerCase()} in you`); else if (g.from) helpers.push(kidById(g.from)?.name); if (g.feast) feasts.push(g.feast); }
+  if (saw.length && !helpers.length && !feasts.length) {
+    save(); render(); chime([660, 880, 1320]);
+    return bigReveal('<text y="14" text-anchor="middle" font-size="44">💌</text>', 1.4, `💌 ${saw.join(' · ')}!<small>God is growing his fruit in you, and your family can see it.</small>`, null, { ms: 4200 });
+  }
   S.chest.hands += hands; S.chest.gold += gold;
   save(); render();
   const names = [...new Set(helpers.filter(Boolean))];
   const who = names.length ? `💌 ${names.join(' and ')} helped you!` : '🎉 Family feast!';
-  const body = [names.length ? `Say thank you to ${names.join(' and ')}!` : '', feasts.length ? `The family wall reached ${feasts[feasts.length - 1] * 10} bricks: a feast for everyone!` : '',
-    `You got ${hands ? `${hands} 🙌 helping hand${hands === 1 ? '' : 's'}` : ''}${hands && gold ? ' and ' : ''}${gold ? `${gold} 🟨 gold` : ''}.`].filter(Boolean).join(' ');
+  const body = [saw.length ? `${saw.join(' · ')}!` : '', names.length ? `Say thank you to ${names.join(' and ')}!` : '', feasts.length ? `The family wall reached ${feasts[feasts.length - 1] * 10} bricks: a feast for everyone!` : '',
+    hands || gold ? `You got ${hands ? `${hands} 🙌 helping hand${hands === 1 ? '' : 's'}` : ''}${hands && gold ? ' and ' : ''}${gold ? `${gold} 🟨 gold` : ''}.` : ''].filter(Boolean).join(' ');
   chime([523, 659, 784, 1047, 1319]);
   await bigReveal('<text y="14" text-anchor="middle" font-size="44">💌</text>', 1.4, `${who}<small>${body}</small>`, null, { ms: 4200, rainbow: !!feasts.length });
 }
@@ -965,6 +993,48 @@ function openWall() {
 document.getElementById('wallBtn').onclick = openWall;
 document.getElementById('wallClose').onclick = () => ov('wallOv', false);
 
+// Noticing God's fruit in someone else: no gems for the spotter, a 💌 for them, a brick on the wall.
+async function spotFruit(a) {
+  const who = await askSibling('👀 Who did you see it in?', 'Telling someone what God is growing in them is a gift.');
+  if (!who) return;
+  const fruit = await new Promise((res) => {
+    document.getElementById('cardsTitle').textContent = `Which fruit did you see in ${kidById(who).name}?`;
+    document.getElementById('cardsSub').textContent = 'Tap one, then “Yes, this one!”';
+    let pick = null;
+    document.getElementById('cardGrid').innerHTML = GEM_IDS.map((g) => `<button class="tile g" data-g="${g}"><span class="e">${ticon(g, 40)}</span>${GEMS[g][1]}<small>${MEANING[g]}</small></button>`).join('');
+    const grid = document.getElementById('cardGrid'), okB = document.getElementById('cardsOk');
+    okB.disabled = true;
+    const done = (v) => { grid.onclick = null; okB.onclick = cardsOkHandler; document.getElementById('cardsCancel').onclick = () => ov('cardsOv', false); ov('cardsOv', false); res(v); };
+    grid.onclick = (e) => { const t = e.target.closest('[data-g]'); if (!t) return; e.stopPropagation(); pick = t.dataset.g; grid.querySelectorAll('.tile').forEach((x) => x.classList.toggle('sel', x === t)); okB.disabled = false; speak(`${GEMS[pick][1]}: ${MEANING[pick]}`); };
+    okB.onclick = () => done(pick);
+    document.getElementById('cardsCancel').onclick = () => done(null);
+    ov('cardsOv', true);
+  });
+  if (!fruit) return;
+  const logs = S.logs[S.day] = S.logs[S.day] || {};
+  logs[a.t] = (logs[a.t] || 0) + 1;
+  sendGift(who, { from: kid.id, saw: fruit });
+  const wall = addBrick(kid.id, who);
+  save(); render(); chime([660, 880, 1320]);
+  await bigReveal(art(fruit), 1.6, `💌 You told ${kidById(who).name} you saw ${GEMS[fruit][1].toLowerCase()}!<small>Noticing God at work in others is a fruit too. A brick went on the family wall: ${wall.n}!${wall.feast ? ' 🎉 Family feast!' : ''}</small>`, null, { ms: 4200, rainbow: wall.feast });
+  if (wall.feast) await takeGifts();
+}
+// After the fire: a short family talk and prayer (read aloud). No rewards, just reflection.
+const FIRESIDE = ['Which fruit did God grow most in you this week?', 'Which fruit did you see in someone else?', 'Is there anything we still need to make right?', '🙏 “Thank you, Jesus, that you are our foundation. Please grow your fruit in us this week. Amen.”'];
+function firesideTalk() {
+  return new Promise((res) => {
+    let i = 0;
+    const show = () => {
+      document.getElementById('fireQ').textContent = FIRESIDE[i];
+      document.getElementById('fireStep').textContent = `${i + 1} of ${FIRESIDE.length}`;
+      document.getElementById('fireNext').textContent = i === FIRESIDE.length - 1 ? 'Amen 🙏' : 'Next →';
+      speak(FIRESIDE[i].replace(/[🙏“”]/g, ''), true);
+    };
+    document.getElementById('fireNext').onclick = () => { if (++i >= FIRESIDE.length) { ov('fireOv', false); res(); } else show(); };
+    show(); ov('fireOv', true);
+  });
+}
+
 function askRating(a, good) {
   return new Promise((res) => {
     document.getElementById('rateTitle').textContent = `${a.e} ${a.t}`;
@@ -972,7 +1042,7 @@ function askRating(a, good) {
     const scale = document.getElementById('rateScale');
     scale.innerHTML = [1, 2, 3, 4, 5].map((n) => `<button class="hold" data-n="${n}" style="font-size:${14 + n * 3}px">${n}<small style="font-size:${10 + n}px">${icon.repeat(n)}</small></button>`).join('');
     const ex = good ? GOOD_EX : SORRY_EX;
-    document.getElementById('rateEx').innerHTML = [1, 3, 5].map((n) => `<b>${n}</b> e.g. ${ex[n]}`).join('<br>') + `<br><span style="font-size:13px">${good ? 'Bigger = more ⛏ swings and a bigger gem.' : 'Bigger = more wobbly props in the tunnels.'}</span>`;
+    document.getElementById('rateEx').innerHTML = [1, 3, 5].map((n) => `<b>${n}</b> e.g. ${ex[n]}`).join('<br>') + `<br><span style="font-size:13px">${good ? 'Grown-up: tell them what you saw, e.g. “You waited even though it was hard.”' : 'Grown-up: say what happened kindly, then help them make it right.'}</span>`;
     const howRow = document.getElementById('howRow');
     howRow.style.display = 'none';
     let chosen = 0;
@@ -985,7 +1055,7 @@ function askRating(a, good) {
     document.getElementById('ownedBtn').onclick = () => chosen && finish({ n: chosen, how: 'owned' });
     document.getElementById('noticedBtn').onclick = () => chosen && finish({ n: chosen, how: 'noticed' });
     document.getElementById('rateCancel').onclick = () => finish(null);
-    needPin().then((ok) => { if (ok) ov('rateOv', true); else res(null); });
+    ov('rateOv', true); // no PIN for ratings: the PIN only guards the grown-up controls
   });
 }
 
@@ -1038,7 +1108,8 @@ async function logGood(a, n, who) {
   render();
   if (spot) aim(spot.r);
   await wait(350);
-  caption(`${a.e} ${fruit}! ${'⭐'.repeat(n)}${fod ? ' 🌟 Fruit of the Day!' : ''}<em>Something sparkly is hidden next to the mole. +${n} ⛏${n >= 4 ? ' and bonus gold!' : ''}</em>`, 3000, 'joy');
+  caption(a.gem === 'gold' ? `🙏 God heard you. He loves talking with you.<em>Something golden is hidden by the mole.</em>`
+    : `${a.e} God is growing ${fruit.toLowerCase()} in you!${fod ? ' 🌟' : ''}<em>${MEANING[a.gem]} · A gem is hidden by the mole.</em>`, 3400, 'joy');
   if (spot) {
     const from = { x: 400, y: cam.y + 120 };
     const sil = `<g transform="translate(${from.x} ${from.y})"><g class="plant" style="--tx:${cx(spot.c) + 26 - from.x}px;--ty:${cy(spot.r) + 30 - from.y}px"><use href="${art(a.gem)}" style="filter:brightness(0)" opacity=".85"/><use href="${art(a.gem)}" opacity=".25"/></g></g>`;
@@ -1071,11 +1142,12 @@ async function logSorry(a, n, how) {
   busy = true;
   if (how === 'noticed') S.noticedDays.push(S.day);
   let made = 0;
-  for (let i = 0; i < n; i++) if (placeRot(a.prop, how)) made++;
+  const props = how === 'owned' ? Math.ceil(n / 2) : n; // owning up always costs less than being caught
+  for (let i = 0; i < props; i++) if (placeRot(a.prop, how)) made++;
   chime(how === 'owned' ? [440, 523] : [220, 180]);
   const flyArt = `<use href="#p-${a.prop}" transform="translate(-26 -25)"/><g transform="translate(0 -10)"><g><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="1.2s" repeatCount="indefinite"/><g transform="translate(18 0)"><use href="#fly"/></g></g></g>`;
   const head = how === 'owned' ? '💛 Thank you for being honest.' : '👀 A grown-up noticed.';
-  const body = made ? `${made} wobbly ${PROP_WORD[a.prop]} prop${made === 1 ? '' : 's'} went in near you. If something is built above, it will wobble. Make it right before the fire!` : 'Dig some tunnels first.';
+  const body = `Jesus forgives you right away (1 John 1:9). ${made ? `${made} wobbly ${PROP_WORD[a.prop]} prop${made === 1 ? '' : 's'} went in${how === 'owned' ? ' (fewer, because you owned up)' : ''}: those are for making it right with people, before the fire.` : ''}`;
   await bigReveal(flyArt, 1, `${head}<small>${body}</small>`, null, { soft: true, ms: 3600 });
   render();
   busy = false;
@@ -1107,8 +1179,8 @@ scene.addEventListener('click', (e) => {
     return;
   }
   if (!diggable(r, c)) return caption('Dig next to a tunnel.', 1600);
-  if (k.boulder && S.chest.hands < 1) return caption(`🙌 This boulder needs a helping hand. Do an extra chore, then log it!`, 3200, 'love');
-  if (S.swings <= 0) return caption('⛏ No swings left. Do something good to get more!', 2400);
+  if (k.boulder && S.chest.hands < 1) return caption(`🙌 Boulders need a helping hand.<em>Helping hands come from helping people.</em>`, 3200, 'love');
+  if (S.swings <= 0) return caption('⛏ Pickaxe resting. Go and play!<em>The mine will be here when God grows more fruit.</em>', 2800);
   const nextToMole = around(r, c).some(([a, b]) => a === S.mole.r && b === S.mole.c);
   if (selected !== kk && !nextToMole) { selected = kk; S.mole = nearestTunnel(r, c); render(); chime([500]); return; }
   swing(r, c);
@@ -1155,9 +1227,9 @@ function swing(r, c) {
   chime(found === 'gold' ? [660, 880, 1100] : [660, 880, 1100, 1320, 1760]);
   const flawless = size >= 5 && !wasRubble;
   const label = wasRubble ? `🆘 Rescued!<small>Your ${tname(found).toLowerCase()}${extras.length ? ` and ${extras.length} more stone${extras.length === 1 ? '' : 's'}` : ''} came through the fire and shine${extras.length ? '' : 's'} brighter!</small>`
-    : found === 'gold' ? `🟨 Gold!<small>${earned ? 'From your prayer' : 'A gold nugget'}</small>`
+    : found === 'gold' ? `🟨 Gold!<small>${earned ? 'Time with God is precious' : 'A gold nugget'}</small>`
     : found === 'pearl' ? '⚪ A pearl!<small>Pearls grow where something hurt</small>'
-    : `${flawless ? '🌈 Flawless ' : '💎 '}${size >= 4 ? 'Huge ' : ''}${GEMS[found][0]}!<small>${GEMS[found][1]}${earned ? ` · from “${earned}”` : ' · from a mystery geode!'}</small>`;
+    : `${flawless ? '🌈 Flawless ' : '💎 '}${size >= 4 ? 'Huge ' : ''}${GEMS[found][0]}!<small>${GEMS[found][1]}: ${MEANING[found]}${earned ? '' : ' · from a mystery geode!'}</small>`;
   busy = true;
   bigReveal(art(found), 1.5 + size * 0.25, label, screenOf(r, c), { hint: '👆 tap to put it in your treasure chest!', rainbow: flawless || wasRubble, ms: 4000 })
     .then(() => { busy = false; collect(r, c); });
@@ -1195,10 +1267,11 @@ function openChest() {
   const soon = RECIPES.filter((rc) => UNLOCK[rc.id] === nextLock);
   document.getElementById('recipes').innerHTML = [...RECIPES].filter((rc) => unlocked(rc.id)).sort((a, b) => has(costOf(b.id)) - has(costOf(a.id))).map((rc) => {
     const cost = costOf(rc.id), can = has(cost);
-    const built = rc.kind === 'building' && Object.values(S.plots).includes(rc.id);
+    const built = (rc.kind === 'building' && Object.values(S.plots).includes(rc.id)) || (rc.kind === 'upgrade' && hasUp(rc.id));
+    const needsFirst = rc.id === 'pick3' && !hasUp('pick2');
     const shieldFull = rc.id === 'shield' && S.shield;
     return `<div class="recipe ${can && !built && !shieldFull ? 'can' : ''}"><div class="re">${rc.e}</div><div class="rbody"><b>${rc.name}</b>${S.ruined[rc.id] && rc.kind === 'building' ? ' <small>(rebuild)</small>' : ''}<div class="rdoes">${rc.does}</div><div class="rcost">${costHTML(cost)}</div><div class="rverse">${rc.verse}</div></div>
-      <button class="btn yes" data-build="${rc.id}" ${!can || built || shieldFull ? 'disabled' : ''}>${built ? 'Built ✓' : shieldFull ? 'Holding 🛡️' : 'Build'}</button></div>`;
+      <button class="btn yes" data-build="${rc.id}" ${!can || built || shieldFull || needsFirst ? 'disabled' : ''}>${built ? (rc.kind === 'upgrade' ? 'Got it ✓' : 'Built ✓') : shieldFull ? 'Holding 🛡️' : needsFirst ? 'Strong first' : 'Build'}</button></div>`;
   }).join('') + (soon.length ? `<div class="recipe" style="opacity:.6"><div class="re">🔒</div><div class="rbody"><b>More recipes soon</b><div class="rdoes">Finish your ${buildingName(nextLock - 1)} to unlock ${soon.map((rc) => `${rc.e} ${rc.name}`).join(', ')}.</div></div></div>` : '');
   document.getElementById('tradeRow').innerHTML = tradeGive
     ? `<span>Swap 3 ${ticon(tradeGive, 22)} for 1:</span>` + TREASURE.filter((t) => t !== tradeGive && t !== 'pearl').map((t) => `<button class="gemmini" data-get="${t}">${ticon(t, 26)}</button>`).join('') + '<button class="gemmini" data-get="">✕</button>'
@@ -1245,7 +1318,7 @@ document.getElementById('chestOv').addEventListener('click', async (e) => {
 document.getElementById('chestClose').onclick = () => { ov('chestOv', false); chestSel = null; tradeGive = null; document.getElementById('chestActions').innerHTML = ''; };
 
 function nextSlot() { const slots = slotsFor(S.level); let i = S.temple.findIndex((x, j) => !x && j < slots.length); if (i < 0) i = S.temple.length; return i < slots.length ? i : -1; }
-const slotStone = () => { const i = nextSlot(); return i >= 0 && slotsFor(S.level)[i].wing ? 2 : 1; }; // wings out over the mine need more stone
+const slotStone = () => { const i = nextSlot(); return i >= 0 && slotsFor(S.level)[i].wing && !hasUp('polish') ? 2 : 1; }; // wings out over the mine need more stone
 async function addToTemple(t) {
   if (!t || !S.chest[t]) return;
   const need = slotStone();
@@ -1292,6 +1365,13 @@ async function finishBuilding() {
 function startBuild(rid) {
   const rc = R[rid], cost = costOf(rid);
   if (!has(cost) || !unlocked(rid)) return;
+  if (rc.kind === 'upgrade') {
+    if (hasUp(rid) || (rid === 'pick3' && !hasUp('pick2'))) return;
+    pay(cost); (S.upgrades = S.upgrades || {})[rid] = true;
+    ov('chestOv', false); render(); confetti(); chime([523, 784, 1047, 1568]);
+    bigReveal(`<text y="16" text-anchor="middle" font-size="48">${rc.e}</text>`, 1.4, `${rc.name}!<small>${rc.does}<br><i>${rc.verse}</i></small>`, null, { ms: 4200, rainbow: true });
+    return;
+  }
   if (rc.kind === 'once') { pay(cost); S.shield = 1; ov('chestOv', false); render(); chime([660, 880, 1320]); caption('🛡️ Shield of Faith ready! The next fire skips one wobbly prop.', 3200, 'joy'); return; }
   placing = { rid, kind: rc.kind };
   ov('chestOv', false);
@@ -1340,7 +1420,7 @@ function fixProp(r, c) {
   makingRight = false;
   render();
   chime([523, 659, 784, 1047]);
-  caption(`🫂 Made it right! The ${PROP_WORD[was]} became stone${pearl ? ', and a pearl appeared' : ''}. Pearls grow where something hurt.`, 3400, 'love');
+  caption(`🫂 Made it right! The ${PROP_WORD[was]} became stone${pearl ? ', and a pearl appeared' : ''}.<em>Sorry → “How can I help fix it?” → do it. Pearls grow where something hurt.</em>`, 3800, 'love');
 }
 holdable(document.getElementById('rightBtn'), 800, () => {
   if (!rotCount()) return caption('No wobbly props to fix. 👍', 2200, 'joy');
@@ -1382,7 +1462,7 @@ async function fire() {
   const F = forecast();
   dusk = true; render(); cam.ty = 0;
   chime([196, 247, 294]);
-  caption('🔥 The fire shows what lasts.<em>Jesus is the foundation. He is safe, and so are you. (1 Corinthians 3)</em>', 0);
+  caption('🔥 Let’s pray first: “Jesus, show us what lasts.”<em>Jesus is the foundation. He is safe, and so are you. (1 Corinthians 3)</em>', 0);
   await wait(1600);
   const fx = () => document.getElementById('fx');
   const step = Math.min(170, 4200 / Math.max(1, Math.max(...Object.values(F.route.dist))));
@@ -1422,7 +1502,7 @@ async function fire() {
   if (F.wingFall.length || F.plotFall.length) {
     cam.ty = 0; render();
     await wait(500);
-    caption('😮 The ground under it is gone…', 0, 'danger');
+    caption('😮 The ground under it is gone…<em>Don’t worry, we can rescue it.</em>', 0, 'danger');
     const things = [...F.wingFall.map((w) => ({ el: scene.querySelector(`.tstone[data-ti="${w.i}"]`), at: w.at, sl: slotsFor(S.level)[w.i] })),
       ...F.plotFall.map((p) => ({ el: scene.querySelector(`.bld[data-plot="${p.id}"]`), at: p.at, plot: PLOTS.find((q) => q.id === p.id) }))];
     things.forEach(({ el }) => { if (el) { el.classList.remove('loose'); el.classList.add('tilt'); } });
@@ -1455,7 +1535,9 @@ async function fire() {
     caption(`🕊️ Everything held! What you built with God remains.<em>${crownAt >= 0 ? 'A gold crown stone for your temple · ' : ''}+${bonus} ⛏${garden ? ` · 🌳 your garden grew a ${GEMS[garden][0]}` : ''}</em>`, 6000, 'joy');
   }
   save();
-  if (templeCount() >= slotsFor(S.level).length) { await wait(2500); await finishBuilding(); }
+  await wait(4000);
+  await firesideTalk();
+  if (templeCount() >= slotsFor(S.level).length) { await finishBuilding(); }
   busy = false;
 }
 
@@ -1463,7 +1545,7 @@ async function firstOpen() {
   if (S.lastOpen === S.day) return takeGifts();
   S.lastOpen = S.day; save();
   const f = fruitOfDay(), name = f === 'gold' ? 'Prayer' : GEMS[f][1];
-  await bigReveal(art(f), 2, `🌅 Good morning, ${kid.name}!<small>Today’s Fruit of the Day is <b>${name}</b>. Those gems grow bigger today!</small>`, null, { ms: 3600 });
+  await bigReveal(art(f), 2, `🌅 Good morning, ${kid.name}!<small>Today’s Fruit of the Day is <b>${name}</b>. Ask God to grow it in you today.</small>`, null, { ms: 3600 });
   await takeGifts();
 }
 document.getElementById('nextDay').onclick = () => { S.dayOffset = (S.dayOffset || 0) + 1; syncDay(); render(); firstOpen(); };
@@ -1493,6 +1575,7 @@ function autoWeek() {
       }
     }
     // Build something when affordable, then put spare gems in the temple.
+    for (const id of ['pick2', 'polish', 'pick3']) if (unlocked(id) && !hasUp(id) && (id !== 'pick3' || hasUp('pick2')) && has(R[id].cost)) { pay(R[id].cost); (S.upgrades = S.upgrades || {})[id] = true; }
     for (const rc of RECIPES) {
       if (rc.kind === 'building' && unlocked(rc.id) && !Object.values(S.plots).includes(rc.id) && has(costOf(rc.id))) { const free = PLOTS.find((p) => !S.plots[p.id]); if (free) { const paid = costOf(rc.id); pay(paid); delete S.ruined[rc.id]; (S.plotPaid = S.plotPaid || {})[free.id] = Object.fromEntries(Object.entries(paid).filter(([t]) => t !== 'stone')); S.plots[free.id] = rc.id; } }
     }
@@ -1517,6 +1600,7 @@ document.getElementById('chestBtn').onclick = () => openChest();
 document.getElementById('lensBtn').onclick = () => { if (!Object.values(S.plots).includes('bell')) return caption('🔔 Build a Bell Tower to see the fire’s path all week.<em>Open your treasure chest to find the recipe.</em>', 3200, 'joy'); lens = !lens; render(); caption(lens ? '👁 Danger lens on: the orange path is where the fire will run. Red falls in.' : '👁 Danger lens off.', 2600, 'joy'); };
 document.getElementById('lookBtn').onclick = () => { cam.ty = cam.ty > 5 ? 0 : Math.max(0, Math.min(maxY(), (S.mole.r - 5) * CH)); };
 document.getElementById('speakBtn').onclick = () => { S.readAloud = !S.readAloud; render(); if (S.readAloud) speak('Read aloud is on.', true); };
+document.getElementById('lockNow').onclick = () => { pinUntil = 0; document.getElementById('drawer').classList.remove('show'); caption('🔒 Locked.', 1500); };
 document.getElementById('grownBtn').onclick = async () => { if (await needPin()) document.getElementById('drawer').classList.add('show'); };
 document.getElementById('drawerClose').onclick = () => document.getElementById('drawer').classList.remove('show');
 document.getElementById('whoChip').onclick = () => {
