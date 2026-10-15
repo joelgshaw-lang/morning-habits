@@ -11,7 +11,7 @@ const ASSETS = [
   './js/clock.js',
   './js/config.js',
   './js/db.js',
-  './js/tree.js',
+  './mine.html',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',

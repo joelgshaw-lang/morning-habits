@@ -55,11 +55,12 @@ Tips for a shared kitchen iPad:
 
 ## How kids use it
 
-- Tap your card on **Who are you?** It's the home screen all day, with a **🌳 Fruit Tree** card next to the kids.
-- Each child's screen has three tabs and opens on the right one for the time of day:
+- Tap your card on **Who are you?** It's the home screen all day. Each card shows the egg and how many ⛏ swings are waiting in the mine.
+- Each child's screen has four tabs and opens on the right routine for the time of day:
   - **☀️ Morning** (6:30–7:30am window)
   - **⭐ Extra chores**: any time of day, once each per day. 16 jobs: clean the floor, take out the trash, wipe the table, fold washing, water the plants, help with dinner, pack away toys, do the dishes, set the table, put clothes away, line up the shoes, unpack the shopping, wipe the bathroom sink, help in the yard, help a brother or sister, and another helpful job. A chore that's already in a child's own routine is left out of their list.
   - **🌙 Night** (6–8pm window): shower or bath, pyjamas, brush teeth, tidy my room, pack my bag.
+  - **⛏ Mine**: opens The Mine and the Temple (see below). Locked 🔒 in the morning until the morning jobs are done.
 - Tap the big **Ready, set, go!** button: a traffic-light countdown starts the morning and saves the start time. Then the habit tiles appear.
 - **Your egg grows with every job.** Each finished habit or chore warms it 🔥, and extra chores warm it twice as much. It grows: egg → wobbly egg → cracking egg → hatching 🐣 → baby chick 🐥 → hen 🐔 (at 10, 25, 45, 70 and 100 warmth), with a celebration at each stage. The hen will lay eggs on the farm in Stage 2.
 - **Hold** a habit tile for about a second to tick it (a quick tap only says the habit name and shows "Keep your finger down"). This stops exploring taps from ticking things.
@@ -69,15 +70,26 @@ Tips for a shared kitchen iPad:
 - 🐦 on a tile means it was done before 6:30am.
 - The app goes back to **Who are you?** after 1 minute of no touches, or 12 seconds after finishing everything.
 
-## Fruit Tree
+## The Mine and the Temple (1 Corinthians 3)
 
-A shared family tree for the rest of the day (concept: `docs/fruit-tree-concept.md`). Tap the **🌳 Fruit Tree** card on the home screen.
+Each child has a gem mine under a temple built on Jesus, the foundation (`mine.html`, opened from the **⛏ Mine** tab; concept and evaluation in `docs/`).
 
-- Tap your face, then **💧 I stopped to pray**. Rain falls on the roots. Each child sees only their own weekly count.
-- **Hold** a moment card (e.g. "I stayed calm when I was cross") to grow fruit. A blossom pops on, then ripens. Up to 5 a day each. **↩️ Undo** in the message at the bottom.
-- **🌧️ Stop & Pray**: pick a feeling, then a 30-second Scripture breath prayer, "Now tell Jesus what happened", and "Do you need to make something right?"
-- Tap any fruit to hear what it means and who grew it. When you pick your face, your fruit glows.
-- Fruit never earns coins and the tree never wilts.
+**Habits feed the mine:**
+- Each habit ticked = 1 ⛏ swing.
+- A finished morning or night routine = gold hidden by the mole.
+- The prayer timer = 1 swing and gold.
+- Each extra chore = 1 swing and a 🙌 helping hand (helping hands clear boulders after a fall).
+- **↩️ Undo** takes the swing back.
+
+**In the mine:**
+- **⭐ I did something good**: picture cards for the fruits of the Spirit. A grown-up rates it 1–5, then a gem is hidden by the mole to dig out.
+- **🙏 Stop & Pray** (moved here from the old Fruit Tree): pick a feeling, then breathe and pray a Scripture breath prayer. Gold is hidden by the mole.
+- **🤗 I helped my brother or sister** gives you both a helping hand. **👀 I saw God's fruit in someone** sends them a 💌. Both add a brick to the shared 🧱 family wall; every 10 bricks is a family feast.
+- **💛 I need to say sorry** puts wobbly hay or wood props in the tunnels. Owning up adds fewer than being caught. A grown-up uses **Make it right** to turn them to stone.
+- Gems go in the treasure chest, into the temple (Altar → Chapel → Temple → Great Temple → City), or into recipes (buildings, pillars, braces, workshop upgrades) that unlock as the temple grows.
+- **🔥 The fire**: a grown-up holds the button in 👨‍👩‍👧 (the Sunday family moment). Wobbly props burn, tunnels cave in, and things built above can fall into the mine and need rescuing. A fireside talk and prayer follows.
+- When a child uses their last swing of the day, a short read-aloud moment reminds them it's a game, but they will stand before God (2 Cor 5:10), and that they're safe on Jesus (1 Cor 3:11–14).
+- **The grown-up PIN** guards only the 👨‍👩‍👧 controls and stays unlocked for 15 minutes.
 
 ## Dev mode (fake the time)
 

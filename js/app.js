@@ -1,7 +1,6 @@
 import { openDB, kvGet, kvSet, dayGet, dayPut, dayDelete, dayAll } from './db.js';
 import * as clock from './clock.js';
 import { DEFAULT_SETTINGS } from './config.js';
-import { createTree } from './tree.js';
 
 const app = document.getElementById('app');
 const overlay = document.getElementById('overlay');
@@ -25,8 +24,7 @@ const state = {
   lastTouch: Date.now(),
   renderedDay: null,
   reloadPending: false,
-  view: null,        // 'picker' | 'tree' when chosen; null = by time of day (tree after the morning window)
-  treeKid: null,     // child selected on the Fruit Tree screen
+  mineOpen: false,   // the Mine and the Temple is open over the child's screen
   tab: 'morning',    // routine shown on a child's screen: morning | extras | night
   warmth: 0,         // current child's lifetime egg warmth
 };
@@ -119,15 +117,54 @@ function runLeft(kidId) {
   return r ? r.duration - (Date.now() - r.startMs) : 0;
 }
 
-const tree = createTree({
-  state, app, overlay, esc, kid, todayKey, loadDay, clockHTML, render,
-  speak, unlockAudio, tone, pop, burst, toast, hideToast,
+// ---------- the Mine and the Temple (mine.html, shown in a frame) ----------
+// Habits feed it through a small inbox in localStorage that the mine collects:
+// each habit = 1 swing, a finished morning/night routine or prayer timer = gold by the mole, an extra chore = a helping hand.
+function sendToMine(kidId, item) {
+  try { const key = `mine4.inbox.${kidId}`, list = JSON.parse(localStorage.getItem(key) || '[]'); list.push(item); localStorage.setItem(key, JSON.stringify(list)); } catch {}
+}
+function mineSwings(kidId) {
+  try {
+    const save = JSON.parse(localStorage.getItem(`mine4.${kidId}`) || 'null');
+    const inbox = JSON.parse(localStorage.getItem(`mine4.inbox.${kidId}`) || '[]');
+    return Math.max(0, (save?.swings || 0) + inbox.reduce((n, it) => n + (it.swings || 0), 0));
+  } catch { return 0; }
+}
+// Digging waits until the morning jobs are done, so the game never competes with getting ready.
+function mineLocked(k = kid()) {
+  const w = windowInfo('morning');
+  return w.phase !== 'closed' && doneCount(k, state.day, 'morning') < listFor(k, 'morning').length;
+}
+function openMine() {
+  const k = kid();
+  if (mineLocked(k)) {
+    toast('⛏ Finish your morning jobs first, then dig!');
+    return speak('Finish your morning jobs first, then you can dig!');
+  }
+  state.mineOpen = true;
+  state.autoHomeAt = 0; // don't jump home from inside the mine
+  state.lastTouch = Date.now();
+  const el = document.createElement('div');
+  el.className = 'mine-frame';
+  el.innerHTML = `<iframe src="./mine.html?embed=1&kid=${encodeURIComponent(k.id)}" title="The Mine and the Temple" allow="autoplay"></iframe>`;
+  document.body.appendChild(el);
+}
+function closeMine() {
+  state.mineOpen = false;
+  document.querySelector('.mine-frame')?.remove();
+  state.lastTouch = Date.now();
+  if (state.kidId) renderKid();
+}
+window.addEventListener('message', (e) => {
+  if (e.origin !== location.origin) return;
+  if (e.data?.type === 'mine-activity') state.lastTouch = Date.now();
+  if (e.data?.type === 'mine-close') closeMine();
 });
 
 // ---------- speech & sound ----------
 
 // Default on for kids under 8 (Judah can't read much yet); each child can toggle it.
-function readAloudOn(id = state.kidId || state.treeKid) {
+function readAloudOn(id = state.kidId) {
   if (!id) return false;
   const pref = state.prefs.readAloud[id];
   return pref === undefined ? kid(id).age < 8 : pref;
@@ -256,16 +293,10 @@ async function renderPicker() {
             <div class="dots" aria-label="${n} of ${list.length} done">
               ${list.map((h) => `<span class="dot ${map[h.id] ? 'on' : ''}">${map[h.id] ? '✓' : ''}</span>`).join('')}
             </div>
-            <div class="egg-badge">${eggStage(warmth[k.id] || 0).icon} ${eggStage(warmth[k.id] || 0).name}${extras ? ` · ⭐ ${extras} extra` : ''}</div>
+            <div class="egg-badge">${eggStage(warmth[k.id] || 0).icon} ${eggStage(warmth[k.id] || 0).name}${extras ? ` · ⭐ ${extras} extra` : ''}${mineSwings(k.id) ? ` · ⛏ ${mineSwings(k.id)}` : ''}</div>
             <div class="card-status">${status}</div>
           </button>`;
         }).join('')}
-        <button class="kid-card tree-card" data-action="tree-open">
-          <div class="avatar">🌳</div>
-          <div class="kid-name">Fruit Tree</div>
-          <div class="tree-card-sub">💧 Pray · 🍇 Grow fruit</div>
-          <div class="card-status">🌧️ Stop &amp; Pray</div>
-        </button>
       </div>
     </section>`;
 }
@@ -317,7 +348,7 @@ function petBoxHTML(all, r) {
     </div>`;
 }
 
-const TABS = [['morning', '☀️', 'Morning'], ['extras', '⭐', 'Extra chores'], ['night', '🌙', 'Night']];
+const TABS = [['morning', '☀️', 'Morning'], ['extras', '⭐', 'Extra chores'], ['night', '🌙', 'Night'], ['mine', '⛏', 'Mine']];
 
 function renderKid() {
   const k = kid();
@@ -343,7 +374,7 @@ function renderKid() {
     title = `⭐ Extra chores, ${esc(k.name)}!`;
     sub = n === 0 ? 'Help out any time today. Hold a job when you finish it.' : `${n} extra job${n === 1 ? '' : 's'} done today. Thank you for helping!`;
   }
-  const tabCount = (t) => (t === 'extras' ? doneCount(k, d, t) || '' : `${doneCount(k, d, t)}/${listFor(k, t).length}`);
+  const tabCount = (t) => (t === 'mine' ? (mineLocked(k) ? '🔒' : mineSwings(k.id) || '') : t === 'extras' ? doneCount(k, d, t) || '' : `${doneCount(k, d, t)}/${listFor(k, t).length}`);
   app.innerHTML = `
     <section class="screen morning tab-${r}" style="--kid:${k.color}">
       <header class="top">
@@ -359,7 +390,7 @@ function renderKid() {
       </header>
       <nav class="tabs">
         ${TABS.map(([id, icon, name]) => `
-          <button class="tab ${id === r ? 'on' : ''}" data-action="tab" data-tab="${id}">
+          <button class="tab ${id === r ? 'on' : ''} ${id === 'mine' ? 'mine-tab' : ''}" data-action="${id === 'mine' ? 'mine' : 'tab'}" data-tab="${id}">
             <span>${icon}</span> ${name} <small>${tabCount(id)}</small>
           </button>`).join('')}
       </nav>
@@ -396,13 +427,10 @@ function renderKid() {
 
 async function render() {
   state.renderedDay = todayKey();
-  const showTree = state.view === 'tree';
   if (state.kidId) {
     state.day = await loadDay(state.kidId);
     state.warmth = (await warmthByKid())[state.kidId] || 0;
     renderKid();
-  } else if (showTree) {
-    await tree.render();
   } else {
     await renderPicker();
   }
@@ -424,8 +452,8 @@ function tick() {
   }
   const c = app.querySelector('.clock');
   if (c) c.outerHTML = clockHTML();
-  const idle = Date.now() - state.lastTouch > IDLE_MS && state.prayer?.phase !== 'confirm' && !tree.busy();
-  const away = state.kidId || state.prayer || state.treeKid || state.view;
+  const idle = Date.now() - state.lastTouch > (state.mineOpen ? 3 * IDLE_MS : IDLE_MS) && state.prayer?.phase !== 'confirm';
+  const away = state.kidId || state.prayer;
   if (away && (idle || (state.autoHomeAt && Date.now() > state.autoHomeAt))) goHome();
 }
 
@@ -451,8 +479,7 @@ function openKid(id) {
 }
 
 function goHome() {
-  tree.reset();
-  state.view = null;
+  if (state.mineOpen) { state.mineOpen = false; document.querySelector('.mine-frame')?.remove(); }
   closeOverlay();
   state.kidId = null;
   state.day = null;
@@ -481,6 +508,8 @@ function afterDone(habitId, allowUndo, r = 'morning') {
   const before = eggStage(state.warmth);
   state.warmth += r === 'extras' ? 2 : 1;
   const grew = eggStage(state.warmth).index > before.index;
+  if (h.type !== 'timer') sendToMine(k.id, r === 'extras' ? { swings: 1, hands: 1 } : { swings: 1 });
+  if (all) sendToMine(k.id, { gold: 1, icon: r === 'night' ? '🌙' : '☀️' });
   if (allowUndo) {
     clearTimeout(state.undo?.timer);
     state.undo = { habitId, routine: r, timer: setTimeout(() => { state.undo = null; if (state.kidId === k.id && !state.prayer) renderKid(); }, UNDO_MS) };
@@ -511,6 +540,7 @@ async function undo() {
   state.undo = null;
   delete mapFor(state.day, routine)[habitId];
   state.warmth -= routine === 'extras' ? 2 : 1;
+  sendToMine(state.kidId, routine === 'extras' ? { swings: -1, hands: -1 } : { swings: -1 });
   state.day.log.push({ t: clock.now().toISOString(), routine, habit: habitId, action: 'undo' });
   state.autoHomeAt = 0;
   await dayPut(state.day);
@@ -707,6 +737,7 @@ async function endRun(kidId, completed) {
   if (completed) {
     day.done.pray = end;
     day.log.push({ t: end, habit: 'pray', action: 'done' });
+    sendToMine(kidId, { swings: 1, gold: 1, icon: '🙏' }); // time with God: gold by the mole
   }
   await dayPut(day);
   return day;
@@ -909,12 +940,11 @@ document.addEventListener('click', async (e) => {
   if (!el) return;
   const a = el.dataset.action;
   if (a.startsWith('dev-')) return devAction(a, el);
-  if (a.startsWith('tree-')) return tree.action(a, el);
-  if (a.startsWith('calm-')) return tree.calmAction(a, el);
   switch (a) {
     case 'open-kid': return openKid(el.dataset.kid);
     case 'home': return goHome();
     case 'go': return readySetGo();
+    case 'mine': return openMine();
     case 'undo': e.stopPropagation(); return undo();
     case 'toggle-speak': {
       state.prefs.readAloud[state.kidId] = !readAloudOn();
