@@ -28,6 +28,8 @@
   .who { display: flex; align-items: center; gap: 8px; min-height: 56px; }
   .who .av { font-size: 32px; }
   .picks { display: flex; align-items: center; gap: 2px; min-height: 56px; font-size: 24px; }
+  .firechip { font-size: 16px; min-height: 56px; display: flex; align-items: center; background: #fff1e6; color: #9a3412; }
+  .firechip.now { background: #f97316; color: #fff; animation: cpulse 1.6s ease-in-out infinite; }
   .warnchip { background: #fde68a; color: #7c2d12; font-size: 16px; display: none; min-height: 56px; align-items: center; max-width: 330px; }
   .warnchip.show { display: flex; }
   .spacer { flex: 1; }
@@ -41,6 +43,7 @@
   .dock .good { background: linear-gradient(135deg, #22c55e, #15803d); }
   .dock .sorry { background: linear-gradient(135deg, #f472b6, #be185d); }
   .dock .cancel { background: #6b7280; }
+  .hint { animation: cpulse 1.6s ease-in-out infinite; }
   .dock button:active { transform: translateY(4px); }
 
   .caption { position: absolute; left: 50%; bottom: 118px; transform: translateX(-50%); z-index: 9;
@@ -223,6 +226,7 @@
     <div class="chip picks" id="picks"></div>
     <button class="chip chestbtn" id="chestBtn"></button>
     <div class="chip warnchip" id="warn"></div>
+    <div class="chip firechip" id="fireChip"></div>
     <div class="spacer"></div>
     <button class="chip round" id="wallBtn" aria-label="Family wall">🧱</button>
     <button class="chip round" id="lensBtn" aria-label="Danger lens">👁</button>
@@ -413,7 +417,7 @@ const RECIPES = [
 RECIPES.push(
   { id: 'pick2', e: '⛏️', name: 'Strong Pickaxe', kind: 'upgrade', cost: { jasper: 2, chalcedony: 1, stone: 6 }, does: 'Hard rock takes one less swing, so you can dig deeper.', verse: 'Let us not become weary in doing good (Gal 6:9)' },
   { id: 'polish', e: '✨', name: 'Polishing Table', kind: 'upgrade', cost: { beryl: 2, amethyst: 1, stone: 6 }, does: 'God’s Spirit is polishing you! Every gem in your temple sparkles, and wing stones need just 1 stone.', verse: 'Transformed into his likeness with ever-increasing glory (2 Cor 3:18)' },
-  { id: 'pick3', e: '🌟', name: 'Golden Pickaxe', kind: 'upgrade', cost: { gold: 3, topaz: 2, stone: 8 }, does: 'Every rock breaks in one swing, so you can dig really deep. (Get the Strong Pickaxe first.)', verse: 'Work at it with all your heart (Col 3:23)' },
+  { id: 'pick3', e: '🌟', name: 'Golden Pickaxe', kind: 'upgrade', cost: { gold: 3, topaz: 2, stone: 8 }, does: 'Hard rock takes another swing less, so you can dig really deep. (Get the Strong Pickaxe first.)', verse: 'Work at it with all your heart (Col 3:23)' },
 );
 const R = Object.fromEntries(RECIPES.map((r) => [r.id, r]));
 const hasUp = (id) => !!(S.upgrades && S.upgrades[id]);
@@ -426,7 +430,7 @@ const COLS = 14, CW = 52, CH = 50, MX = 36, MY = 270;
 let ROWS = 30; // the mine grows deeper as it's dug out (see deepen)
 const ENTRY = { r: 0, c: 7 };
 const cx = (c) => MX + c * CW, cy = (r) => MY + r * CH;
-const hardness = (r) => Math.min(3, 1 + Math.floor(r / 6));
+const hardness = (r) => Math.min(5, 1 + Math.floor(r / 6));
 const colOf = (x) => Math.max(0, Math.min(COLS - 1, Math.floor((x - MX) / CW)));
 // The foundation (Jesus) rock spans the middle. Anything built beyond it stands over the mine.
 const FOUND_L = 336, FOUND_R = 464;
@@ -506,7 +510,7 @@ const key = (r, c) => `${r},${c}`;
 const unkey = (k) => k.split(',').map(Number);
 const diggable = (r, c) => cell(r, c).s !== 'tunnel' && around(r, c).some(([a, b]) => cell(a, b).s === 'tunnel');
 const litGeode = (r, c) => cell(r, c).content === 'geode' && Object.values(S.plots).includes('lantern') && Math.abs(r - S.mole.r) + Math.abs(c - S.mole.c) <= 3;
-const digCost = (r, c) => { const k = cell(r, c), up = hasUp('pick2') ? 1 : 0; return k.soft || litGeode(r, c) || hasUp('pick3') ? 1 : k.s === 'rubble' ? Math.max(1, hardness(r) - 1 - up) : Math.max(1, hardness(r) - up); };
+const digCost = (r, c) => { const k = cell(r, c), up = (hasUp('pick2') ? 1 : 0) + (hasUp('pick3') ? 1 : 0); return k.soft || litGeode(r, c) ? 1 : k.s === 'rubble' ? Math.max(1, hardness(r) - 1 - up) : Math.max(1, hardness(r) - up); };
 const templeCount = () => S.temple.filter(Boolean).length;
 function deepest() { let d = 0; for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (cell(r, c).s === 'tunnel') d = Math.max(d, r); return d; }
 function rotCount() { let n = 0; for (const row of S.cells) for (const k of row) if (k.s === 'tunnel' && BURNS.includes(k.prop)) n++; return n; }
@@ -712,6 +716,12 @@ function render(fx = {}) {
     <path d="M${cx(ENTRY.c) + 26} 266 V${cy(0)}" stroke="#a9875e" stroke-width="4"/>
     <g id="mine">${mine}</g><g>${props}</g><g>${lensSVG}</g><g>${items}</g><g pointer-events="none">${flies}</g><g>${marks}</g><g>${support}</g>${moleSVG}<g id="fx"></g>`;
   renderHud(F);
+  const daysToSun = (7 - new Date().getDay()) % 7, fc = document.getElementById('fireChip');
+  fc.classList.toggle('now', daysToSun === 0 && S.lastFire !== S.day);
+  fc.textContent = daysToSun === 0 ? (S.lastFire === S.day ? '🔥 done ✓' : '🔥 Fire night!') : `🔥 in ${daysToSun} day${daysToSun === 1 ? '' : 's'}`;
+  const anyGem = TREASURE.some((t) => S.chest[t] > 0);
+  document.getElementById('chestBtn').classList.toggle('hint', S.swings === 0 && anyGem && !busy);
+  document.getElementById('goodBtn').classList.toggle('hint', S.swings === 0 && !anyGem && !busy);
   const placingNow = !!(placing || makingRight);
   document.getElementById('cancelBtn').style.display = placingNow ? 'flex' : 'none';
   document.getElementById('goodBtn').style.display = document.getElementById('sorryBtn').style.display = placingNow ? 'none' : 'flex';
@@ -1274,7 +1284,8 @@ scene.addEventListener('click', (e) => {
   if (k.boulder && S.chest.hands < 1) return caption(`🙌 Boulders need a helping hand.<em>Helping hands come from helping people.</em>`, 3200, 'love');
   if (S.swings <= 0) return caption('⛏ Pickaxe resting. Go and play!<em>The mine will be here when God grows more fruit.</em>', 2800);
   const nextToMole = around(r, c).some(([a, b]) => a === S.mole.r && b === S.mole.c);
-  if (selected !== kk && !nextToMole) { selected = kk; S.mole = nearestTunnel(r, c); render(); chime([500]); return; }
+  if (!nextToMole) S.mole = nearestTunnel(r, c); // one tap: the mole hops over and swings
+  selected = null;
   swing(r, c);
 });
 function nearestTunnel(r, c) { for (const [a, b] of around(r, c)) if (cell(a, b).s === 'tunnel') return { r: a, c: b }; return S.mole; }
@@ -1319,7 +1330,7 @@ function swing(r, c) {
   chime(found === 'gold' ? [660, 880, 1100] : [660, 880, 1100, 1320, 1760]);
   const flawless = size >= 5 && !wasRubble;
   const label = wasRubble ? `🆘 Rescued!<small>Your ${tname(found).toLowerCase()}${extras.length ? ` and ${extras.length} more stone${extras.length === 1 ? '' : 's'}` : ''} came through the fire and shine${extras.length ? '' : 's'} brighter!</small>`
-    : found === 'gold' ? `🟨 Gold!<small>${earned ? 'Time with God is precious' : 'A gold nugget'}</small>`
+    : found === 'gold' ? `🟨 Gold!<small>${earned === '✨' ? 'A bonus for a big-hearted choice' : earned === '☀️' || earned === '🌙' ? 'Faithful in little things (Luke 16:10)' : earned ? 'Time with God is precious' : 'A gold nugget'}</small>`
     : found === 'pearl' ? '⚪ A pearl!<small>Pearls grow where something hurt</small>'
     : `${flawless ? '🌈 Flawless ' : '💎 '}${size >= 4 ? 'Huge ' : ''}${GEMS[found][0]}!<small>${GEMS[found][1]}: ${MEANING[found]}${earned ? '' : ' · from a mystery geode!'}</small>`;
   busy = true;
@@ -1359,7 +1370,7 @@ function maybeDayEnd() {
   const lines = DAY_END(kid.name), el = document.getElementById('dayEnd'), gap = 4.2;
   el.innerHTML = `<svg class="glow" viewBox="-75 -60 150 110"><polygon points="-40,-5 0,-38 40,-5" fill="url(#gold)" stroke="#8f6206"/><rect x="-32" y="-5" width="64" height="30" fill="url(#gold)" stroke="#8f6206"/><rect x="-60" y="26" width="120" height="16" rx="3" fill="#fff4b0" stroke="#d79f12"/></svg>`
     + lines.map((l, i) => `<div class="dl ${l.big ? 'big' : ''}" style="animation-delay:${i * gap}s">${l.t}${l.ref ? `<small>${l.ref}</small>` : ''}</div>`).join('')
-    + `<button id="dayEndOk" style="animation-delay:${lines.length * gap}s">Amen 🙏</button>`;
+    + `<button id="dayEndOk" style="animation-delay:6s">Amen 🙏</button>`;
   el.classList.add('show');
   chime([392, 523, 659], 'triangle');
   if ('speechSynthesis' in window) {
@@ -1554,6 +1565,7 @@ holdable(document.getElementById('fireBtn'), 1200, () => { document.getElementBy
 // What the fire does to the mine and the hill (no animation). fire() animates it; autoWeek uses it directly.
 function caveIn(k) { const buried = !!k.pile; Object.assign(k, { s: 'rubble', prop: null, how: null, pillar: null }); return buried; }
 function fireOutcome(F) {
+  S.lastFire = S.day;
   for (const k2 of F.held) { const [r, c] = unkey(k2); Object.assign(cell(r, c), { prop: 'stone', how: null }); }
   if (F.quenched) S.shield = 0;
   for (const w of F.wingFall) { const [r, c] = unkey(w.at), k = cell(r, c); k.s = 'rubble'; (k.extra = k.extra || []).push(S.temple[w.i]); if (!k.pile) k.pile = k.extra.shift(); S.temple[w.i] = null; }
@@ -1596,6 +1608,8 @@ async function fire() {
         particle('circle', { cx: cx(c) + 26, cy: cy(r) + 25, r: 24, fill: 'none', stroke: '#7ab8ff', 'stroke-width': 5 }, 'beacon', 900); chime([1760, 2200], 'triangle');
         if (F.held.has(k2)) particle('text', { x: cx(c) + 26, y: cy(r) - 6, 'text-anchor': 'middle', 'font-size': 20, 'font-weight': 900, fill: '#fff', stroke: '#1d4ed8', 'stroke-width': 4, 'paint-order': 'stroke' }, 'spark-up', 1600).textContent = 'HELD! 🏛️';
       }
+      if (k.pillar === 'pillar' && r <= 1 && [...(F.down || [])].some((d) => unkey(d)[1] === c && unkey(d)[0] <= 1) && underSomething(c))
+        particle('text', { x: cx(c) + 26, y: cy(r) - 6, 'text-anchor': 'middle', 'font-size': 20, 'font-weight': 900, fill: '#fff', stroke: '#1d4ed8', 'stroke-width': 4, 'paint-order': 'stroke' }, 'spark-up', 1800).textContent = 'HELD! 🏛️';
       if (F.quenched === k2) { particle('circle', { cx: cx(c) + 26, cy: cy(r) + 25, r: 26, fill: 'rgba(122,184,255,.4)', stroke: '#fff', 'stroke-width': 3 }, 'beacon', 1200); chime([1320, 1760, 2200]); }
       else if (BURNS.includes(k.prop)) {
         scene.querySelector(`use[data-prop="${k2}"]`)?.classList.add('char');
@@ -1646,7 +1660,8 @@ async function fire() {
   const fellN = F.wingFall.length + F.plotFall.length, rescues = buried + F.wingFall.length + F.plotFall.length;
   if (F.down.size || fellN) {
     chime([220, 180, 140]);
-    caption(`💛 You’re safe. Jesus held.<em>🆘 ${rescues} to rescue: let’s go! · What lasted earned you +${bonus} ⛏${garden ? ` · 🌳 your garden grew a ${GEMS[garden][0]}` : ''}</em>`, 9000, 'joy');
+    const needHands = F.plotFall.length && !S.chest.hands;
+    caption(`💛 You’re safe. Jesus held.<em>🆘 ${rescues} to rescue${needHands ? ' (boulders need a 🙌 helping hand: help someone!)' : ': let’s go!'} · What lasted earned you +${bonus} ⛏${garden ? ` · 🌳 your garden grew a ${GEMS[garden][0]}` : ''}</em>`, 9000, 'joy');
     const first = [...F.down].map(unkey).sort((a, b) => a[0] - b[0])[0];
     if (first) setTimeout(() => aim(first[0]), 2500);
   } else {
