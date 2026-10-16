@@ -279,7 +279,7 @@ export function createFarm(ctx) {
   }
 
   // The next thing worth saving for, so every coin feels like a step.
-  function goalHTML(k, f, coins) {
+  function goalItem(f) {
     const has = (t) => f.animals.some((a) => a.type === t);
     let id = 'egg';
     if (f.level >= 2 && !has('sheep')) id = 'lamb';
@@ -287,7 +287,11 @@ export function createFarm(ctx) {
     else if (f.level >= 4) id = ['barn', 'mill', 'house'].find((b) => !f.built[b]) || null;
     else if (f.level >= 2 && has('duck') && !f.built.pond) id = 'pond';
     else if (!roomFor(f, 'chicken')) id = f.level >= 2 ? 'box' : null;
-    const it = id && SHOP.find((x) => x.id === id);
+    return id && SHOP.find((x) => x.id === id);
+  }
+
+  function goalHTML(k, f, coins) {
+    const it = goalItem(f);
     if (!it) return '';
     const pct = Math.min(1, Math.max(0, coins) / it.price);
     return `<div class="farm-goal ${pct >= 1 ? 'ready' : ''}">
@@ -298,6 +302,40 @@ export function createFarm(ctx) {
   function bodyHTML(k) {
     const f = farmOf(k.id);
     return `<div class="farm"><div class="farm-left">${fieldHTML(f)}${stripHTML(f)}</div><aside class="farm-panel">${panelHTML(k, f)}</aside></div>`;
+  }
+
+  // The farm on the one-screen view: the animals, and just Feed, Sell, the next thing to buy and the fence.
+  // No shop to browse, so a visit is a few seconds.
+  function miniHTML(k) {
+    const f = farmOf(k.id);
+    const coins = balance(k.id);
+    const plan = feedPlan(f);
+    const hungry = f.animals.filter((a) => a.fedDay !== today()).length;
+    const value = Object.entries(f.basket).reduce((s, [g, n]) => s + GOODS[g].price * n, 0);
+    const it = goalItem(f);
+    const pct = it ? Math.min(1, Math.max(0, coins) / it.price) : 0;
+    const shown = f.animals.slice(0, 10);
+    return `
+      <div class="farm-mini">
+        <div class="mini-head"><b>🐔 My farm</b><span>${LEVELS[f.level].icon} ${LEVELS[f.level].name}</span></div>
+        <div class="mini-field ${f.fenceDays === 0 ? 'broken' : ''}">
+          ${shown.map((a, i) => `<button class="animal mini ${grown(a) ? '' : 'baby'} ${a.fedDay !== today() ? 'hungry' : ''}" data-action="farm-tap" data-id="${a.id}" style="${spot(a, i, shown.length)}">
+            <span class="body">${animalArt(a.type, grown(a), a.wool || 0)}</span>${a.type === 'sheep' && (a.wool || 0) >= 3 ? '<span class="mood">✂️</span>' : ''}</button>`).join('')}
+          ${!f.animals.length && !f.gift ? '<div class="field-empty">Save up for a 🥚</div>' : ''}
+          ${f.fenceDays === 0 ? '<span class="fox">🦊</span>' : ''}
+        </div>
+        <div class="mini-actions">
+          ${f.gift ? '<button class="farm-btn feed" data-action="farm-gift">🎁 Open your gift egg!</button>' : ''}
+          ${hungry ? `<button class="farm-btn feed" data-action="farm-feed">🌾 Feed ${plan.free ? `<small>${plan.free} free</small>` : ''} <small>🪙 ${plan.coins}</small></button>` : f.animals.length ? '<div class="mini-note">✓ Everyone is fed</div>' : ''}
+          ${value ? `<button class="farm-btn sell" data-action="farm-sell">🧺 Sell for 🪙 ${value}</button>` : ''}
+          ${f.fenceDays <= 2 && f.animals.length ? '<button class="farm-btn warn" data-action="farm-buy" data-item="repair">🪵 Fix the fence 🪙 6</button>' : ''}
+          ${it ? `<div class="farm-goal ${pct >= 1 ? 'ready' : ''}">
+            <span>${pct >= 1 ? '✅' : 'Saving for'} ${it.icon} ${it.name}</span>
+            <div class="farm-bar"><i style="width:${Math.round(pct * 100)}%"></i><span>${Math.min(Math.max(0, coins), it.price)} / ${it.price}</span></div>
+            ${pct >= 1 ? `<button class="farm-btn buy" data-action="farm-buy" data-item="${it.id}">Buy it! 🪙 ${it.price}</button>` : ''}
+          </div>` : ''}
+        </div>
+      </div>`;
   }
 
   // Small farm picture for the side panel and home screen card.
@@ -619,11 +657,11 @@ export function createFarm(ctx) {
   }
 
   // Called when a child opens the Farm tab: catch up on missed days, then show news and the starter gift.
-  async function opened(k) {
+  async function opened(k, { gift = true } = {}) {
     const f = farmOf(k.id);
     if (catchUp(f, today())) { save(); ctx.renderKid(); }
     await showNews(f);
-    if (f.gift) {
+    if (f.gift && gift) {
       f.gift = false; // saved together with the new animal inside hatchMystery
       await hatchMystery(f, 'A gift to start your farm!');
       ctx.renderKid();
@@ -644,8 +682,15 @@ export function createFarm(ctx) {
       case 'farm-tap': return tapAnimal(k, el);
       case 'farm-shop': return openShop(k);
       case 'farm-buy': return buy(k, el.dataset.item);
+      case 'farm-gift': {
+        const f = farmOf(k.id);
+        if (!f.gift) return;
+        f.gift = false;
+        await hatchMystery(f, 'A gift to start your farm!');
+        return ctx.renderKid();
+      }
     }
   }
 
-  return { bodyHTML, previewIcons, hungryCount, balance, action, opened, farmOf, catchUp: (id) => catchUp(farmOf(id), today()) };
+  return { bodyHTML, miniHTML, previewIcons, hungryCount, balance, action, opened, farmOf, catchUp: (id) => catchUp(farmOf(id), today()) };
 }

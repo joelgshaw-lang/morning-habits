@@ -7,6 +7,7 @@ export const COINS = {
   morningOnTime: 2, // each morning job done by the end of the morning window…
   morningLate: 1,   // …or later that day
   morningAll: 3,    // every morning job done on time
+  earlyStart: [['06:45', 4], ['07:00', 3], ['07:15', 2]], // starting the morning by these times
   nightJob: 1,      // each night job
   startMax: 4,      // start night jobs within 5 minutes of "Dinner's finished"…
   startStep: 1,     // …then 1 fewer coin for every 5 minutes of waiting
@@ -60,6 +61,15 @@ export function nightFinishedAt(kid, day) {
   return Math.max(...kid.nightHabits.map((h) => ms(day.nightDone[h.id])));
 }
 
+// When the morning really started: the Start button counts if a job was ticked within 20 minutes of it
+// (so pressing Start early and wandering off doesn't pay), otherwise the first job ticked.
+export function morningStart(day) {
+  const ticks = Object.values(day?.done || {}).map(ms).sort((a, b) => a - b);
+  if (!ticks.length) return null;
+  const pressed = day.startedAt ? ms(day.startedAt) : null;
+  return pressed && ticks[0] - pressed <= 20 * 60000 ? pressed : ticks[0];
+}
+
 export function bedtimeBonus(kid, day, bedtime) {
   const jobs = BEDTIME_JOBS.filter((id) => kid.nightHabits.some((h) => h.id === id));
   if (!day || jobs.length < BEDTIME_JOBS.length) return false;
@@ -104,6 +114,9 @@ function dayCoins(settings, kid, day, fam) {
   if (onTime) items.push({ coins: onTime * COINS.morningOnTime, why: `${onTime} morning job${onTime === 1 ? '' : 's'} on time` });
   if (morning.length > onTime) items.push({ coins: (morning.length - onTime) * COINS.morningLate, why: 'Morning jobs done late' });
   if (onTime === kid.habits.length) items.push({ coins: COINS.morningAll, why: 'Whole morning on time' });
+  const began = morningStart(day);
+  const early = began && COINS.earlyStart.find(([t]) => began <= onDay(day.dayKey, t));
+  if (early) items.push({ coins: early[1], why: `Started by ${early[0].replace(/^0/, '')}` });
   const nightJobs = kid.nightHabits.filter((h) => day.nightDone?.[h.id]).length;
   if (nightJobs) items.push({ coins: nightJobs * COINS.nightJob, why: `${nightJobs} night job${nightJobs === 1 ? '' : 's'}` });
   const extras = settings.extraChores.filter((c) => day.extras?.[c.id]);

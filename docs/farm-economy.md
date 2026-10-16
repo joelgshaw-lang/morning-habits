@@ -8,6 +8,7 @@ Balanced with a 90-day simulation of three kinds of child. The goal: something s
 |---|---|
 | Morning job done by 7:30am | 2 each (1 if done later) |
 | Whole morning on time | +3 |
+| Start the morning by 6:45 / 7:00 / 7:15 | +4 / +3 / +2 (the Start button counts if a job is ticked within 20 min of it) |
 | Night job | 1 each |
 | Start night chores within 5 min of "Dinner's finished" | up to 4 (1 less every 5 min) |
 | All night jobs within 40 min of pressing Start | +2 |

@@ -13,6 +13,7 @@ const IDLE_MS = 60 * 1000;        // shared iPad: back to "Who are you?" after 1
 const ALL_DONE_HOME_MS = 12000;   // ...or 12s after finishing everything
 const HOLD_MS = 800;              // press-and-hold to tick a habit, so exploring taps don't count
 const UNDO_MS = 8000;
+const FOCUS_HOME_MS = 9000;      // simple view: back home soon after a tick, so kids go and do the next job
 const SESSION_MS = 2 * 60 * 1000;  // screen time per sign-in (the prayer timer and the mine don't count)
 const COOLDOWN_MS = 2 * 60 * 1000; // screen break after using it all
 const PRAISE = ['Great job!', 'Awesome!', 'You did it!', 'Super star!', 'Way to go!', 'Nice work!', 'Brilliant!', 'Keep it up!', 'Fantastic!', 'Well done!'];
@@ -523,8 +524,98 @@ function petBoxHTML(all, r) {
 
 const TABS = [['morning', '☀️', 'Morning'], ['extras', '⭐', 'Extra chores'], ['night', '🌙', 'Night'], ['farm', '🐔', 'Farm'], ['mine', '⛏', 'Mine']];
 
+const focusMode = (k) => k.focus !== false;
+const nextJob = (k, d, r) => listFor(k, r).find((h) => !mapFor(d, r)[h.id]);
+
+// What starting the morning right now is worth.
+function earlyOffer() {
+  const s = state.settings;
+  const hit = COINS.earlyStart.find(([t]) => clock.now() <= clock.atTime(t, s.dayStartHour));
+  return hit ? `Start now for 🪙 ${hit[1]} (by ${clock.fmtTime(clock.atTime(hit[0], s.dayStartHour))})` : '';
+}
+
+// The simple one-screen view: the next job (big), the rest of the routine (small), and the farm.
+// No tabs and nothing to browse: tick it off, then go and do the next job.
+function renderFocus(k) {
+  const d = state.day;
+  const r = state.tab;
+  const list = listFor(k, r);
+  const n = doneCount(k, d, r);
+  const total = list.length;
+  const all = r !== 'extras' && n === total;
+  const started = firstDoneTime(d);
+  const notStarted = r === 'morning' && !started && !state.runs[k.id];
+  const nightGate = r === 'night' && !d.nightStartedAt && !nightFinishedAt(k, d) && n === 0;
+  const offer = nightGate && dinnerToday() ? startOffer(dinnerToday(), nowMs()) : null;
+  const next = r === 'extras' ? null : nextJob(k, d, r);
+  const earned = extrasCoinsToday(k, d);
+  let title;
+  let sub;
+  if (r === 'extras') {
+    title = `⭐ Extra jobs, ${esc(k.name)}`;
+    sub = earned >= EXTRAS_DAY_CAP ? `🪙 ${EXTRAS_DAY_CAP}/${EXTRAS_DAY_CAP} today. Thank you for helping! 💛` : `Help out, then hold the job you did. 🪙 ${earned}/${EXTRAS_DAY_CAP} today.`;
+  } else if (all) {
+    title = r === 'night' ? `🌙 Sleep tight, ${esc(k.name)}!` : `🎉 All done, ${esc(k.name)}!`;
+    sub = r === 'night' ? 'Night jobs finished. Sweet dreams!' : 'Every morning job is done. Off you go and have a great day!';
+  } else {
+    title = `${greeting()}, ${esc(k.name)}!`;
+    sub = `${n} of ${total} done${r === 'night' ? '' : started ? ` · started ${clock.fmtTime(started)}` : ''}`;
+  }
+  let main;
+  if (notStarted) {
+    main = `
+      <div class="start-panel">
+        <button class="go-btn" data-action="go">
+          <span class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></span>
+          <span class="go-text">Ready, set, go!</span>
+          <span class="go-sub">${earlyOffer() || 'Start my morning'}</span>
+        </button>
+      </div>`;
+  } else if (nightGate) {
+    main = `
+      <div class="start-panel">
+        <button class="go-btn night-go" data-action="start-night">
+          <span class="go-icon">🌙</span>
+          <span class="go-text">Start night chores!</span>
+          <span class="go-sub">⏱ Under 20 min = 🪙 ${COINS.under40 + COINS.under20} · under 40 min = 🪙 ${COINS.under40}</span>
+          ${offer ? `<span class="go-sub" data-offer="${dinnerToday()}">${offer.coins ? `Start now for 🪙 ${offer.coins} · drops in ${clock.fmtDuration(offer.msToDrop)}` : 'Start now. The family is waiting!'}</span>` : ''}
+        </button>
+      </div>`;
+  } else if (r === 'extras') {
+    main = `<div class="tiles extras">${list.map((h) => tileHTML(k, h, d, null, r)).join('')}</div>`;
+  } else if (all) {
+    main = `<div class="all-done-card"><div class="big">${r === 'night' ? '🌙' : '🏆'}</div><h2>${r === 'night' ? 'All done. Time for bed!' : 'All done! Off you go!'}</h2></div>`;
+  } else {
+    main = `
+      <div class="next-label">👉 Next job</div>
+      ${tileHTML(k, next, d, null, r).replace('class="tile', 'class="tile next-tile')}
+      <div class="next-hint">${next.type === 'timer' ? 'Tap to start your prayer timer.' : 'Go and do it, then hold here when you’re done ✓'}</div>
+      <div class="job-row">${list.map((h) => tileHTML(k, h, d, null, r).replace('class="tile', `class="tile mini-tile ${h === next ? 'is-next' : ''}`)).join('')}</div>`;
+  }
+  app.innerHTML = `
+    <section class="screen focus tab-${r}" style="--kid:${k.color}">
+      <header class="top">
+        <button class="btn back" data-action="home" aria-label="Back to Who are you">🏠</button>
+        <div class="me">${k.avatar || '🙂'}</div>
+        <div class="hello"><h1>${title}</h1><p>${sub}</p></div>
+        <div class="chips">
+          <div class="session-chip" title="Screen time left">⏳ ${clock.fmtDuration(sessionLeft(k.id))}</div>
+          <div class="coin-chip">🪙 ${coinsOf(k.id)} · 🔥 ${streakOf(k.id)}</div>
+        </div>
+        <button class="btn mine-mini" data-action="mine" aria-label="Mine (a grown-up opens it)">⛏${mineOpenLeft() ? '' : '🔑'}</button>
+        <button class="btn speak ${readAloudOn() ? 'on' : ''}" data-action="toggle-speak" aria-pressed="${readAloudOn()}" aria-label="Read aloud">${readAloudOn() ? '🔊' : '🔇'}</button>
+      </header>
+      ${r === 'extras' ? '' : r === 'night' && d.nightStartedAt ? nightTimerHTML(k, d) : windowBarHTML(r)}
+      <div class="focus-body">
+        <div class="focus-main">${main}</div>
+        <aside class="focus-farm">${farm.miniHTML(k)}</aside>
+      </div>
+    </section>`;
+}
+
 function renderKid() {
   const k = kid();
+  if (focusMode(k)) return renderFocus(k);
   const d = state.day;
   const r = state.tab;
   const list = r === 'farm' ? [] : listFor(k, r);
@@ -671,7 +762,9 @@ function tick() {
   app.querySelectorAll('[data-race]').forEach((el) => { el.textContent = fmtMinutes(nowMs() - new Date(el.dataset.race).getTime()); });
   const idle = Date.now() - state.lastTouch > (state.mineOpen ? 3 * IDLE_MS : IDLE_MS) && state.prayer?.phase !== 'confirm';
   const away = state.kidId || state.prayer;
-  if (away && (idle || (state.autoHomeAt && Date.now() > state.autoHomeAt))) goHome();
+  // The automatic trip home waits while the child is still tapping (e.g. feeding their animals).
+  const autoHome = state.autoHomeAt && Date.now() > state.autoHomeAt && Date.now() - state.lastTouch > 4000 && !document.querySelector('.farm-ov');
+  if (away && (idle || autoHome)) goHome();
 }
 
 // ---------- actions ----------
@@ -692,6 +785,7 @@ function openKid(id) {
   } else {
     speak(`Hi ${k.name}! Want to do an extra job to help?`);
   }
+  if (focusMode(k)) setTimeout(() => state.kidId === id && farm.opened(k, { gift: false }), 400);
   return render();
 }
 
@@ -742,6 +836,13 @@ function afterDone(habitId, allowUndo, r = 'morning') {
     speak(r === 'night' ? `${h.name}, done! Night routine finished. Sleep tight!` : `${h.name}, done! You finished everything. Amazing!`);
     allDoneMoment(r);
     state.autoHomeAt = Date.now() + ALL_DONE_HOME_MS;
+  } else if (focusMode(k)) {
+    pop();
+    const next = r === 'extras' ? null : nextJob(k, state.day, r);
+    speak(next ? `${h.name}, done! ${pick(PRAISE)} Next is ${next.name}. Off you go!` : `${h.name}, done! Thank you for helping!`);
+    state.nextNote = next ? `👉 Next: ${next.icon} <b>${esc(next.name)}</b>. Off you go!` : '';
+    if (next) setTimeout(() => toast(state.nextNote), 300);
+    state.autoHomeAt = Date.now() + FOCUS_HOME_MS;
   } else {
     pop();
     speak(r === 'extras' ? `${h.name}, done! Thank you for helping!` : `${h.name}, done! ${pick(PRAISE)}`);
@@ -755,7 +856,9 @@ function coinNews(before) {
   const famWon = state.sum?.family?.win && !before?.family?.win;
   const had = new Set((before?.todayCoins[id] || []).map((c) => c.why));
   const fresh = (state.sum.todayCoins[id] || []).filter((c) => !had.has(c.why)).map((c) => c.why);
-  if (gained > 0) setTimeout(() => toast(`🪙 +${gained} coins! ${fresh.join(' · ')}`), 600);
+  const note = state.nextNote || '';
+  state.nextNote = '';
+  if (gained > 0) setTimeout(() => toast(`<span>🪙 +${gained} coins! ${fresh.join(' · ')}${note ? `<br>${note}` : ''}</span>`), 600);
   if (famWon) setTimeout(familyWinMoment, 3700);
 }
 

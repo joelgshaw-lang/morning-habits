@@ -591,6 +591,54 @@ svg.bld { width: 70px; height: 70px; }
   .shop-item .farm-btn { grid-column: span 2; }
 }
 
+/* ----- simple one-screen view ----- */
+.screen.focus { height: 100vh; min-height: 0; overflow: hidden; }
+.focus-body { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 22px; min-height: 0; }
+.focus-main { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.next-label { font-size: 26px; font-weight: 900; color: var(--kid); }
+.tile.next-tile { flex: 1; min-height: 260px; border: 6px solid var(--kid); animation: nudge 2.4s ease-in-out infinite; }
+.tile.next-tile .tile-icon { font-size: 130px; }
+.tile.next-tile .tile-name { font-size: 46px; }
+.tile.next-tile .tile-sub { font-size: 24px; }
+.tile.next-tile .tile-coin { font-size: 24px; padding: 4px 12px; }
+.next-hint { text-align: center; font-size: 22px; font-weight: 800; color: var(--muted); }
+.job-row { display: flex; gap: 10px; }
+.tile.mini-tile { flex: 1; min-height: 96px; padding: 6px; border-radius: 20px; }
+.tile.mini-tile .tile-icon { font-size: 40px; }
+.tile.mini-tile .tile-name { font-size: 15px; text-align: center; line-height: 1.1; }
+.tile.mini-tile .tile-sub, .tile.mini-tile .tile-coin, .tile.mini-tile .early { display: none; }
+.tile.mini-tile.done::after { width: 28px; height: 28px; font-size: 18px; top: 4px; right: 4px; }
+.tile.mini-tile .undo-chip { min-height: 40px; font-size: 15px; padding: 0 8px; }
+.tile.mini-tile.is-next { border-color: var(--kid); }
+.all-done-card { flex: 1; display: grid; place-items: center; text-align: center; background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); }
+.all-done-card .big { font-size: 140px; animation: wiggle 0.8s ease-in-out infinite; }
+.all-done-card h2 { font-size: 40px; margin: 0; color: var(--kid); }
+.focus .tiles.extras { flex: 1; grid-template-columns: repeat(4, 1fr); }
+.btn.mine-mini { font-size: 26px; padding: 0 14px; background: #fef3c7; }
+.farm-mini { height: 100%; display: flex; flex-direction: column; gap: 10px; background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px; min-height: 0; }
+.mini-head { display: flex; justify-content: space-between; align-items: center; font-size: 22px; }
+.mini-head span { font-size: 16px; font-weight: 800; color: var(--muted); }
+.mini-field {
+  position: relative; flex: 1; min-height: 170px; border-radius: 20px; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 120%, #65a30d 0%, #84cc16 45%, #a3e635 100%);
+  border: 8px solid transparent; border-image: repeating-linear-gradient(90deg, #92400e 0 8px, #d6a26a 8px 26px) 8;
+}
+.mini-field.broken { border-image: repeating-linear-gradient(90deg, #92400e 0 8px, transparent 8px 44px) 8; }
+.mini-field .animal.mini, .mini-field .animal.mini .body { width: 58px; height: 58px; }
+.mini-field .animal.mini.baby, .mini-field .animal.mini.baby .body { width: 42px; height: 42px; }
+.mini-field .animal.mini { margin-top: -26px; }
+.mini-field .field-empty { font-size: 20px; padding: 10px; }
+.mini-field .fox { font-size: 38px; }
+.mini-actions { display: flex; flex-direction: column; gap: 8px; }
+.mini-actions .farm-btn { min-height: 60px; font-size: 21px; }
+.mini-actions .farm-btn.warn { background: #fecaca; }
+.mini-actions .farm-btn.buy { background: #86efac; margin-top: 6px; width: 100%; }
+.mini-note { text-align: center; font-size: 18px; font-weight: 800; color: var(--good); }
+@media (max-width: 900px), (orientation: portrait) {
+  .focus-body { grid-template-columns: 1fr; }
+  .screen.focus { height: auto; overflow: visible; }
+}
+
 /* ----- toast ----- */
 #toast {
   position: fixed;
