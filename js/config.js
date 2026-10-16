@@ -1,5 +1,4 @@
 // Default family setup. Saved to IndexedDB on first run; editable later in parent settings (Stage 3).
-// focus: true gives a child the simple one-screen view (next job + farm, no tabs); false shows all the tabs.
 
 const baseHabits = (chore) => [
   { id: 'bed', name: 'Make bed', icon: '🛏️' },
@@ -55,17 +54,17 @@ export const DEFAULT_SETTINGS = {
   ],
   kids: [
     {
-      id: 'eliana', name: 'Eliana', age: 12, avatar: '🦋', color: '#7c3aed', prayerMinutes: 10, focus: true,
+      id: 'eliana', name: 'Eliana', age: 12, avatar: '🦋', color: '#7c3aed', prayerMinutes: 10,
       habits: baseHabits({ id: 'trash', name: 'Take out trash', icon: '🗑️' }),
       nightHabits: nightHabits(),
     },
     {
-      id: 'annabelle', name: 'Annabelle', age: 8, avatar: '🌸', color: '#db2777', prayerMinutes: 5, focus: true,
+      id: 'annabelle', name: 'Annabelle', age: 8, avatar: '🌸', color: '#db2777', prayerMinutes: 5,
       habits: baseHabits({ id: 'dishwasher', name: 'Dishwasher', icon: '🍽️' }),
       nightHabits: nightHabits(),
     },
     {
-      id: 'judah', name: 'Judah', age: 6, avatar: '🚀', color: '#2563eb', prayerMinutes: 3, focus: true,
+      id: 'judah', name: 'Judah', age: 6, avatar: '🚀', color: '#2563eb', prayerMinutes: 3,
       habits: baseHabits({ id: 'utensils', name: 'Utensils', icon: '🥄' }),
       nightHabits: nightHabits(),
     },

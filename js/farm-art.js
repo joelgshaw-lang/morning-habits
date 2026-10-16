@@ -85,3 +85,18 @@ export function animalArt(type, isGrown, wool = 0) {
   const key = isGrown ? type : BABY[type];
   return `<svg viewBox="0 0 100 100" class="art" aria-hidden="true">${ART[key](wool)}</svg>`;
 }
+
+// The surprise snake from a mystery egg (it slithers away, so it never lives on the farm).
+export function snakeArt() {
+  return `<svg viewBox="0 0 100 100" class="art" aria-hidden="true">
+    <ellipse cx="50" cy="94" rx="34" ry="4" fill="#000" opacity=".13"/>
+    <path d="M14 82 C 14 60, 46 60, 46 76 S 76 94, 78 64" fill="none" stroke="#3f9e4f" stroke-width="19" stroke-linecap="round"/>
+    <path d="M14 82 C 14 60, 46 60, 46 76 S 76 94, 78 64" fill="none" stroke="#7bd36b" stroke-width="14" stroke-linecap="round"/>
+    <path d="M14 82 C 14 60, 46 60, 46 76 S 76 94, 78 64" fill="none" stroke="#c9f2a8" stroke-width="4" stroke-dasharray="3 9" stroke-linecap="round"/>
+    <circle cx="78" cy="48" r="17" fill="#7bd36b" stroke="#3f9e4f" stroke-width="2"/>
+    ${eye(72, 44, 4.2)}${eye(85, 44, 4.2)}
+    <ellipse cx="68" cy="53" rx="4" ry="2.4" fill="#ff8fa3" opacity=".6"/><ellipse cx="89" cy="53" rx="4" ry="2.4" fill="#ff8fa3" opacity=".6"/>
+    <path d="M73 55 q5 4 10 0" fill="none" stroke="#2f6b2f" stroke-width="2" stroke-linecap="round"/>
+    <path class="tongue" d="M78 60 v9 m0 0 l-4 5 m4 -5 l4 5" stroke="#ff4d6d" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  </svg>`;
+}

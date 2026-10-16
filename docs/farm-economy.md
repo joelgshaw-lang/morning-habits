@@ -14,6 +14,7 @@ Balanced with a 90-day simulation of three kinds of child. The goal: something s
 | All night jobs within 40 min of pressing Start | +2 |
 | …within 20 min | +3 more |
 | Toilet, teeth and in bed by 8pm | +3 |
+| Routine done with no reminders | +2 (each 🔔 reminder from a grown-up: −1) |
 | Family win (everyone finished) | +3 each |
 | Faster than last time | +2 each |
 | New family record | +3 each |
@@ -27,12 +28,14 @@ Extra chore prices: line up the shoes 1 · wipe the table, water plants, pack aw
 
 | Animal | Comes from | Feed per day | Grows up after | Makes |
 |---|---|---|---|---|
-| 🐔 Chicken | Mystery egg (70%), or hatch your own egg in the nest | 1 | 5 feeds | An egg each fed day (sells for 2) |
+| 🐔 Chicken | Mystery egg (66%), or hatch your own egg in the nest | 1 | 5 feeds | An egg each fed day (sells for 2) |
 | 🦆 Duck | Mystery egg (20%) | 1 | 5 feeds | A duck egg (sells for 4); 2 a day with the pond |
-| 🦎 Lizard | Mystery egg (8%, rare) | 1 | 5 feeds | Hens sometimes lay a golden egg (sells for 10) |
+| 🦎 Lizard | Mystery egg (7%, rare) | 1 | 5 feeds | Hens sometimes lay a golden egg (sells for 10) |
 | 🐊 Crocodile | Mystery egg (2%, super rare) | 2 | 8 feeds | Foxes stay away |
 | 🐑 Sheep | Buy a lamb (60) or mystery box | 2 | 10 feeds | Wool grows each fed day; shear at 3 (sells for 10) |
 | 🐄 Cow | Buy a calf (150), mystery box, or born | 3 | 16 feeds | Milk each fed day (sells for 5); a calf every 14 milkings |
+
+🐍 **Surprise snake** (5% of mystery eggs, never the gift egg): it boings out, hisses, wiggles and slithers away, leaving 3 free feeds.
 
 **Rules for animals:**
 - Animals never die. Hungry animals just stop making things until they're fed.

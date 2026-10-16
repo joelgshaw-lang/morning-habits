@@ -1,6 +1,6 @@
 // Offline support: serve from cache first, refresh the cache in the background.
 // Bump VERSION when you deploy a change so old files are cleared.
-const VERSION = 'v27';
+const VERSION = 'v29';
 const CACHE = `morning-${VERSION}`;
 const ASSETS = [
   './',

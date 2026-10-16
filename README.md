@@ -55,12 +55,13 @@ Tips for a shared kitchen iPad:
 
 ## How kids use it
 
-- **Secret code and screen time:** the first time a child taps their card, they make a 4-number secret code; after that they type it to sign in ("Forgot my code" lets a grown-up reset it with the grown-up PIN). Each sign-in gives **2 minutes** on screen (⏳ top right). When it runs out they get a **2-minute screen break** (😴 on their card). Prayer-timer time and mine time don't count, and 2 minutes away refills it.
 - **Start night chores:** every night the Night tab starts with a big **Start night chores!** button, which starts a clock. All night jobs done within 40 minutes 🪙 5, within 20 minutes 🪙 5 more (🪙 10 in total). The bar is green for 20 minutes, then amber, then red.
 - **After-dinner race:** in the evening a grown-up taps **🍽️ Dinner's finished** (grown-up PIN). Each child taps **Start my night jobs**: worth 🪙 10 within 5 minutes, then 2 fewer every 5 minutes. All night jobs done 🪙 10. Toilet, teeth and in bed by 8pm 🪙 5. When everyone finishes it's a **🏆 Family win** (🪙 5 each), plus 🪙 5 for beating last time and 🪙 5 more for a new family record.
 - **🐔 Farm:** coins from jobs (every tile shows its 🪙 price) buy mystery eggs (usually a chicken, sometimes a duck, lizard or crocodile), feed, fence repairs, lambs, calves and buildings. One tap feeds everyone; grown animals lay eggs, grow wool or give milk to sell. Keep the fence fixed or a fox may take a chicken. Stages: Little Coop → Barnyard → Big Farm → Dream Farm. Full numbers in `docs/farm-economy.md`.
 - **Streaks 🔥:** days in a row with every morning and night job done.
-- **Simple one-screen view (default for all three kids):** no tabs. The screen shows the **next job** big ("Go and do it, then hold here ✓"), the rest of the routine small underneath, and a small view of their farm (feed, sell, buy the next thing they're saving for). After each tick it says what's next ("Off you go!") and goes back to **Who are you?** a few seconds later. Mornings start with **Ready, set, go**: starting by 6:45 earns 🪙 4, by 7:00 🪙 3, by 7:15 🪙 2. Set `focus: false` for a child in `js/config.js` to give them the full tabbed view.
+- **Family board (the home screen):** all three children side by side, no sign-in. Each column shows that child's **next job** big and the rest of their routine small; hold it to tick it, then go and do the next one. Mornings start with **Ready, set, go** (by 6:45 🪙 4, by 7:00 🪙 3, by 7:15 🪙 2); nights with **Start night chores**. During the day the columns show extra jobs.
+- **🐔 Farm:** opens from a child's column with **their own 4-digit code**, only once their routine is done, for **2 minutes**, then a **10-minute break**.
+- **🔔 Reminders (grown-ups):** tap 🔔 on the board, enter the grown-up PIN, and tap **Remind** when you had to remind a child: −🪙 1 each. A morning or night routine done with no reminders earns +🪙 2.
 - Tap your card on **Who are you?** It's the home screen all day. Each card shows the egg and how many ⛏ swings are waiting in the mine.
 - Each child's screen has four tabs and opens on the right routine for the time of day:
   - **☀️ Morning** (6:30–7:30am window)

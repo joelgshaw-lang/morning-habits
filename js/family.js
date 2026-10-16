@@ -18,6 +18,8 @@ export const COINS = {
   familyWin: 3,     // everyone finished their night jobs (each child gets this)
   beatLast: 2,      // the family finished faster than last time
   record: 3,        // the family set a new record
+  reminder: -1,     // each time a grown-up had to remind them (tapped on the 🔔 Reminders button)
+  noReminders: 2,   // a whole morning or night routine done with no reminders
 };
 // Extra chores are priced by effort in config.js (1 to 5 coins each), up to this many coins a day,
 // so ticking every tile can't buy the farm. Kids can still log more; they just don't pay.
@@ -117,6 +119,8 @@ function dayCoins(settings, kid, day, fam) {
   const began = morningStart(day);
   const early = began && COINS.earlyStart.find(([t]) => began <= onDay(day.dayKey, t));
   if (early) items.push({ coins: early[1], why: `Started by ${early[0].replace(/^0/, '')}` });
+  const reminded = (r) => (day.reminders || []).filter((x) => x.routine === r).length;
+  if (onTime === kid.habits.length && !reminded('morning')) items.push({ coins: COINS.noReminders, why: 'Morning with no reminders' });
   const nightJobs = kid.nightHabits.filter((h) => day.nightDone?.[h.id]).length;
   if (nightJobs) items.push({ coins: nightJobs * COINS.nightJob, why: `${nightJobs} night job${nightJobs === 1 ? '' : 's'}` });
   const extras = settings.extraChores.filter((c) => day.extras?.[c.id]);
@@ -125,6 +129,9 @@ function dayCoins(settings, kid, day, fam) {
   const start = startCoins(fam?.dinner, day.nightStartedAt);
   if (start) items.push({ coins: start, why: 'Quick start after dinner' });
   const finished = nightFinishedAt(kid, day);
+  if (finished && !reminded('night')) items.push({ coins: COINS.noReminders, why: 'Night with no reminders' });
+  const n = (day.reminders || []).length;
+  if (n) items.push({ coins: n * COINS.reminder, why: `${n} reminder${n === 1 ? '' : 's'}` });
   const took = finished && day.nightStartedAt ? finished - ms(day.nightStartedAt) : null;
   if (took != null && took <= 40 * 60000) items.push({ coins: COINS.under40, why: 'Done in under 40 minutes' });
   if (took != null && took <= 20 * 60000) items.push({ coins: COINS.under20, why: 'Super fast: under 20 minutes' });

@@ -1,4 +1,4 @@
-import { animalArt } from './farm-art.js';
+import { animalArt, snakeArt } from './farm-art.js';
 
 // The farm: coins from chores buy mystery eggs, feed, a fence, sheep, cows and buildings.
 // Prices and growth times come from a 90-day simulation (docs/farm-economy.md): a new stage every one to
@@ -24,7 +24,7 @@ export const GOODS = {
 
 export const SHOP = [
   { id: 'sellhen', icon: '🐔', name: 'Sell a hen', price: -8, level: 1, does: 'Make room in the coop. A grown hen goes to a new farm for 8 coins.' },
-  { id: 'egg', icon: '🥚', name: 'Mystery egg', price: 12, level: 1, does: "Hatch it to see what's inside! Usually a chicken… sometimes a duck, a lizard or even a crocodile." },
+  { id: 'egg', icon: '🥚', name: 'Mystery egg', price: 12, level: 1, does: "Hatch it to see what's inside! Usually a chicken… sometimes a duck, a lizard, a crocodile… or a cheeky snake!" },
   { id: 'repair', icon: '🪵', name: 'Fix the fence', price: 6, level: 1, does: 'Keeps the fox out for another week.' },
   { id: 'box', icon: '🎁', name: 'Mystery box', price: 20, level: 2, does: 'Food, an egg, golden corn, a lamb, a decoration… or even a calf!' },
   { id: 'lamb', icon: '🐑', name: 'Lamb', price: 60, level: 2, does: 'Feed it and it grows wool to shear and sell.' },
@@ -158,6 +158,8 @@ export function createFarm(ctx) {
     quack: () => voice('sawtooth', [[420, 300], [400, 280]], 0.16, 0.2, 0.08),
     chirp: () => voice('sine', [[2200, 2600], [2400, 2900], [2300, 2700]], 0.05, 0.08, 0.06),
     snap: () => voice('square', [[160, 70], [150, 60]], 0.09, 0.14, 0.12),
+    boing: () => voice('sine', [[220, 880], [880, 330]], 0.18, 0.18, 0.15),
+    hiss: () => voice('sawtooth', [[3000, 2600], [3200, 2400], [2900, 2500]], 0.12, 0.13, 0.03),
     baa: () => voice('sawtooth', [[520, 480], [500, 460], [480, 420]], 0.13, 0.12, 0.07),
     moo: () => voice('sawtooth', [[190, 120]], 0.9, 0, 0.1),
     coins: () => voice('triangle', [1046, 1318, 1568, 2093], 0.12, 0.07, 0.12),
@@ -358,17 +360,19 @@ export function createFarm(ctx) {
 
   function rollEgg() {
     const r = Math.random();
-    return r < 0.7 ? 'chicken' : r < 0.9 ? 'duck' : r < 0.98 ? 'lizard' : 'croc';
+    return r < 0.66 ? 'chicken' : r < 0.86 ? 'duck' : r < 0.93 ? 'lizard' : r < 0.98 ? 'snake' : 'croc';
   }
 
   // Tap the egg three times to crack it open.
-  function hatchMystery(f, title = 'A mystery egg!') {
+  function hatchMystery(f, title = 'A mystery egg!', { gift = false } = {}) {
     return new Promise((resolve) => {
       let taps = 0;
-      const type = rollEgg();
+      let type = rollEgg();
+      if (gift) while (type === 'snake') type = rollEgg(); // a starter egg always stays on the farm
       // Saved before the animation, so closing the app mid-hatch never loses the animal or the coins.
-      const a = { id: f.nextId++, type, growth: 0 };
-      f.animals.push(a);
+      // A snake doesn't stay: it slithers off and leaves 3 free feeds behind.
+      const a = type === 'snake' ? null : { id: f.nextId++, type, growth: 0 };
+      if (a) f.animals.push(a); else f.feedPacks += 3;
       save();
       ctx.speak(`${title} Tap it three times to crack it open!`);
       const el = overlay(`
@@ -381,6 +385,20 @@ export function createFarm(ctx) {
         egg.classList.remove('wobble'); void egg.offsetWidth; egg.classList.add('wobble');
         egg.querySelector('.cracks').textContent = ['', '⚡', '⚡⚡', ''][taps];
         if (taps < 3) return;
+        if (type === 'snake') {
+          setTimeout(() => {
+            el.querySelector('.farm-sheet').innerHTML = `
+              <div class="snake-stage"><div class="snake-pop">${snakeArt()}</div></div>
+              <h2>Ssssurprise! A snake!</h2>
+              <p>It wiggled out, said “ssss!” and slithered off to find its family. It left you 3 free feeds. 🌾</p>
+              <button class="farm-btn" data-done>Ha ha! 😄</button>`;
+            SOUNDS.boing();
+            setTimeout(() => SOUNDS.hiss(), 700);
+            ctx.speak('Sssssurprise! A snake! It slithered away to find its family, and left you 3 free feeds.');
+            el.addEventListener('click', (ev) => { if (ev.target.closest('[data-done]')) { el.remove(); resolve(null); } });
+          }, 350);
+          return;
+        }
         const k = KINDS[type];
         setTimeout(() => {
           el.querySelector('.farm-sheet').innerHTML = `
@@ -663,7 +681,7 @@ export function createFarm(ctx) {
     await showNews(f);
     if (f.gift && gift) {
       f.gift = false; // saved together with the new animal inside hatchMystery
-      await hatchMystery(f, 'A gift to start your farm!');
+      await hatchMystery(f, 'A gift to start your farm!', { gift: true });
       ctx.renderKid();
     } else if (f.fenceDays <= 2 && f.animals.length) {
       SOUNDS.fox();
@@ -686,7 +704,7 @@ export function createFarm(ctx) {
         const f = farmOf(k.id);
         if (!f.gift) return;
         f.gift = false;
-        await hatchMystery(f, 'A gift to start your farm!');
+        await hatchMystery(f, 'A gift to start your farm!', { gift: true });
         return ctx.renderKid();
       }
     }
