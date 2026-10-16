@@ -1,18 +1,26 @@
 // Coins, streaks and the after-dinner race.
 // Everything is worked out from the saved days, so undoing a tick also takes back its coins.
 
+// Balanced with a 90-day simulation (see docs/farm-economy.md): a keen child earns ~30 coins a day,
+// an average one ~20, a forgetful one ~16, so each farm stage takes one to three weeks.
 export const COINS = {
-  startMax: 10,     // start night jobs within 5 minutes of "Dinner's finished"…
-  startStep: 2,     // …then 2 fewer coins for every 5 minutes of waiting
+  morningOnTime: 2, // each morning job done by the end of the morning window…
+  morningLate: 1,   // …or later that day
+  morningAll: 3,    // every morning job done on time
+  nightJob: 1,      // each night job
+  startMax: 4,      // start night jobs within 5 minutes of "Dinner's finished"…
+  startStep: 1,     // …then 1 fewer coin for every 5 minutes of waiting
   startStepMin: 5,
-  nightDone: 10,    // all night jobs done
-  under40: 5,       // all night jobs done within 40 minutes of pressing Start…
-  under20: 5,       // …and 5 more if it took under 20 minutes
-  bedtime: 5,       // toilet, teeth and in bed by bedtime
-  familyWin: 5,     // everyone finished their night jobs (each child gets this)
-  beatLast: 5,      // the family finished faster than last time
-  record: 5,        // the family set a new record
+  under40: 2,       // all night jobs done within 40 minutes of pressing Start…
+  under20: 3,       // …and 3 more if it took under 20 minutes
+  bedtime: 3,       // toilet, teeth and in bed by bedtime
+  familyWin: 3,     // everyone finished their night jobs (each child gets this)
+  beatLast: 2,      // the family finished faster than last time
+  record: 3,        // the family set a new record
 };
+// Extra chores are priced by effort in config.js (1 to 5 coins each), up to this many coins a day,
+// so ticking every tile can't buy the farm. Kids can still log more; they just don't pay.
+export const EXTRAS_DAY_CAP = 12;
 export const BEDTIME_JOBS = ['toilet', 'teeth', 'inbed'];
 
 const ms = (iso) => new Date(iso).getTime();
@@ -90,10 +98,20 @@ function familyNights(settings, byDay, dinners) {
 function dayCoins(settings, kid, day, fam) {
   const items = [];
   if (!day) return items;
+  const close = onDay(day.dayKey, settings.windowClose);
+  const morning = kid.habits.filter((h) => day.done?.[h.id]);
+  const onTime = morning.filter((h) => ms(day.done[h.id]) <= close).length;
+  if (onTime) items.push({ coins: onTime * COINS.morningOnTime, why: `${onTime} morning job${onTime === 1 ? '' : 's'} on time` });
+  if (morning.length > onTime) items.push({ coins: (morning.length - onTime) * COINS.morningLate, why: 'Morning jobs done late' });
+  if (onTime === kid.habits.length) items.push({ coins: COINS.morningAll, why: 'Whole morning on time' });
+  const nightJobs = kid.nightHabits.filter((h) => day.nightDone?.[h.id]).length;
+  if (nightJobs) items.push({ coins: nightJobs * COINS.nightJob, why: `${nightJobs} night job${nightJobs === 1 ? '' : 's'}` });
+  const extras = settings.extraChores.filter((c) => day.extras?.[c.id]);
+  const extraCoins = Math.min(EXTRAS_DAY_CAP, extras.reduce((a, c) => a + (c.coins || 2), 0));
+  if (extraCoins) items.push({ coins: extraCoins, why: `${extras.length} extra chore${extras.length === 1 ? '' : 's'}` });
   const start = startCoins(fam?.dinner, day.nightStartedAt);
   if (start) items.push({ coins: start, why: 'Quick start after dinner' });
   const finished = nightFinishedAt(kid, day);
-  if (finished) items.push({ coins: COINS.nightDone, why: 'Night jobs done' });
   const took = finished && day.nightStartedAt ? finished - ms(day.nightStartedAt) : null;
   if (took != null && took <= 40 * 60000) items.push({ coins: COINS.under40, why: 'Done in under 40 minutes' });
   if (took != null && took <= 20 * 60000) items.push({ coins: COINS.under20, why: 'Super fast: under 20 minutes' });

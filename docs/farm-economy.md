@@ -1,0 +1,75 @@
+# Farm and coin economy
+
+Balanced with a 90-day simulation of three kinds of child. The goal: something small and good happens every day, a new farm stage arrives every one to three weeks, and the farmhouse takes about two months.
+
+## Earning coins
+
+| Job | Coins |
+|---|---|
+| Morning job done by 7:30am | 2 each (1 if done later) |
+| Whole morning on time | +3 |
+| Night job | 1 each |
+| Start night chores within 5 min of "Dinner's finished" | up to 4 (1 less every 5 min) |
+| All night jobs within 40 min of pressing Start | +2 |
+| …within 20 min | +3 more |
+| Toilet, teeth and in bed by 8pm | +3 |
+| Family win (everyone finished) | +3 each |
+| Faster than last time | +2 each |
+| New family record | +3 each |
+| Extra chores (once each a day) | 1 to 5 by effort, **up to 12 coins a day** (only the first 4 a day also give mine swings) |
+
+Extra chore prices: line up the shoes 1 · wipe the table, water plants, pack away toys, set the table, put clothes away, another helpful job 2 · take out the trash, fold washing, unpack the shopping, wipe the bathroom sink, help a brother or sister 3 · clean the floor, help with dinner, do the dishes 4 · vacuum, help in the yard 5.
+
+**Typical day:** keen about 30 coins, average about 20, forgetful about 16.
+
+## The farm
+
+| Animal | Comes from | Feed per day | Grows up after | Makes |
+|---|---|---|---|---|
+| 🐔 Chicken | Mystery egg (70%), or hatch your own egg in the nest | 1 | 5 feeds | An egg each fed day (sells for 2) |
+| 🦆 Duck | Mystery egg (20%) | 1 | 5 feeds | A duck egg (sells for 4); 2 a day with the pond |
+| 🦎 Lizard | Mystery egg (8%, rare) | 1 | 5 feeds | Hens sometimes lay a golden egg (sells for 10) |
+| 🐊 Crocodile | Mystery egg (2%, super rare) | 2 | 8 feeds | Foxes stay away |
+| 🐑 Sheep | Buy a lamb (60) or mystery box | 2 | 10 feeds | Wool grows each fed day; shear at 3 (sells for 10) |
+| 🐄 Cow | Buy a calf (150), mystery box, or born | 3 | 16 feeds | Milk each fed day (sells for 5); a calf every 14 milkings |
+
+**Rules for animals:**
+- Animals never die. Hungry animals just stop making things until they're fed.
+- Space is limited until the big barn: 8 small animals, 2 sheep, 1 cow. After the barn: 14, 4 and 3. A grown hen can be sold for 8 to make room.
+- A new farm starts with a free mystery egg, 5 free feeds and a fence that lasts 7 days.
+
+**The fence and the fox:**
+- The fence lasts 7 days (14 with the strong fence), and fixing it costs 6. When 2 days or fewer are left, the app says "Fix your fence!" out loud.
+- A fox only comes once the fence has been broken for a whole day. It has a 35% chance each day, takes one grown chicken or duck (never babies) and leaves small flocks of 3 or fewer alone. It takes at most one per absence. A grown crocodile keeps foxes away.
+
+**Mystery box (20):** 35% a feed bag (5 free feeds) · 25% a mystery egg · 15% golden corn (a baby grows up instantly) · 12% a lamb · 10% a decoration · 3% a calf.
+
+## Stages
+
+| Stage | How to reach it | Unlocks | Typical day reached |
+|---|---|---|---|
+| 🐣 Little Coop | Start (free starter egg) | Mystery egg, fence repair | Day 1 |
+| 🌾 Barnyard | 4 grown hens or ducks | Mystery box, lamb, strong fence, duck pond (once you have a duck) | Day 10–14 |
+| 🐑 Big Farm | Shear your first wool | Calf | Day 24–35 |
+| 🐄 Dream Farm | Grow a cow | Big barn (200), windmill (300: small animals eat free, others 1 coin cheaper), farmhouse (500) | Day 41–57 |
+
+**Farmhouse:** about 6½ weeks for a keen child, 8½ for an average child, 10 for a forgetful one.
+
+## The Mine (gems, separate from coins)
+
+| Pickaxe | Swings per rock | Gem rock / fallen-in rubble | Cost | Typical time |
+|---|---|---|---|---|
+| Iron (start) | 5 | 3 | — | — |
+| Golden | 3 | 2 | 8 gold, 25 stone | 1–3 weeks |
+| Diamond | 1 | 1 | 30 gold, 3 amethyst, 3 sapphire, 3 emerald, 3 pearls, 150 stone | 2–3½ months |
+
+**Treasure limit:** 2 a day to start, and 1 more with each pickaxe upgrade. Gold earned by finishing a routine or praying doesn't count toward it.
+
+**Sorry moments make the newest tunnel squares fall in:**
+- Owning up: nothing falls in, unless it was a big one (rated 4–5), which costs 1 square.
+- Getting caught: 2 squares, or 3 for a big one.
+- Squares with a wobbly prop that still needs making right never fall in.
+
+**The mine never runs out:** it starts 40 rows deep and adds 10 more rows whenever digging gets near the bottom.
+
+At one good moment for every sorry one, a child still moves forward.

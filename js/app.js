@@ -1,7 +1,8 @@
 import { openDB, kvGet, kvSet, dayGet, dayPut, dayDelete, dayAll } from './db.js';
 import * as clock from './clock.js';
 import { DEFAULT_SETTINGS } from './config.js';
-import { summarize, startOffer, startCoins, fmtMinutes, nightFinishedAt } from './family.js';
+import { summarize, startOffer, startCoins, fmtMinutes, nightFinishedAt, COINS, EXTRAS_DAY_CAP } from './family.js';
+import { createFarm } from './farm.js';
 import { askPin } from './pinpad.js';
 
 const app = document.getElementById('app');
@@ -30,9 +31,9 @@ const state = {
   reloadPending: false,
   mineOpen: false,   // the Mine and the Temple is open over the child's screen
   tab: 'morning',    // routine shown on a child's screen: morning | extras | night
-  warmth: 0,         // current child's lifetime egg warmth
   dinners: {},       // dayKey -> when a grown-up tapped "Dinner's finished"
   sum: null,         // coins, streaks and tonight's family race (from family.js)
+  farms: null,       // each child's farm (farm.js), saved in IndexedDB
 };
 
 // ---------- helpers ----------
@@ -57,33 +58,6 @@ async function loadDay(kidId) {
   rec.nightDone ||= {};
   rec.extras ||= {};
   return rec;
-}
-
-// ---------- egg growth ----------
-// Every finished job warms the egg; extra chores warm it twice as much.
-// Lifetime warmth, so undoing a tick takes its warmth back. Stage 2 builds the farm on top of the hen.
-const EGG_STAGES = [
-  { at: 0, icon: '🥚', name: 'Egg', say: 'Something is growing…' },
-  { at: 10, icon: '🥚', name: 'Wobbly egg', say: 'Your egg is wobbling!', cls: 'wobble' },
-  { at: 25, icon: '🥚', name: 'Cracking egg', say: 'Crack! Something is in there…', cls: 'crack' },
-  { at: 45, icon: '🐣', name: 'Hatching!', say: "It's hatching!" },
-  { at: 70, icon: '🐥', name: 'Baby chick', say: 'Your chick is here! Keep caring for it.' },
-  { at: 100, icon: '🐔', name: 'Hen', say: 'Your hen is all grown up! Soon she can lay eggs on your farm.' },
-];
-const warmthOf = (day, r) => Object.keys(mapFor(day, r)).length * (r === 'extras' ? 2 : 1);
-const dayWarmth = (day) => warmthOf(day, 'morning') + warmthOf(day, 'night') + warmthOf(day, 'extras');
-
-async function warmthByKid() {
-  const out = {};
-  for (const d of await dayAll()) out[d.kidId] = (out[d.kidId] || 0) + dayWarmth({ done: {}, nightDone: {}, extras: {}, ...d });
-  return out;
-}
-
-function eggStage(w) {
-  let i = 0;
-  while (i + 1 < EGG_STAGES.length && w >= EGG_STAGES[i + 1].at) i++;
-  const next = EGG_STAGES[i + 1];
-  return { ...EGG_STAGES[i], index: i, next, toNext: next ? next.at - w : 0, pct: next ? (w - EGG_STAGES[i].at) / (next.at - EGG_STAGES[i].at) : 1 };
 }
 
 // When the child started: the Ready-set-go tap, or else their first tick.
@@ -174,8 +148,15 @@ window.addEventListener('message', (e) => {
 async function refreshSummary() {
   state.dinners = (await kvGet('dinners')) || {};
   state.sum = summarize(state.settings, await dayAll(), state.dinners, todayKey());
+  if (!state.farms) state.farms = (await kvGet('farms')) || {};
 }
-const coinsOf = (id) => state.sum?.coins[id] || 0;
+const farm = createFarm({
+  state, esc, kid: (id) => kid(id), todayKey: () => todayKey(), kvSet, earned: (id) => state.sum?.coins[id] || 0,
+  speak: (...a) => speak(...a), unlockAudio: () => unlockAudio(), tone: (fn) => tone(fn), pop: (...a) => pop(...a),
+  chime: () => chime(), burst: (...a) => burst(...a), toast: (h) => toast(h), renderKid: () => renderKid(),
+});
+// Spendable coins: earned from jobs, plus farm sales, minus farm spending.
+const coinsOf = (id) => (state.sum ? farm.balance(id) : 0);
 const streakOf = (id) => state.sum?.streak[id] || 0;
 const dinnerToday = () => state.dinners[todayKey()];
 
@@ -293,7 +274,7 @@ async function startNight() {
   renderKid();
   burst(app.querySelector('.tiles'), 16);
   pop(true);
-  speak(`Go ${k.name}! ${coins ? `${coins} coins for a quick start! ` : ''}Finish in 20 minutes for 10 coins.`);
+  speak(`Go ${k.name}! ${coins ? `${coins} coins for a quick start! ` : ''}Finish in 20 minutes for ${COINS.under40 + COINS.under20} coins.`);
   if (coins) toast(`🪙 +${coins} for a quick start!`);
 }
 
@@ -303,11 +284,11 @@ function nightTimerText(startIso, finishedMs) {
   const min20 = 20 * 60000;
   const min40 = 40 * 60000;
   if (finishedMs) {
-    return took <= min20 ? `⚡ Done in ${fmtMinutes(took)}! Super fast: 🪙 10` : took <= min40 ? `✅ Done in ${fmtMinutes(took)}! Under 40 minutes: 🪙 5` : `✅ Done in ${fmtMinutes(took)}. Try for under 40 tomorrow!`;
+    return took <= min20 ? `⚡ Done in ${fmtMinutes(took)}! Super fast: 🪙 ${COINS.under40 + COINS.under20}` : took <= min40 ? `✅ Done in ${fmtMinutes(took)}! Under 40 minutes: 🪙 ${COINS.under40}` : `✅ Done in ${fmtMinutes(took)}. Try for under 40 tomorrow!`;
   }
   const t = clock.fmtDuration(took);
-  if (took < min20) return `⏱ ${t} · finish in ${clock.fmtDuration(min20 - took)} for 🪙 10`;
-  if (took < min40) return `⏱ ${t} · finish in ${clock.fmtDuration(min40 - took)} for 🪙 5`;
+  if (took < min20) return `⏱ ${t} · finish in ${clock.fmtDuration(min20 - took)} for 🪙 ${COINS.under40 + COINS.under20}`;
+  if (took < min40) return `⏱ ${t} · finish in ${clock.fmtDuration(min40 - took)} for 🪙 ${COINS.under40}`;
   return `⏱ ${t} · keep going, nearly bedtime!`;
 }
 
@@ -438,7 +419,6 @@ function clockHTML() {
 
 async function renderPicker() {
   const days = await Promise.all(state.settings.kids.map((k) => loadDay(k.id)));
-  const warmth = await warmthByKid();
   const r = homeRoutine();
   const w = windowInfo(r);
   app.innerHTML = `
@@ -475,7 +455,7 @@ async function renderPicker() {
             <div class="dots" aria-label="${n} of ${list.length} done">
               ${list.map((h) => `<span class="dot ${map[h.id] ? 'on' : ''}">${map[h.id] ? '✓' : ''}</span>`).join('')}
             </div>
-            <div class="egg-badge">${eggStage(warmth[k.id] || 0).icon} ${eggStage(warmth[k.id] || 0).name}${extras ? ` · ⭐ ${extras} extra` : ''}${mineSwings(k.id) ? ` · ⛏ ${mineSwings(k.id)}` : ''}</div>
+            <div class="egg-badge">${farm.previewIcons(k.id, 5) || '🐔 farm'}${extras ? ` · ⭐ ${extras}` : ''}${mineSwings(k.id) ? ` · ⛏ ${mineSwings(k.id)}` : ''}</div>
             <div class="coin-line">🪙 ${coinsOf(k.id)} <span>🔥 ${streakOf(k.id)}</span></div>
             <div class="card-status">${status}</div>
           </button>`;
@@ -505,6 +485,7 @@ function tileHTML(k, h, d, nudgeId, r) {
         <span class="tile-icon">${h.icon}</span>
         <span class="tile-name">${esc(h.name)}</span>
         <span class="tile-sub">${running ? `⏱ <span data-countdown="${k.id}">${clock.fmtDuration(runLeft(k.id))}</span> left` : `⏱ ${k.prayerMinutes} min · tap`}</span>
+        <span class="tile-coin">${tileCoins(h, r) === '💛' ? '💛' : `🪙 ${tileCoins(h, r)}`}</span>
       </div>`;
   }
   return `
@@ -512,32 +493,41 @@ function tileHTML(k, h, d, nudgeId, r) {
       <span class="tile-icon">${h.icon}</span>
       <span class="tile-name">${esc(h.name)}</span>
       <span class="tile-sub">👇 Hold${r === 'extras' ? '' : ' when done'}</span>
+      <span class="tile-coin">${tileCoins(h, r) === '💛' ? '💛' : `🪙 ${tileCoins(h, r)}`}</span>
     </div>`;
 }
 
+// What a job is worth right now: morning jobs pay more before the window closes; extra chores by effort.
+const extrasCoinsToday = (k, d) => Math.min(EXTRAS_DAY_CAP, listFor(k, 'extras').filter((c) => d.extras[c.id]).reduce((a, c) => a + (c.coins || 2), 0));
+
+function tileCoins(h, r) {
+  if (r === 'extras') return extrasCoinsToday(kid(), state.day) >= EXTRAS_DAY_CAP ? '💛' : h.coins || 2;
+  if (r === 'night') return COINS.nightJob;
+  return windowInfo('morning').phase === 'closed' ? COINS.morningLate : COINS.morningOnTime;
+}
+
+// A peek at the child's farm, with a button to go there.
 function petBoxHTML(all, r) {
-  const st = eggStage(state.warmth);
+  const k = kid();
+  const icons = farm.previewIcons(k.id, 8);
+  const hungry = farm.hungryCount(k.id);
   return `
-    <div class="pet-box ${all ? 'happy' : ''}">
-      <div class="pet big ${st.cls || ''}">${st.icon}</div>
-      <div class="pet-name">${st.name}</div>
-      <div class="pet-caption">${st.say}</div>
-      ${st.next ? `
-        <div class="warmth" aria-label="Warmth">
-          <div class="warmth-fill" style="width:${(st.pct * 100).toFixed(0)}%"></div>
-          <span>🔥 ${st.toNext} more to grow</span>
-        </div>` : ''}
-      <div class="pet-tip">${r === 'extras' ? '⭐ Extra chores warm it twice as much!' : 'Every job warms your egg. Extra chores warm it ×2!'}</div>
+    <div class="pet-box farm-peek ${all ? 'happy' : ''}">
+      <div class="peek-animals">${icons || '🥚'}</div>
+      <div class="pet-name">My farm</div>
+      <div class="pet-caption">${icons === '🎁' ? 'A gift is waiting for you!' : hungry ? `${hungry} hungry animal${hungry === 1 ? '' : 's'} 🍽️` : 'Everyone is fed 😊'}</div>
+      <button class="btn farm-go" data-action="tab" data-tab="farm">🐔 Go to my farm</button>
+      <div class="pet-tip">${r === 'extras' ? '⭐ Extra chores earn coins for your farm!' : 'Every job earns 🪙 coins for your farm.'}</div>
     </div>`;
 }
 
-const TABS = [['morning', '☀️', 'Morning'], ['extras', '⭐', 'Extra chores'], ['night', '🌙', 'Night'], ['mine', '⛏', 'Mine']];
+const TABS = [['morning', '☀️', 'Morning'], ['extras', '⭐', 'Extra chores'], ['night', '🌙', 'Night'], ['farm', '🐔', 'Farm'], ['mine', '⛏', 'Mine']];
 
 function renderKid() {
   const k = kid();
   const d = state.day;
   const r = state.tab;
-  const list = listFor(k, r);
+  const list = r === 'farm' ? [] : listFor(k, r);
   const n = doneCount(k, d, r);
   const total = list.length;
   const all = r !== 'extras' && n === total;
@@ -557,11 +547,19 @@ function renderKid() {
   } else if (r === 'night') {
     title = all ? `🌙 Sleep tight, ${esc(k.name)}!` : `${greeting()}, ${esc(k.name)}!`;
     sub = all ? `Night routine done at ${clock.fmtTime(new Date(lastDone))}. Sweet dreams!` : n === 0 ? '🌙 Time to get ready for bed.' : `${n} of ${total} done. Nearly there!`;
+  } else if (r === 'farm') {
+    title = `🐔 ${esc(k.name)}'s farm`;
+    sub = 'Feed your animals, sell what they make, and grow your farm!';
   } else {
     title = `⭐ Extra chores, ${esc(k.name)}!`;
-    sub = n === 0 ? 'Help out any time today. Hold a job when you finish it.' : `${n} extra job${n === 1 ? '' : 's'} done today. Thank you for helping!`;
+    const earned = extrasCoinsToday(k, d);
+    sub = n === 0 ? `Help out any time today. Extra chores pay up to 🪙 ${EXTRAS_DAY_CAP} a day.`
+      : earned >= EXTRAS_DAY_CAP ? `🪙 ${EXTRAS_DAY_CAP}/${EXTRAS_DAY_CAP}: that's all the extra-chore coins for today. Thank you for helping anyway! 💛`
+      : `${n} extra job${n === 1 ? '' : 's'} done · 🪙 ${earned}/${EXTRAS_DAY_CAP} today. Thank you for helping!`;
   }
-  const tabCount = (t) => (t === 'mine' ? (mineLocked(k) ? '🔒' : !mineOpenLeft() ? '🔑' : mineSwings(k.id) || '') : t === 'extras' ? doneCount(k, d, t) || '' : `${doneCount(k, d, t)}/${listFor(k, t).length}`);
+  const tabCount = (t) => (t === 'mine' ? (mineLocked(k) ? '🔒' : !mineOpenLeft() ? '🔑' : mineSwings(k.id) || '')
+    : t === 'farm' ? (farm.hungryCount(k.id) ? `🍽️${farm.hungryCount(k.id)}` : '')
+    : t === 'extras' ? doneCount(k, d, t) || '' : `${doneCount(k, d, t)}/${listFor(k, t).length}`);
   app.innerHTML = `
     <section class="screen morning tab-${r}" style="--kid:${k.color}">
       <header class="top">
@@ -585,14 +583,15 @@ function renderKid() {
             <span>${icon}</span> ${name} <small>${tabCount(id)}</small>
           </button>`).join('')}
       </nav>
-      ${r === 'extras' ? '' : r === 'night' && d.nightStartedAt ? nightTimerHTML(k, d) : windowBarHTML(r)}
+      ${r === 'extras' || r === 'farm' ? '' : r === 'night' && d.nightStartedAt ? nightTimerHTML(k, d) : windowBarHTML(r)}
+      ${r === 'farm' ? farm.bodyHTML(k) : `
       <div class="morning-body">
         ${nightGate ? `
         <div class="start-panel">
           <button class="go-btn night-go" data-action="start-night">
             <span class="go-icon">🌙</span>
             <span class="go-text">Start night chores!</span>
-            <span class="go-sub">⏱ Under 20 min = 🪙 10 · under 40 min = 🪙 5</span>
+            <span class="go-sub">⏱ Under 20 min = 🪙 ${COINS.under40 + COINS.under20} · under 40 min = 🪙 ${COINS.under40}</span>
             ${offer ? `<span class="go-sub" data-offer="${dinnerToday()}">${offer.coins ? `Start now for 🪙 ${offer.coins} · drops in ${clock.fmtDuration(offer.msToDrop)}` : 'Start now. The family is waiting!'}</span>` : ''}
           </button>
         </div>` : notStarted ? `
@@ -620,7 +619,7 @@ function renderKid() {
             <span>${'⭐'.repeat(n)}${'☆'.repeat(total - n)}</span>
           </div>`}
         </aside>
-      </div>
+      </div>`}
     </section>`;
 }
 
@@ -629,7 +628,6 @@ async function render() {
   await refreshSummary();
   if (state.kidId) {
     state.day = await loadDay(state.kidId);
-    state.warmth = (await warmthByKid())[state.kidId] || 0;
     renderKid();
   } else {
     await renderPicker();
@@ -698,6 +696,7 @@ function openKid(id) {
 }
 
 function goHome() {
+  document.querySelectorAll('.farm-ov').forEach((el) => el.remove());
   if (state.mineOpen) { state.mineOpen = false; document.querySelector('.mine-frame')?.remove(); }
   closeOverlay();
   state.kidId = null;
@@ -727,10 +726,8 @@ function afterDone(habitId, allowUndo, r = 'morning') {
   const k = kid();
   const h = listFor(k, r).find((x) => x.id === habitId);
   const all = r !== 'extras' && doneCount(k, state.day, r) === listFor(k, r).length;
-  const before = eggStage(state.warmth);
-  state.warmth += r === 'extras' ? 2 : 1;
-  const grew = eggStage(state.warmth).index > before.index;
-  if (h.type !== 'timer') sendToMine(k.id, r === 'extras' ? { swings: 1, hands: 1 } : { swings: 1 });
+  // Extra chores give mine swings for the first 4 a day only.
+  if (h.type !== 'timer' && (r !== 'extras' || doneCount(k, state.day, 'extras') <= 4)) sendToMine(k.id, r === 'extras' ? { swings: 1, hands: 1 } : { swings: 1 });
   if (all) sendToMine(k.id, { gold: 1, icon: r === 'night' ? '🌙' : '☀️' });
   if (allowUndo) {
     clearTimeout(state.undo?.timer);
@@ -744,11 +741,7 @@ function afterDone(habitId, allowUndo, r = 'morning') {
     pop(true);
     speak(r === 'night' ? `${h.name}, done! Night routine finished. Sleep tight!` : `${h.name}, done! You finished everything. Amazing!`);
     allDoneMoment(r);
-    if (grew) setTimeout(growMoment, 3600);
-    state.autoHomeAt = Date.now() + ALL_DONE_HOME_MS + (grew ? 4000 : 0);
-  } else if (grew) {
-    pop(true);
-    growMoment();
+    state.autoHomeAt = Date.now() + ALL_DONE_HOME_MS;
   } else {
     pop();
     speak(r === 'extras' ? `${h.name}, done! Thank you for helping!` : `${h.name}, done! ${pick(PRAISE)}`);
@@ -787,8 +780,7 @@ async function undo() {
   clearTimeout(state.undo.timer);
   state.undo = null;
   delete mapFor(state.day, routine)[habitId];
-  state.warmth -= routine === 'extras' ? 2 : 1;
-  sendToMine(state.kidId, routine === 'extras' ? { swings: -1, hands: -1 } : { swings: -1 });
+  if (routine !== 'extras' || doneCount(kid(), state.day, 'extras') < 4) sendToMine(state.kidId, routine === 'extras' ? { swings: -1, hands: -1 } : { swings: -1 });
   state.day.log.push({ t: clock.now().toISOString(), routine, habit: habitId, action: 'undo' });
   state.autoHomeAt = 0;
   await dayPut(state.day);
@@ -819,24 +811,6 @@ function allDoneMoment(r = 'morning') {
   setTimeout(() => burst(null, 30), 700);
   el.addEventListener('click', () => el.remove());
   setTimeout(() => el.remove(), 3500);
-}
-
-// The egg reached a new stage.
-function growMoment() {
-  const k = kid();
-  if (!k) return;
-  const st = eggStage(state.warmth);
-  const el = document.createElement('div');
-  el.className = 'all-done-moment grow-moment';
-  el.style.setProperty('--kid', k.color);
-  el.innerHTML = `<div><div class="big-emoji ${st.cls || ''}">${st.icon}</div><h2>${st.name}!</h2><p>${st.say}</p></div>`;
-  document.body.appendChild(el);
-  chime();
-  speak(st.say.replace('…', '.'));
-  setTimeout(() => burst(null, 30), 200);
-  el.addEventListener('click', () => el.remove());
-  setTimeout(() => el.remove(), 4000);
-  renderKid();
 }
 
 // ---------- ready, set, go ----------
@@ -1193,6 +1167,7 @@ document.addEventListener('click', async (e) => {
   if (!el) return;
   const a = el.dataset.action;
   if (a.startsWith('dev-')) return devAction(a, el);
+  if (a.startsWith('farm-')) return farm.action(a, el);
   switch (a) {
     case 'open-kid': return signIn(el.dataset.kid);
     case 'dinner': return dinnerFinished();
@@ -1212,6 +1187,7 @@ document.addEventListener('click', async (e) => {
       state.tab = el.dataset.tab;
       state.undo = null;
       renderKid();
+      if (state.tab === 'farm') { farm.opened(kid()); return speak(`${kid().name}'s farm!`); }
       const name = TABS.find((t) => t[0] === state.tab)[2];
       return speak(state.tab === 'extras' ? 'Extra chores. Thank you for helping!' : `${name} routine.`);
     }
@@ -1251,6 +1227,8 @@ function migrate(s) {
     const other = s.extraChores.findIndex((x) => x.id === 'other');
     s.extraChores.splice(other < 0 ? s.extraChores.length : other, 0, structuredClone(c));
   }
+  // Extra chores saved before prices existed take the default price.
+  for (const c of s.extraChores) if (c.coins == null) c.coins = DEFAULT_SETTINGS.extraChores.find((d) => d.id === c.id)?.coins ?? 2;
   // New default night jobs (toilet, in bed) join each child's saved night routine.
   for (const dk of DEFAULT_SETTINGS.kids) {
     const k = s.kids.find((x) => x.id === dk.id);

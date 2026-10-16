@@ -439,9 +439,9 @@ const RECIPES = [
 ];
 // Workshop upgrades: practise the fruit and you get better at it. Bought once, kept for good.
 RECIPES.push(
-  { id: 'pick2', e: '⛏️', name: 'Strong Pickaxe', kind: 'upgrade', cost: { jasper: 2, chalcedony: 1, stone: 6 }, does: 'Rock takes one less swing, and you can dig out 1 more treasure a day.', verse: 'Let us not become weary in doing good (Gal 6:9)' },
+  { id: 'pick2', e: '⛏️', name: 'Golden Pickaxe', kind: 'upgrade', cost: { gold: 8, stone: 25 }, does: 'Rock takes 3 swings instead of 5, and you can dig out 1 more treasure a day.', verse: 'Let us not become weary in doing good (Gal 6:9)' },
   { id: 'polish', e: '✨', name: 'Polishing Table', kind: 'upgrade', cost: { beryl: 2, amethyst: 1, stone: 6 }, does: 'God’s Spirit is polishing you! Every gem in your temple sparkles, and wing stones need just 1 stone.', verse: 'Transformed into his likeness with ever-increasing glory (2 Cor 3:18)' },
-  { id: 'pick3', e: '🌟', name: 'Golden Pickaxe', kind: 'upgrade', cost: { gold: 3, topaz: 2, stone: 8 }, does: 'Rock takes another swing less, and 1 more treasure a day. (Get the Strong Pickaxe first.)', verse: 'Work at it with all your heart (Col 3:23)' },
+  { id: 'pick3', e: '💎', name: 'Diamond Pickaxe', kind: 'upgrade', cost: { gold: 30, amethyst: 3, sapphire: 3, emerald: 3, pearl: 3, stone: 150 }, does: 'Rock breaks in just 1 swing! And 1 more treasure a day. (Get the Golden Pickaxe first.)', verse: 'Work at it with all your heart (Col 3:23)' },
 );
 const R = Object.fromEntries(RECIPES.map((r) => [r.id, r]));
 const hasUp = (id) => !!(S.upgrades && S.upgrades[id]);
@@ -454,7 +454,6 @@ const COLS = 14, CW = 52, CH = 50, MX = 36, MY = 270;
 let ROWS = 30; // the mine grows deeper as it's dug out (see deepen)
 const ENTRY = { r: 0, c: 7 };
 const cx = (c) => MX + c * CW, cy = (r) => MY + r * CH;
-const hardness = (r) => Math.min(5, 3 + Math.floor(r / 10)); // swings per rock: 3 near the top, 4 deeper, 5 deep down
 const colOf = (x) => Math.max(0, Math.min(COLS - 1, Math.floor((x - MX) / CW)));
 // The foundation (Jesus) rock spans the middle. Anything built beyond it stands over the mine.
 const FOUND_L = 336, FOUND_R = 464;
@@ -501,16 +500,16 @@ function rockRow(r) {
   }
   return row;
 }
-// When the mine is nearly dug out, six new rows of rock open up below, so good deeds always have somewhere to hide a gem.
+// When digging gets near the bottom, ten new rows of rock open up below, so the mine never runs out.
 function deepen() {
   let rock = 0; for (const row of S.cells) for (const k of row) if (k.s === 'rock') rock++;
-  if (deepest() < ROWS - 4 && rock >= 30) return false;
-  for (let i = 0; i < 6; i++) S.cells.push(rockRow(S.cells.length));
+  if (deepest() < ROWS - 8 && rock >= 60) return false;
+  for (let i = 0; i < 10; i++) S.cells.push(rockRow(S.cells.length));
   ROWS = S.cells.length;
   return true;
 }
 function freshState() {
-  ROWS = 30;
+  ROWS = 40;
   const cells = [];
   for (let r = 0; r < ROWS; r++) cells.push(rockRow(r));
   Object.assign(cells[ENTRY.r][ENTRY.c], { s: 'tunnel', prop: 'stone', content: 'dirt', entry: true });
@@ -535,7 +534,9 @@ const unkey = (k) => k.split(',').map(Number);
 const diggable = (r, c) => cell(r, c).s !== 'tunnel' && around(r, c).some(([a, b]) => cell(a, b).s === 'tunnel');
 const litGeode = (r, c) => cell(r, c).content === 'geode' && Object.values(S.plots).includes('lantern') && Math.abs(r - S.mole.r) + Math.abs(c - S.mole.c) <= 3;
 const pickLevel = () => (hasUp('pick2') ? 1 : 0) + (hasUp('pick3') ? 1 : 0);
-const digCost = (r, c) => { const k = cell(r, c), up = pickLevel(); return litGeode(r, c) ? 1 : k.soft ? Math.max(1, 2 - up) : k.s === 'rubble' ? Math.max(1, hardness(r) - 1 - up) : Math.max(1, hardness(r) - up); };
+// Swings per rock by pickaxe (iron, golden, diamond): rock 5/3/1; gem rock and fallen-in rubble 3/2/1.
+const ROCK_SWINGS = [5, 3, 1], SOFT_SWINGS = [3, 2, 1];
+const digCost = (r, c) => { const k = cell(r, c), p = pickLevel(); return litGeode(r, c) ? 1 : k.soft || k.s === 'rubble' ? SOFT_SWINGS[p] : ROCK_SWINGS[p]; };
 // Treasure dug out per day: 2 to start, +1 for each pickaxe upgrade. The rest waits in the rock for tomorrow.
 const gemCap = () => 2 + pickLevel();
 const gemsToday = () => (S.gemDay === S.day ? S.gemCount || 0 : 0);
@@ -791,8 +792,8 @@ function renderHud(F) {
   const left = mineLeft();
   document.getElementById('whoChip').innerHTML = `<span class="av">${kid.av}</span><span>${kid.name}<small>${left ? `⏳ ${Math.ceil(left / 60e3)} min left` : `Day ${S.day}`}</small></span>`;
   const n = S.swings;
-  document.getElementById('picks').title = hasUp('pick3') ? 'Golden Pickaxe' : hasUp('pick2') ? 'Strong Pickaxe' : 'Pickaxe';
-  document.getElementById('picks').style.background = hasUp('pick3') ? '#fde68a' : hasUp('pick2') ? '#dbeafe' : '';
+  document.getElementById('picks').title = hasUp('pick3') ? 'Diamond Pickaxe' : hasUp('pick2') ? 'Golden Pickaxe' : 'Iron Pickaxe';
+  document.getElementById('picks').style.background = hasUp('pick3') ? '#cffafe' : hasUp('pick2') ? '#fde68a' : '';
   document.getElementById('picks').innerHTML = (n ? `${'⛏'.repeat(Math.min(n, 5))}${n > 5 ? `<small style="display:inline;margin-left:4px">+${n - 5}</small>` : ''}` : '⛏ 0')
     + `<small style="display:inline;margin-left:8px">💎 ${gemsToday()}/${gemCap()}</small>`;
   const ch = S.chest, gems = TREASURE.reduce((a, t) => a + ch[t], 0);
@@ -1282,13 +1283,37 @@ async function logSorry(a, n, how) {
   let made = 0;
   const props = how === 'owned' ? Math.ceil(n / 2) : n; // owning up always costs less than being caught
   for (let i = 0; i < props; i++) if (placeRot(a.prop, how)) made++;
+  // Getting caught: 2 squares fall in, 3 for a big one. Owning up only costs a square for a big one (4 or 5).
+  const fall = how === 'owned' ? (n >= 4 ? 1 : 0) : 2 + (n >= 4 ? 1 : 0);
+  const fell = sorryCaveIn(fall);
   chime(how === 'owned' ? [440, 523] : [220, 180]);
   const flyArt = `<use href="#p-${a.prop}" transform="translate(-26 -25)"/><g transform="translate(0 -10)"><g><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="1.2s" repeatCount="indefinite"/><g transform="translate(18 0)"><use href="#fly"/></g></g></g>`;
   const head = how === 'owned' ? '💛 Thank you for being honest.' : '👀 A grown-up noticed.';
-  const body = `Jesus forgives you right away (1 John 1:9). ${made ? `${made} wobbly ${PROP_WORD[a.prop]} prop${made === 1 ? '' : 's'} went in${how === 'owned' ? ' (fewer, because you owned up)' : ''}: those are for making it right with people, before the fire.` : ''}`;
+  const body = `Jesus forgives you right away (1 John 1:9). ${fell ? `Rumble! ${fell} bit${fell === 1 ? '' : 's'} of tunnel fell in. ` : ''}${made ? `${made} wobbly ${PROP_WORD[a.prop]} prop${made === 1 ? '' : 's'} went in${how === 'owned' ? ' (fewer, because you owned up)' : ''}: those are for making it right with people, before the fire.` : ''}`;
   await bigReveal(flyArt, 1, `${head}<small>${body}</small>`, null, { soft: true, ms: 3600 });
   render();
   busy = false;
+}
+
+// Fills in the newest tunnel squares (never the entrance, braced or pillared squares, ones holding treasure,
+// or ones with a wobbly prop that still needs making right).
+function sorryCaveIn(count) {
+  if (!count) return 0;
+  const spots = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const k = cell(r, c);
+    if (k.s === 'tunnel' && !k.entry && !k.pillar && !k.pile && !k.boulder && (!k.prop || k.prop === 'stone')) spots.push({ r, c, o: k.order || 0 });
+  }
+  spots.sort((a, b) => b.o - a.o);
+  const hit = spots.slice(0, count);
+  hit.forEach(({ r, c }) => Object.assign(cell(r, c), { s: 'rubble', prop: null, how: null, hits: 0 }));
+  if (hit.some(({ r, c }) => r === S.mole.r && c === S.mole.c)) {
+    const left = spots.slice(count)[0];
+    S.mole = left ? { r: left.r, c: left.c } : { ...ENTRY };
+  }
+  if (hit.length) { scene.classList.remove('bigshake'); void scene.getBoundingClientRect(); scene.classList.add('bigshake'); thud(); }
+  save();
+  return hit.length;
 }
 
 // ---------- digging (tap to aim, tap again to swing) ----------
@@ -1328,10 +1353,12 @@ function nearestTunnel(r, c) { for (const [a, b] of around(r, c)) if (cell(a, b)
 
 function swing(r, c) {
   const k = cell(r, c);
-  const treasure = !k.boulder && (k.pile || k.content !== 'dirt');
+  // Gold earned by finishing routines or praying doesn't count toward the daily treasure limit.
+  const freeGold = k.content === 'gold' && !!k.earned;
+  const treasure = !k.boulder && !freeGold && (k.pile || k.content !== 'dirt');
   if (treasure && gemsToday() >= gemCap()) {
     scene.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`)?.classList.add('shake');
-    return caption(`💎 That's ${gemCap()} treasures today! This one waits in the rock for tomorrow.<em>${pickLevel() < 2 ? 'A stronger pickaxe finds more each day.' : 'Well done, faithful worker.'}</em>`, 3200);
+    return caption(`💎 That's ${gemCap()} treasures today! This one waits in the rock for tomorrow.<em>${pickLevel() < 2 ? 'A better pickaxe finds more each day.' : 'Well done, faithful worker.'}</em>`, 3200);
   }
   S.swings--; S.swungDay = S.day;
   k.hits = (k.hits || 0) + 1;
@@ -1369,7 +1396,7 @@ function swing(r, c) {
     return;
   }
   if (!found) { chime([330]); if (S.swings === 0) setTimeout(maybeDayEnd, 1500); return; }
-  S.gemCount = gemsToday() + 1; S.gemDay = S.day;
+  if (!freeGold) { S.gemCount = gemsToday() + 1; S.gemDay = S.day; }
   chime(found === 'gold' ? [660, 880, 1100] : [660, 880, 1100, 1320, 1760]);
   const flawless = size >= 5 && !wasRubble;
   const label = wasRubble ? `🆘 Rescued!<small>Your ${tname(found).toLowerCase()}${extras.length ? ` and ${extras.length} more stone${extras.length === 1 ? '' : 's'}` : ''} came through the fire and shine${extras.length ? '' : 's'} brighter!</small>`

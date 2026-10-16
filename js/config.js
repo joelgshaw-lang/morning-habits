@@ -22,35 +22,35 @@ const nightHabits = () => [
 
 // Bump version when adding fields; app.js fills missing fields into saved settings.
 export const DEFAULT_SETTINGS = {
-  version: 6,
+  version: 7,
   windowOpen: '06:30',
   windowClose: '07:30',
   nightOpen: '18:00',
   nightClose: '20:00', // bedtime for everyone
   dayStartHour: 3, // a new day starts at 3:00am
-  // Extra chores any child can do any time of day, once each per day.
+  // Extra chores any child can do any time of day, once each per day. coins = price, by effort.
   extraChores: [
-    { id: 'floor', name: 'Clean the floor', icon: '🧹' },
-    { id: 'trash', name: 'Take out the trash', icon: '🗑️' },
-    { id: 'table', name: 'Wipe the table', icon: '🧽' },
-    { id: 'washing', name: 'Fold washing', icon: '👚' },
-    { id: 'plants', name: 'Water the plants', icon: '🪴' },
-    { id: 'cook', name: 'Help with dinner', icon: '🍳' },
-    { id: 'toys', name: 'Pack away toys', icon: '🧸' },
-    { id: 'dishes', name: 'Do the dishes', icon: '🫧' },
-    { id: 'settable', name: 'Set the table', icon: '🍴' },
-    { id: 'clothes', name: 'Put clothes away', icon: '🧦' },
-    { id: 'shoes', name: 'Line up the shoes', icon: '👟' },
-    { id: 'shopping', name: 'Unpack the shopping', icon: '🛍️' },
-    { id: 'sink', name: 'Wipe the bathroom sink', icon: '🧼' },
-    { id: 'yard', name: 'Help in the yard', icon: '🍂' },
-    { id: 'sibling', name: 'Help a brother or sister', icon: '🤗' },
-    { id: 'vacuum', name: 'Vacuum', icon: '🌀' },
+    { id: 'floor', name: 'Clean the floor', icon: '🧹', coins: 4 },
+    { id: 'trash', name: 'Take out the trash', icon: '🗑️', coins: 3 },
+    { id: 'table', name: 'Wipe the table', icon: '🧽', coins: 2 },
+    { id: 'washing', name: 'Fold washing', icon: '👚', coins: 3 },
+    { id: 'plants', name: 'Water the plants', icon: '🪴', coins: 2 },
+    { id: 'cook', name: 'Help with dinner', icon: '🍳', coins: 4 },
+    { id: 'toys', name: 'Pack away toys', icon: '🧸', coins: 2 },
+    { id: 'dishes', name: 'Do the dishes', icon: '🫧', coins: 4 },
+    { id: 'settable', name: 'Set the table', icon: '🍴', coins: 2 },
+    { id: 'clothes', name: 'Put clothes away', icon: '🧦', coins: 2 },
+    { id: 'shoes', name: 'Line up the shoes', icon: '👟', coins: 1 },
+    { id: 'shopping', name: 'Unpack the shopping', icon: '🛍️', coins: 3 },
+    { id: 'sink', name: 'Wipe the bathroom sink', icon: '🧼', coins: 3 },
+    { id: 'yard', name: 'Help in the yard', icon: '🍂', coins: 5 },
+    { id: 'sibling', name: 'Help a brother or sister', icon: '🤗', coins: 3 },
+    { id: 'vacuum', name: 'Vacuum', icon: '🌀', coins: 5 },
     // Several "another helpful job" tiles, so kids can log a few jobs that aren't on the list.
-    { id: 'other2', name: 'Another helpful job', icon: '💪' },
-    { id: 'other3', name: 'Another helpful job', icon: '🌟' },
-    { id: 'other4', name: 'Another helpful job', icon: '👐' },
-    { id: 'other', name: 'Another helpful job', icon: '🙌' },
+    { id: 'other2', name: 'Another helpful job', icon: '💪', coins: 2 },
+    { id: 'other3', name: 'Another helpful job', icon: '🌟', coins: 2 },
+    { id: 'other4', name: 'Another helpful job', icon: '👐', coins: 2 },
+    { id: 'other', name: 'Another helpful job', icon: '🙌', coins: 2 },
   ],
   kids: [
     {
