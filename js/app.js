@@ -15,7 +15,7 @@ const HOLD_MS = 800;              // press-and-hold to tick a habit, so explorin
 const UNDO_MS = 8000;
 const FOCUS_HOME_MS = 9000;      // after a tick, the board resets soon so kids go and do the next job
 const SESSION_MS = 2 * 60 * 1000;   // farm time per visit (mine time doesn't count)
-const COOLDOWN_MS = 10 * 60 * 1000; // break after farm time runs out
+const FARM_VISIT_COINS = 10;        // a new farm visit is earned with every 10 coins from jobs
 const PRAISE = ['Great job!', 'Awesome!', 'You did it!', 'Super star!', 'Way to go!', 'Nice work!', 'Brilliant!', 'Keep it up!', 'Fantastic!', 'Well done!'];
 
 const state = {
@@ -157,6 +157,13 @@ const farm = createFarm({
   state, esc, kid: (id) => kid(id), todayKey: () => todayKey(), kvSet, earned: (id) => state.sum?.coins[id] || 0,
   speak: (...a) => speak(...a), unlockAudio: () => unlockAudio(), tone: (fn) => tone(fn), pop: (...a) => pop(...a),
   chime: () => chime(), burst: (...a) => burst(...a), toast: (h) => toast(h), renderKid: () => renderKid(),
+  purchased: (it) => {
+    const k = kid(state.farmKid);
+    if (!k) return;
+    speak(`Enjoy your ${it.name.toLowerCase()}, ${k.name}! Back to your jobs. Earn ${FARM_VISIT_COINS} more coins to visit again.`, true);
+    toast(`🎉 Enjoy your ${it.icon} ${esc(it.name.toLowerCase())}! Earn ${FARM_VISIT_COINS} more coins to visit again.`);
+    setTimeout(() => { if (state.farmKid === k.id) goHome(); }, 3000);
+  },
 });
 // Spendable coins: earned from jobs, plus farm sales, minus farm spending.
 const coinsOf = (id) => (state.sum ? farm.balance(id) : 0);
@@ -165,20 +172,21 @@ const dinnerToday = () => state.dinners[todayKey()];
 
 // ---------- farm codes and farm time ----------
 // Chores need no sign-in: the family board shows everyone. A child's own 4-digit code opens their farm
-// (where coins get spent), once their routine is done, for 2 minutes. Then a 10-minute break.
+// (where coins get spent) once their routine is done and they've earned 10 coins since their last visit.
+// A visit lasts up to 2 minutes, and buying something ends it.
 
 const readJSON = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; } };
 const writeJSON = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
 const sessions = readJSON('sessions', {});
 const nowMs = () => clock.now().getTime();
-const cooldownLeft = (id) => Math.max(0, (sessions[id]?.cooldownUntil || 0) - nowMs());
+// Coins earned from jobs since the last farm visit (sales and spending don't count).
+const earnedSinceVisit = (id) => (state.sum?.coins[id] || 0) - (farm.farmOf(id).visitBase || 0);
 const sessionLeft = (id) => Math.max(0, SESSION_MS - (sessions[id]?.used || 0));
 const sessionPaused = () => !!state.prayer || state.mineOpen;
 
 function beginSession(id) {
-  const s = (sessions[id] ||= { used: 0, lastSeen: 0, cooldownUntil: 0 });
-  if (nowMs() - s.lastSeen >= COOLDOWN_MS) { s.used = 0; s.warned = false; }
-  s.lastSeen = nowMs();
+  const s = (sessions[id] ||= {});
+  Object.assign(s, { used: 0, warned: false, lastSeen: nowMs() });
   writeJSON('sessions', sessions);
 }
 
@@ -205,15 +213,14 @@ function timesUp() {
   const s = sessions[k.id];
   s.used = 0;
   s.warned = false;
-  s.cooldownUntil = nowMs() + COOLDOWN_MS;
   writeJSON('sessions', sessions);
   timesUpShown = true;
   const el = document.createElement('div');
   el.className = 'all-done-moment times-up';
   el.style.setProperty('--kid', k.color);
-  el.innerHTML = `<div><div class="big-emoji">⏰</div><h2>Farm time's up, ${esc(k.name)}!</h2><p>Your animals will be here later. Come back in 10 minutes.</p></div>`;
+  el.innerHTML = `<div><div class="big-emoji">⏰</div><h2>Farm time's up, ${esc(k.name)}!</h2><p>Earn ${FARM_VISIT_COINS} more coins with your jobs to visit again.</p></div>`;
   document.body.appendChild(el);
-  speak(`Farm time's up, ${k.name}! Your animals will be here later. Come back in 10 minutes.`, true);
+  speak(`Farm time's up, ${k.name}! Earn ${FARM_VISIT_COINS} more coins with your jobs to visit your farm again.`, true);
   setTimeout(() => { el.remove(); timesUpShown = false; goHome(); }, 4000);
 }
 
@@ -271,12 +278,14 @@ async function openFarm(id) {
     if (readAloudOn(id)) speak(`Finish your jobs first, ${k.name}, then your farm opens.`, true);
     return toast(`🔒 Finish your jobs first, then your farm opens.`);
   }
-  const cd = cooldownLeft(id);
-  if (cd) {
-    if (readAloudOn(id)) speak(`Your farm is resting, ${k.name}. Come back soon.`, true);
-    return toast(`😴 Farm break, ${esc(k.name)}. Back in ${clock.fmtDuration(cd)}`);
+  const need = FARM_VISIT_COINS - earnedSinceVisit(id);
+  if (need > 0) {
+    if (readAloudOn(id)) speak(`Earn ${need} more coins with your jobs, ${k.name}, then you can visit your farm.`, true);
+    return toast(`🐔 ${need} more coins from jobs, then your farm opens.`);
   }
   if (!(await askKidCode(id))) return;
+  farm.farmOf(id).visitBase = state.sum?.coins[id] || 0;
+  kvSet('farms', state.farms);
   beginSession(id);
   state.farmKid = id;
   state.kidId = id;
@@ -324,6 +333,60 @@ async function openReminders() {
     el.remove();
     await refreshSummary();
     openReminders();
+  });
+}
+
+// ---------- extra jobs: a grown-up ticks them (kids can't), with the coins flying in ----------
+
+async function openGrownExtras(kidId = state.settings.kids[0].id) {
+  if (!(await grownUp('extra jobs', true))) return;
+  document.querySelector('.extras-ov')?.remove();
+  const k = kid(kidId);
+  const d = await loadDay(kidId);
+  state.days[kidId] = d;
+  const list = listFor(k, 'extras');
+  const el = document.createElement('div');
+  el.className = 'farm-ov extras-ov';
+  el.innerHTML = `
+    <div class="farm-sheet">
+      <h2>⭐ Who did an extra job?</h2>
+      <div class="who-tabs">${state.settings.kids.map((x) => `<button class="who ${x.id === kidId ? 'on' : ''}" style="--kid:${x.color}" data-who="${x.id}">${x.avatar} ${esc(x.name)} <small>🪙 <span class="coin-num">${coinsOf(x.id)}</span></small></button>`).join('')}</div>
+      <p>Tap the job ${esc(k.name)} finished. Each one counts once a day.</p>
+      <div class="grown-jobs" style="--kid:${k.color}">
+        ${list.map((h) => `<button class="grown-job ${d.extras[h.id] ? 'done' : ''}" data-job="${h.id}">
+          <span class="gj-icon">${h.icon}</span><span>${esc(h.name)}</span><small>${d.extras[h.id] ? '✓ Done · tap to undo' : `🪙 ${h.coins || 2}`}</small></button>`).join('')}
+      </div>
+      <button class="farm-btn" data-close>Done</button>
+    </div>`;
+  document.body.appendChild(el);
+  el.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-close]')) { el.remove(); return render(); }
+    const who = e.target.closest('[data-who]');
+    if (who) return openGrownExtras(who.dataset.who);
+    const job = e.target.closest('[data-job]');
+    if (!job) return;
+    const h = list.find((x) => x.id === job.dataset.job);
+    const before = coinsOf(kidId);
+    if (d.extras[h.id]) {
+      delete d.extras[h.id];
+      d.log.push({ t: clock.now().toISOString(), routine: 'extras', habit: h.id, action: 'undo', by: 'grown-up' });
+      if (doneCount(k, d, 'extras') < 4) sendToMine(kidId, { swings: -1, hands: -1 });
+    } else {
+      d.extras[h.id] = clock.now().toISOString();
+      d.log.push({ t: d.extras[h.id], routine: 'extras', habit: h.id, action: 'done', by: 'grown-up' });
+      if (doneCount(k, d, 'extras') <= 4) sendToMine(kidId, { swings: 1, hands: 1 });
+    }
+    await dayPut(d);
+    await refreshSummary();
+    const gained = coinsOf(kidId) - before;
+    const rect = job.getBoundingClientRect();
+    el.remove();
+    await openGrownExtras(kidId);
+    if (gained > 0) {
+      const target = document.querySelector(`.extras-ov .who[data-who="${kidId}"] .coin-num`);
+      flyCoins(gained, rect, target, before);
+      speak(`${h.name}! ${gained} coins for ${k.name}. Thank you for helping!`, true);
+    }
   });
 }
 
@@ -565,9 +628,11 @@ function columnHTML(k, d, r) {
       <span class="go-sub">Under 20 min = 🪙 ${COINS.under40 + COINS.under20}</span>
       ${offer ? `<span class="go-sub" data-offer="${dinnerToday()}">${offer.coins ? `Start now for 🪙 ${offer.coins}` : 'The family is waiting!'}</span>` : ''}</button>`;
   } else if (r === 'extras') {
-    const earned = extrasCoinsToday(k, d);
-    main = `<div class="col-note">⭐ Extra jobs · 🪙 ${earned}/${EXTRAS_DAY_CAP} today</div>
-      <div class="tiles extras col-extras">${list.map((h) => tileHTML(k, h, d, null, r)).join('')}</div>`;
+    const done = list.filter((h) => d.extras[h.id]);
+    main = `<div class="col-note">⭐ Jobs you could do to help</div>
+      <div class="idea-list">${list.filter((h) => !d.extras[h.id] && !/^other/.test(h.id)).slice(0, 12).map((h) => `<span class="idea">${h.icon} ${esc(h.name)} <small>🪙 ${h.coins || 2}</small></span>`).join('')}</div>
+      <div class="ask-grownup">✋ Done one? Ask a grown-up to tick it ✓</div>
+      ${done.length ? `<div class="done-today">Done today: ${done.map((h) => h.icon).join(' ')}</div>` : ''}`;
   } else if (all) {
     main = `<div class="all-done-card"><div class="big">${r === 'night' ? '🌙' : '🏆'}</div><h2>${r === 'night' ? 'All done. Sleep tight!' : 'All done!'}</h2></div>`;
   } else {
@@ -576,17 +641,18 @@ function columnHTML(k, d, r) {
       <div class="next-hint">${next.type === 'timer' ? 'Tap to start your prayer timer' : 'Do it, then hold here ✓'}</div>
       <div class="job-row">${list.map((h) => tileHTML(k, h, d, null, r).replace('class="tile', `class="tile mini-tile ${h === next ? 'is-next' : ''}`)).join('')}</div>`;
   }
-  const cd = cooldownLeft(k.id);
   const locked = farmLocked(k, d);
+  const have = Math.max(0, Math.min(FARM_VISIT_COINS, earnedSinceVisit(k.id)));
   const farmBtn = locked
     ? `<div class="farm-lock">🔒 🐔 Farm opens when your jobs are done</div>`
-    : cd ? `<button class="farm-open resting" data-action="open-farm">😴 Farm in <span data-cooldown="${k.id}">${clock.fmtDuration(cd)}</span></button>`
+    : have < FARM_VISIT_COINS
+      ? `<div class="farm-lock earning">🐔 Farm in ${FARM_VISIT_COINS - have} more coins<span class="farm-bar"><i style="width:${(have / FARM_VISIT_COINS) * 100}%"></i></span></div>`
       : `<button class="farm-open" data-action="open-farm">🐔 My farm <span class="peek">${farm.previewIcons(k.id, 5)}</span></button>`;
   return `
     <div class="col" data-col="${k.id}" style="--kid:${k.color}">
       <div class="col-head">
         <span class="face">${k.avatar || '🙂'}</span><b>${esc(k.name)}</b>
-        <span class="col-coins">🪙 ${coinsOf(k.id)} · 🔥 ${streakOf(k.id)}${asked ? ` · 🔔 ${asked}` : ''}</span>
+        <span class="col-coins">🪙 <span class="coin-num">${coinsOf(k.id)}</span> · 🔥 ${streakOf(k.id)}${asked ? ` · 🔔 ${asked}` : ''}</span>
       </div>
       <div class="col-main">${main}</div>
       ${farmBtn}
@@ -601,7 +667,8 @@ function renderBoard() {
       <header class="top">
         <h1>${r === 'morning' ? '☀️ Morning jobs' : r === 'night' ? '🌙 Night jobs' : '⭐ Extra jobs'}</h1>
         ${dinnerBtn ? '<button class="btn dinner-btn" data-action="dinner">🍽️ Dinner\'s finished</button>' : ''}
-        <button class="btn remind-btn ${dinnerBtn ? '' : 'alone'}" data-action="reminders" aria-label="Reminders (grown-ups)">🔔</button>
+        <button class="btn extras-btn ${dinnerBtn ? '' : 'alone'}" data-action="grown-extras" aria-label="Extra jobs (grown-ups)">⭐ Extra jobs</button>
+        <button class="btn remind-btn" data-action="reminders" aria-label="Reminders (grown-ups)">🔔</button>
         ${clockHTML()}
       </header>
       ${r === 'extras' ? '' : windowBarHTML(r)}
@@ -666,11 +733,6 @@ function tick() {
   const c = app.querySelector('.clock');
   if (c) c.outerHTML = clockHTML();
   sessionTick();
-  app.querySelectorAll('[data-cooldown]').forEach((el) => {
-    const left = cooldownLeft(el.dataset.cooldown);
-    if (!left) return render();
-    el.textContent = clock.fmtDuration(left);
-  });
   app.querySelectorAll('[data-offer]').forEach((el) => {
     const o = startOffer(el.dataset.offer, nowMs());
     el.textContent = o.coins ? `Start now for 🪙 ${o.coins} · drops in ${clock.fmtDuration(o.msToDrop)}` : 'Start now. The family is waiting!';
@@ -734,6 +796,7 @@ function afterDone(habitId, allowUndo, r = 'morning') {
   }
   renderKid();
   const tile = app.querySelector(`[data-col="${k.id}"] [data-habit="${habitId}"]`) || app.querySelector(`[data-habit="${habitId}"]`);
+  state.coinFrom = tile?.getBoundingClientRect();
   tile?.classList.add('just-done');
   burst(tile);
   if (all) {
@@ -751,6 +814,47 @@ function afterDone(habitId, allowUndo, r = 'morning') {
   }
 }
 
+// Big "+5" and gold coins flying from where they were earned into the child's coin counter, which counts up.
+function flyCoins(amount, fromRect, targetEl, startValue) {
+  if (!amount) return;
+  const from = fromRect || { left: innerWidth / 2 - 40, top: innerHeight / 2 - 40, width: 80, height: 80 };
+  const fx = from.left + from.width / 2;
+  const fy = from.top + from.height / 2;
+  const plus = document.createElement('div');
+  plus.className = 'coin-plus';
+  plus.textContent = `+${amount} 🪙`;
+  plus.style.left = `${fx}px`;
+  plus.style.top = `${fy}px`;
+  document.body.appendChild(plus);
+  setTimeout(() => plus.remove(), 1800);
+  const t = targetEl?.getBoundingClientRect();
+  const tx = t ? t.left + t.width / 2 : innerWidth - 80;
+  const ty = t ? t.top + t.height / 2 : 40;
+  const n = Math.min(amount, 10);
+  for (let i = 0; i < n; i++) {
+    const c = document.createElement('div');
+    c.className = 'flying-coin';
+    c.textContent = '🪙';
+    c.style.left = `${fx + (Math.random() * 60 - 30)}px`;
+    c.style.top = `${fy + (Math.random() * 40 - 20)}px`;
+    c.style.setProperty('--dx', `${tx - fx}px`);
+    c.style.setProperty('--dy', `${ty - fy}px`);
+    c.style.animationDelay = `${0.25 + i * 0.09}s`;
+    document.body.appendChild(c);
+    setTimeout(() => { c.remove(); tone((ac) => { const o = ac.createOscillator(); const g = ac.createGain(); o.type = 'triangle'; o.frequency.value = 1320 + i * 60; g.gain.setValueAtTime(0.06, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.12); o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.14); }); }, 250 + i * 90 + 750);
+  }
+  if (!targetEl) return;
+  const end = startValue + amount;
+  targetEl.textContent = startValue;
+  const steps = Math.min(amount, 20);
+  for (let i = 1; i <= steps; i++) {
+    setTimeout(() => {
+      targetEl.textContent = Math.round(startValue + (amount * i) / steps);
+      if (i === steps) { targetEl.textContent = end; targetEl.parentElement?.classList.add('coin-bump'); setTimeout(() => targetEl.parentElement?.classList.remove('coin-bump'), 600); }
+    }, 1000 + i * (900 / steps));
+  }
+}
+
 // Celebrate coins just earned: night jobs done, bedtime bonus, and the family win.
 function coinNews(before) {
   const id = state.kidId;
@@ -760,7 +864,11 @@ function coinNews(before) {
   const fresh = (state.sum.todayCoins[id] || []).filter((c) => !had.has(c.why)).map((c) => c.why);
   const note = state.nextNote || '';
   state.nextNote = '';
-  if (gained > 0) setTimeout(() => toast(`<span>🪙 +${gained} coins! ${fresh.join(' · ')}${note ? `<br>${note}` : ''}</span>`), 600);
+  if (gained > 0) {
+    const target = app.querySelector(`[data-col="${id}"] .coin-num`) || app.querySelector('.coin-chip');
+    flyCoins(gained, state.coinFrom, target?.classList.contains('coin-num') ? target : null, coinsOf(id) - gained);
+    setTimeout(() => toast(`<span>🪙 +${gained} coins! ${fresh.join(' · ')}${note ? `<br>${note}` : ''}</span>`), 600);
+  }
   if (famWon) setTimeout(familyWinMoment, 3700);
 }
 
@@ -1182,6 +1290,7 @@ document.addEventListener('click', async (e) => {
     case 'open-farm': return openFarm(el.closest('[data-col]').dataset.col);
     case 'dinner': return dinnerFinished();
     case 'reminders': return openReminders();
+    case 'grown-extras': return openGrownExtras();
     case 'start-night': return startNight();
     case 'home': return goHome();
     case 'go': return readySetGo();

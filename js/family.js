@@ -21,9 +21,9 @@ export const COINS = {
   reminder: -1,     // each time a grown-up had to remind them (tapped on the 🔔 Reminders button)
   noReminders: 2,   // a whole morning or night routine done with no reminders
 };
-// Extra chores are priced by effort in config.js (1 to 5 coins each), up to this many coins a day,
-// so ticking every tile can't buy the farm. Kids can still log more; they just don't pay.
-export const EXTRAS_DAY_CAP = 12;
+// Extra chores are priced by effort in config.js (1 to 5 coins each). A grown-up ticks them,
+// up to this many coins a day.
+export const EXTRAS_DAY_CAP = 20;
 export const BEDTIME_JOBS = ['toilet', 'teeth', 'inbed'];
 
 const ms = (iso) => new Date(iso).getTime();

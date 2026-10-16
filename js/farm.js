@@ -672,6 +672,7 @@ export function createFarm(ctx) {
     save();
     ctx.renderKid();
     if (id === 'house') ctx.burst(null, 60);
+    if (id !== 'repair') ctx.purchased?.(it); // buying something ends the farm visit
   }
 
   // Called when a child opens the Farm tab: catch up on missed days, then show news and the starter gift.

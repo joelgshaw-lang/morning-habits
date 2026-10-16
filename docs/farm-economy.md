@@ -18,7 +18,7 @@ Balanced with a 90-day simulation of three kinds of child. The goal: something s
 | Family win (everyone finished) | +3 each |
 | Faster than last time | +2 each |
 | New family record | +3 each |
-| Extra chores (once each a day) | 1 to 5 by effort, **up to 12 coins a day** (only the first 4 a day also give mine swings) |
+| Extra chores (once each a day, ticked by a grown-up) | 1 to 5 by effort, **up to 20 coins a day** (only the first 4 a day also give mine swings) |
 
 Extra chore prices: line up the shoes 1 · wipe the table, water plants, pack away toys, set the table, put clothes away, another helpful job 2 · take out the trash, fold washing, unpack the shopping, wipe the bathroom sink, help a brother or sister 3 · clean the floor, help with dinner, do the dishes 4 · vacuum, help in the yard 5.
 
@@ -47,6 +47,10 @@ Extra chore prices: line up the shoes 1 · wipe the table, water plants, pack aw
 - A fox only comes once the fence has been broken for a whole day. It has a 35% chance each day, takes one grown chicken or duck (never babies) and leaves small flocks of 3 or fewer alone. It takes at most one per absence. A grown crocodile keeps foxes away.
 
 **Mystery box (20):** 35% a feed bag (5 free feeds) · 25% a mystery egg · 15% golden corn (a baby grows up instantly) · 12% a lamb · 10% a decoration · 3% a calf.
+
+## Farm visits
+
+A farm visit is earned with every **10 coins from jobs** since the last visit, once the current routine is done. A visit lasts up to 2 minutes, and buying something ends it, so the farm is a reward a few times a day, not something to sit on.
 
 ## Stages
 
