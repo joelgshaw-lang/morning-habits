@@ -49,7 +49,24 @@ const ART = {
   sheep: (wool = 0) => sheepArt(1, wool),
   calf: () => cowArt(true),
   cow: () => cowArt(false),
+  dinoBaby: () => dinoArt(true),
+  dino: () => dinoArt(false),
 };
+
+// A friendly round dinosaur with back plates; the baby still has a bit of eggshell.
+function dinoArt(baby) {
+  const s = baby ? 0.85 : 1.05;
+  return `<g transform="translate(50 60) scale(${s}) translate(-50 -60)">${shadow(30)}
+    <path d="M70 74 q22 2 24 -14 q-10 6 -24 2z" fill="#7ec8e3" stroke="#3f8fb0" stroke-width="2"/>
+    <path d="M30 38 l5 -9 l5 8 l6 -10 l5 10 l6 -9 l5 9 l5 -7 l4 9" fill="#f6a5c0" stroke="#d9668e" stroke-width="2" stroke-linejoin="round"/>
+    <ellipse cx="50" cy="66" rx="28" ry="24" fill="#7ec8e3" stroke="#3f8fb0" stroke-width="2"/>
+    <ellipse cx="50" cy="72" rx="16" ry="14" fill="#d8f1fa"/>
+    <circle cx="50" cy="44" r="20" fill="#7ec8e3" stroke="#3f8fb0" stroke-width="2"/>
+    ${eyes(42, 8, 4.4)}${blush(50, 14)}
+    <path d="M44 51 q6 5 12 0" fill="none" stroke="#2d6a80" stroke-width="2.4" stroke-linecap="round"/>
+    <ellipse cx="36" cy="88" rx="7" ry="5" fill="#6bb8d4"/><ellipse cx="64" cy="88" rx="7" ry="5" fill="#6bb8d4"/>
+    ${baby ? shell : ''}</g>`;
+}
 
 // Fluffier as the wool grows (0 to 3).
 function sheepArt(scale, wool) {
@@ -79,7 +96,7 @@ function cowArt(baby) {
     ${baby ? '' : '<circle cx="50" cy="80" r="5" fill="#ffcf33" stroke="#c99a00" stroke-width="1.5"/>'}</g>`;
 }
 
-const BABY = { chicken: 'chick', duck: 'duckling', lizard: 'lizard', croc: 'croc', sheep: 'lamb', cow: 'calf' };
+const BABY = { chicken: 'chick', duck: 'duckling', lizard: 'lizard', croc: 'croc', sheep: 'lamb', cow: 'calf', dino: 'dinoBaby' };
 
 export function animalArt(type, isGrown, wool = 0) {
   const key = isGrown ? type : BABY[type];

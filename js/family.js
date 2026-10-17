@@ -1,8 +1,8 @@
 // Coins, streaks and the after-dinner race.
 // Everything is worked out from the saved days, so undoing a tick also takes back its coins.
 
-// Balanced with a 90-day simulation (see docs/farm-economy.md): a keen child earns ~30 coins a day,
-// an average one ~20, a forgetful one ~16, so each farm stage takes one to three weeks.
+// Balanced with a simulation (see docs/farm-economy.md): a keen child earns ~46 coins a day,
+// an average one ~35, a forgetful one ~24, so each farm stage takes one to three weeks.
 export const COINS = {
   morningOnTime: 2, // each morning job done by the end of the morning window…
   morningLate: 1,   // …or later that day
@@ -57,10 +57,28 @@ export function startOffer(dinnerIso, nowMs) {
 
 const allIn = (list, map) => list.length > 0 && list.every((h) => map?.[h.id]);
 
-// When a child's last night job was ticked, or null if not finished.
-export function nightFinishedAt(kid, day) {
-  if (!day || !allIn(kid.nightHabits, day.nightDone)) return null;
-  return Math.max(...kid.nightHabits.map((h) => ms(day.nightDone[h.id])));
+// A child's after-dinner house jobs, as allocated by a grown-up.
+export function houseJobsFor(settings, kid) {
+  return (settings.nightAlloc?.[kid.id] || []).map((id) => settings.houseJobs?.find((j) => j.id === id)).filter(Boolean);
+}
+
+// The jobs and prices a day was planned with. Saved on the day record (app.js keeps today's up to date),
+// so changing jobs later never rewrites past coins or streaks.
+export function planFor(settings, kid) {
+  return {
+    habits: kid.habits.map((h) => ({ id: h.id })),
+    house: houseJobsFor(settings, kid).map((h) => ({ id: h.id, coins: h.coins || 2 })),
+    bedtime: kid.nightHabits.map((h) => ({ id: h.id })),
+    extras: Object.fromEntries(settings.extraChores.map((c) => [c.id, c.coins || 2])),
+  };
+}
+const planOf = (settings, kid, day) => day?.plan || planFor(settings, kid);
+
+// When a child's last after-dinner house job was ticked (the part "Start night chores" times), or null.
+export function nightFinishedAt(settings, kid, day) {
+  const jobs = planOf(settings, kid, day).house;
+  if (!day || !allIn(jobs, day.nightDone)) return null;
+  return Math.max(...jobs.map((h) => ms(day.nightDone[h.id])));
 }
 
 // When the morning really started: the Start button counts if a job was ticked within 20 minutes of it
@@ -72,8 +90,8 @@ export function morningStart(day) {
   return pressed && ticks[0] - pressed <= 20 * 60000 ? pressed : ticks[0];
 }
 
-export function bedtimeBonus(kid, day, bedtime) {
-  const jobs = BEDTIME_JOBS.filter((id) => kid.nightHabits.some((h) => h.id === id));
+export function bedtimeBonus(settings, kid, day, bedtime) {
+  const jobs = BEDTIME_JOBS.filter((id) => planOf(settings, kid, day).bedtime.some((h) => h.id === id));
   if (!day || jobs.length < BEDTIME_JOBS.length) return false;
   const limit = onDay(day.dayKey, bedtime);
   return jobs.every((id) => day.nightDone?.[id] && ms(day.nightDone[id]) <= limit);
@@ -85,8 +103,10 @@ function familyNights(settings, byDay, dinners) {
   let last = null;
   let best = null;
   for (const key of Object.keys(byDay).sort()) {
-    const finishes = settings.kids.map((k) => nightFinishedAt(k, byDay[key][k.id]));
-    const win = finishes.every(Boolean);
+    // Children with no house jobs tonight don't hold up the family win.
+    const racing = settings.kids.filter((k) => planOf(settings, k, byDay[key][k.id]).house.length);
+    const finishes = racing.map((k) => nightFinishedAt(settings, k, byDay[key][k.id]));
+    const win = racing.length > 0 && finishes.every(Boolean);
     const dinner = dinners[key];
     const time = win && dinner ? Math.max(...finishes) - ms(dinner) : null;
     out[key] = {
@@ -110,39 +130,48 @@ function familyNights(settings, byDay, dinners) {
 function dayCoins(settings, kid, day, fam) {
   const items = [];
   if (!day) return items;
+  const plan = planOf(settings, kid, day);
   const close = onDay(day.dayKey, settings.windowClose);
-  const morning = kid.habits.filter((h) => day.done?.[h.id]);
+  const morning = plan.habits.filter((h) => day.done?.[h.id]);
   const onTime = morning.filter((h) => ms(day.done[h.id]) <= close).length;
   if (onTime) items.push({ coins: onTime * COINS.morningOnTime, why: `${onTime} morning job${onTime === 1 ? '' : 's'} on time` });
   if (morning.length > onTime) items.push({ coins: (morning.length - onTime) * COINS.morningLate, why: 'Morning jobs done late' });
-  if (onTime === kid.habits.length) items.push({ coins: COINS.morningAll, why: 'Whole morning on time' });
+  if (onTime === plan.habits.length) items.push({ coins: COINS.morningAll, why: 'Whole morning on time' });
   const began = morningStart(day);
   const early = began && COINS.earlyStart.find(([t]) => began <= onDay(day.dayKey, t));
   if (early) items.push({ coins: early[1], why: `Started by ${early[0].replace(/^0/, '')}` });
   const reminded = (r) => (day.reminders || []).filter((x) => x.routine === r).length;
-  if (onTime === kid.habits.length && !reminded('morning')) items.push({ coins: COINS.noReminders, why: 'Morning with no reminders' });
-  const nightJobs = kid.nightHabits.filter((h) => day.nightDone?.[h.id]).length;
-  if (nightJobs) items.push({ coins: nightJobs * COINS.nightJob, why: `${nightJobs} night job${nightJobs === 1 ? '' : 's'}` });
-  const extras = settings.extraChores.filter((c) => day.extras?.[c.id]);
-  const extraCoins = Math.min(EXTRAS_DAY_CAP, extras.reduce((a, c) => a + (c.coins || 2), 0));
+  if (onTime === plan.habits.length && !reminded('morning')) items.push({ coins: COINS.noReminders, why: 'Morning with no reminders' });
+  const house = plan.house.filter((h) => day.nightDone?.[h.id]);
+  const houseCoins = house.reduce((a, h) => a + (h.coins || 2), 0);
+  if (houseCoins) items.push({ coins: houseCoins, why: `${house.length} after-dinner job${house.length === 1 ? '' : 's'}` });
+  const bedtime = plan.bedtime.filter((h) => day.nightDone?.[h.id]).length;
+  if (bedtime) items.push({ coins: bedtime * COINS.nightJob, why: `${bedtime} bedtime job${bedtime === 1 ? '' : 's'}` });
+  const extras = Object.keys(day.extras || {});
+  const priceOf = (id) => plan.extras[id] ?? settings.extraChores.find((c) => c.id === id)?.coins ?? 2;
+  const extraCoins = Math.min(EXTRAS_DAY_CAP, extras.reduce((a, id) => a + priceOf(id), 0));
   if (extraCoins) items.push({ coins: extraCoins, why: `${extras.length} extra chore${extras.length === 1 ? '' : 's'}` });
   const start = startCoins(fam?.dinner, day.nightStartedAt);
   if (start) items.push({ coins: start, why: 'Quick start after dinner' });
-  const finished = nightFinishedAt(kid, day);
-  if (finished && !reminded('night')) items.push({ coins: COINS.noReminders, why: 'Night with no reminders' });
+  const finished = nightFinishedAt(settings, kid, day);
+  if (allIn([...plan.house, ...plan.bedtime], day.nightDone) && !reminded('night')) items.push({ coins: COINS.noReminders, why: 'Night with no reminders' });
   const n = (day.reminders || []).length;
   if (n) items.push({ coins: n * COINS.reminder, why: `${n} reminder${n === 1 ? '' : 's'}` });
   const took = finished && day.nightStartedAt ? finished - ms(day.nightStartedAt) : null;
   if (took != null && took <= 40 * 60000) items.push({ coins: COINS.under40, why: 'Done in under 40 minutes' });
   if (took != null && took <= 20 * 60000) items.push({ coins: COINS.under20, why: 'Super fast: under 20 minutes' });
-  if (bedtimeBonus(kid, day, settings.nightClose)) items.push({ coins: COINS.bedtime, why: 'In bed on time' });
+  if (bedtimeBonus(settings, kid, day, settings.nightClose)) items.push({ coins: COINS.bedtime, why: 'In bed on time' });
   if (fam?.win) items.push({ coins: COINS.familyWin, why: 'Family win' });
   if (fam?.beatLast) items.push({ coins: COINS.beatLast, why: 'Faster than last time' });
   if (fam?.record) items.push({ coins: COINS.record, why: 'New family record' });
   return items;
 }
 
-const dayComplete = (kid, day) => !!day && allIn(kid.habits, day.done) && allIn(kid.nightHabits, day.nightDone);
+const dayComplete = (settings, kid, day) => {
+  if (!day) return false;
+  const plan = planOf(settings, kid, day);
+  return allIn(plan.habits, day.done) && allIn([...plan.house, ...plan.bedtime], day.nightDone);
+};
 
 export function summarize(settings, days, dinners, today) {
   const byDay = {};
@@ -162,8 +191,8 @@ export function summarize(settings, days, dinners, today) {
     }
     // Streak: days in a row with every morning and night job done. Today counts once it's complete.
     let n = 0;
-    let key = dayComplete(k, byDay[today][k.id]) ? today : addDays(today, -1);
-    while (dayComplete(k, byDay[key]?.[k.id])) { n++; key = addDays(key, -1); }
+    let key = dayComplete(settings, k, byDay[today][k.id]) ? today : addDays(today, -1);
+    while (dayComplete(settings, k, byDay[key]?.[k.id])) { n++; key = addDays(key, -1); }
     streak[k.id] = n;
   }
   return { coins, todayCoins, streak, family: fam[today] };

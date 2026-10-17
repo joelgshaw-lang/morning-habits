@@ -745,6 +745,92 @@ svg.bld { width: 70px; height: 70px; }
 .farm-lock.earning { display: flex; flex-direction: column; gap: 4px; font-size: 18px; color: var(--ink); background: #ecfccb; }
 .farm-lock .farm-bar { width: 100%; height: 12px; display: block; }
 
+/* ----- board extras: claims, breath prayers, tally ----- */
+.part-label { font-size: 17px; font-weight: 900; color: var(--kid); }
+.col .idea-list { overflow-y: auto; }
+.col .idea { border: 0; min-height: 52px; text-align: left; font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; }
+.col .idea.claimed { background: #fef3c7; }
+.col-farm-line { display: flex; flex-direction: column; gap: 2px; font-size: 18px; background: #fff; border-radius: 14px; padding: 6px 10px; }
+.tally { font-size: 22px; letter-spacing: 1px; }
+.tally b { font-size: 15px; margin-right: 4px; }
+.col-goal { font-size: 15px; font-weight: 800; color: #92400e; }
+.col-foot { display: flex; gap: 8px; }
+.col-foot > :last-child { flex: 1; }
+.breath-btn { min-width: 84px; min-height: 64px; border: 0; border-radius: 18px; background: #e0e7ff; box-shadow: var(--shadow); font-size: 28px; font-weight: 900; }
+.breath-btn small { display: block; font-size: 14px; }
+.breath-btn { position: relative; overflow: hidden; }
+.breath-btn::before { content: ""; position: absolute; inset: 0; background: #818cf8; opacity: 0.5; transform: scaleY(0); transform-origin: bottom; }
+.breath-btn.holding::before { animation: fillup 0.8s linear forwards; }
+.breath-btn:disabled { opacity: 0.5; }
+.farm-open small { display: block; font-size: 14px; font-weight: 800; color: var(--muted); }
+.breath-card { background: #eef2ff; border-radius: 22px; padding: 14px; margin: 10px 0; }
+.breath-card p { margin: 4px 0 0; font-size: 18px; }
+.breath-card b { display: block; font-size: 32px; color: #3730a3; }
+.breath-card small { display: block; font-size: 15px; color: var(--muted); margin-top: 6px; }
+.hold-pray { position: relative; overflow: hidden; width: 100%; min-height: 84px; border: 0; border-radius: 22px; background: #c7d2fe; font: inherit; font-size: 26px; font-weight: 900; }
+.hold-pray::before { content: ""; position: absolute; inset: 0; background: #818cf8; opacity: 0.5; transform: scaleX(0); transform-origin: left; }
+.hold-pray.holding::before { animation: fillx 0.8s linear forwards; }
+.hold-pray > * { position: relative; }
+.claim-btns { display: flex; flex-direction: column; gap: 8px; }
+.claim-btns .farm-btn { margin: 0; width: 100%; }
+.badge { display: inline-grid; place-items: center; min-width: 26px; height: 26px; border-radius: 13px; background: #ef4444; color: #fff; font-size: 15px; font-weight: 900; padding: 0 6px; }
+@keyframes fillx { to { transform: scaleX(1); } }
+
+/* ----- Grown-ups portal ----- */
+.portal-ov .farm-sheet.portal { width: min(1000px, 96vw); height: min(760px, 94vh); display: flex; flex-direction: column; text-align: left; padding: 18px 22px; }
+.portal-head { display: flex; align-items: center; justify-content: space-between; }
+.portal-head h2 { margin: 0; }
+.portal-head .farm-btn { margin: 0; min-width: 0; }
+.portal-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+.portal-tabs button { min-height: 52px; border: 0; border-radius: 14px; padding: 0 14px; font: inherit; font-size: 17px; font-weight: 900; background: #f1ece4; }
+.portal-tabs button.on { background: #1f2430; color: #fff; }
+.portal-body { flex: 1; overflow-y: auto; min-height: 0; }
+.portal-body h3 { margin: 14px 0 6px; font-size: 20px; }
+.portal-body p { font-size: 17px; margin: 6px 0; }
+.claim-row, .job-row-edit { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 14px; padding: 6px 10px; margin: 6px 0; }
+.claim-row span, .job-row-edit .ji { font-size: 30px; }
+.claim-row b, .job-row-edit b { flex: 1; font-size: 18px; }
+.claim-row .farm-btn, .job-row-edit .farm-btn { margin: 0; min-width: 0; }
+.farm-btn.ok { background: #86efac; }
+.stepper { display: inline-flex; align-items: center; gap: 4px; }
+.stepper button { width: 48px; height: 48px; border: 0; border-radius: 12px; background: #f1ece4; font-size: 24px; font-weight: 900; }
+.stepper b { min-width: 56px; text-align: center; font-size: 17px; }
+.assign { display: inline-flex; gap: 4px; }
+.assign button { width: 52px; height: 52px; border-radius: 14px; border: 3px solid #e5e7eb; background: #fff; font-size: 26px; opacity: 0.45; }
+.assign button.on { border-color: var(--kid); background: color-mix(in srgb, var(--kid) 15%, #fff); opacity: 1; }
+.del { width: 48px; height: 48px; border: 0; border-radius: 12px; background: #fee2e2; font-size: 20px; }
+.del:disabled { opacity: 0.3; }
+.add-form { background: #fff; border-radius: 16px; padding: 10px; }
+.icon-pick { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.icon-pick button { width: 46px; height: 46px; border: 2px solid transparent; border-radius: 12px; background: #f6f3ee; font-size: 24px; }
+.icon-pick button.on { border-color: #1f2430; background: #fff; }
+.add-row { display: flex; gap: 8px; align-items: center; }
+.add-row input { flex: 1; min-height: 52px; border: 2px solid #e5e7eb; border-radius: 12px; padding: 0 12px; font: inherit; font-size: 18px; -webkit-user-select: text; user-select: text; }
+.add-row select { min-height: 52px; border-radius: 12px; font: inherit; font-size: 17px; }
+.add-row .farm-btn { margin: 0; min-width: 0; }
+.portal .idea { border: 0; min-height: 48px; font: inherit; font-size: 15px; font-weight: 800; background: #f6f3ee; border-radius: 12px; padding: 4px 10px; }
+.portal .idea-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+
+/* ----- review fixes: roomier night column, big-icon extra jobs ----- */
+.col .tile.next-tile { min-height: 150px; }
+.tab-night .col .next-tile .tile-icon { font-size: 72px; }
+.tab-night .col .next-tile .tile-name { font-size: 26px; }
+.col .job-row { flex-wrap: wrap; }
+.col .tile.mini-tile { min-width: 48px; min-height: 56px; }
+.tab-night .window-bar, .tab-night .window-ends { display: none; }
+.star-btn { min-width: 64px; min-height: 64px; border: 0; border-radius: 18px; background: #fef3c7; box-shadow: var(--shadow); font-size: 28px; }
+.icon-grid { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 64px; gap: 6px; overflow-y: auto; align-content: start; }
+.icon-job { position: relative; border: 0; border-radius: 16px; background: #fff; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.08); font-size: 30px; }
+.icon-job small { position: absolute; right: 3px; bottom: 2px; font-size: 11px; font-weight: 900; color: #92400e; }
+.icon-job.claimed { background: #fef3c7; }
+.job-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-height: 60vh; overflow-y: auto; margin: 8px 0; }
+.job-pick { min-height: 110px; border: 0; border-radius: 18px; background: #fff; box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 6px; font: inherit; }
+.job-pick span { font-size: 40px; }
+.job-pick b { font-size: 15px; line-height: 1.15; }
+.job-pick small { font-size: 14px; font-weight: 800; color: #92400e; }
+.job-pick.claimed { background: #fef3c7; }
+.job-pick.done { opacity: 0.5; }
+
 /* ----- toast ----- */
 #toast {
   position: fixed;

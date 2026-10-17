@@ -12,6 +12,7 @@ export const KINDS = {
   croc: { name: 'Crocodile', baby: 'Baby crocodile', babyIcon: '🐊', icon: '🐊', feed: 2, grow: 8, sound: 'snap', small: true, rare: 'Super rare!', perk: 'Foxes are too scared to come near your farm.' },
   sheep: { name: 'Sheep', baby: 'Lamb', babyIcon: '🐑', icon: '🐑', feed: 2, grow: 10, sound: 'baa' },
   cow: { name: 'Cow', baby: 'Calf', babyIcon: '🐮', icon: '🐄', feed: 3, grow: 16, sound: 'moo' },
+  dino: { name: 'Dinosaur', baby: 'Baby dinosaur', babyIcon: '🦕', icon: '🦕', feed: 3, grow: 20, sound: 'roar', rare: 'Ultra rare!', perk: 'Foxes run away from your dinosaur, and your hens feel brave: more golden eggs!' },
 };
 
 export const GOODS = {
@@ -23,17 +24,19 @@ export const GOODS = {
 };
 
 export const SHOP = [
-  { id: 'sellhen', icon: '🐔', name: 'Sell a hen', price: -8, level: 1, does: 'Make room in the coop. A grown hen goes to a new farm for 8 coins.' },
-  { id: 'egg', icon: '🥚', name: 'Mystery egg', price: 12, level: 1, does: "Hatch it to see what's inside! Usually a chicken… sometimes a duck, a lizard, a crocodile… or a cheeky snake!" },
-  { id: 'repair', icon: '🪵', name: 'Fix the fence', price: 6, level: 1, does: 'Keeps the fox out for another week.' },
-  { id: 'box', icon: '🎁', name: 'Mystery box', price: 20, level: 2, does: 'Food, an egg, golden corn, a lamb, a decoration… or even a calf!' },
-  { id: 'lamb', icon: '🐑', name: 'Lamb', price: 60, level: 2, does: 'Feed it and it grows wool to shear and sell.' },
-  { id: 'strong', icon: '🧱', name: 'Strong fence', price: 40, level: 2, building: true, does: 'Fence repairs last two weeks instead of one.' },
-  { id: 'pond', icon: '💧', name: 'Duck pond', price: 80, level: 2, building: true, needsDuck: true, does: 'Happy ducks lay 2 eggs a day.' },
-  { id: 'calf', icon: '🐮', name: 'Calf', price: 150, level: 3, does: 'Grows into a cow that gives milk, and one day has a calf of her own.' },
-  { id: 'barn', icon: '🛖', name: 'Big barn', price: 200, level: 4, building: true, does: 'Room for 14 small animals, 4 sheep and 3 cows.' },
-  { id: 'mill', icon: '⚙️', name: 'Windmill', price: 300, level: 4, needs: 'barn', building: true, does: 'Grinds feed: small animals eat free, and everyone else costs 1 coin less.' },
-  { id: 'house', icon: '🏡', name: 'Farmhouse', price: 500, level: 4, needs: 'mill', building: true, does: 'The last piece of your dream farm! 🎉' },
+  { id: 'sellhen', icon: '🐔', name: 'Sell a hen', price: -10, level: 1, does: 'Make room in the coop. A grown hen goes to a new farm for 10 coins.' },
+  { id: 'egg', icon: '🥚', name: 'Mystery egg', price: 30, level: 1, does: "Hatch it to see what's inside! Usually a chicken… sometimes a duck, a lizard, a crocodile, a cheeky snake… or, very rarely, a dinosaur!" },
+  { id: 'repair', icon: '🪵', name: 'Fix the fence', price: 10, level: 1, does: 'Keeps the fox out for another week.' },
+  { id: 'rareegg', icon: '💎', name: 'Rare egg', price: 90, level: 2, does: 'A sparkly egg with rarer animals: ducks, lizards, crocodiles… and a 1 in 20 chance of a dinosaur! (Never a snake.)' },
+  { id: 'box', icon: '🎁', name: 'Mystery box', price: 45, level: 2, does: 'Food, an egg, golden corn, a lamb, a decoration… or even a calf!' },
+  { id: 'lamb', icon: '🐑', name: 'Lamb', price: 150, level: 2, does: 'Feed it and it grows wool to shear and sell.' },
+  { id: 'strong', icon: '🧱', name: 'Strong fence', price: 80, level: 2, building: true, does: 'Fence repairs last two weeks instead of one.' },
+  { id: 'pond', icon: '💧', name: 'Duck pond', price: 160, level: 2, building: true, needsDuck: true, does: 'Happy ducks lay 2 eggs a day.' },
+  { id: 'calf', icon: '🐮', name: 'Calf', price: 350, level: 3, does: 'Grows into a cow that gives milk, and one day has a calf of her own.' },
+  { id: 'barn', icon: '🛖', name: 'Big barn', price: 500, level: 4, building: true, does: 'Room for 14 small animals, 4 sheep, 3 cows and 2 dinosaurs.' },
+  { id: 'mill', icon: '⚙️', name: 'Windmill', price: 700, level: 4, needs: 'barn', building: true, does: 'Grinds feed: small animals eat free, and everyone else costs 1 coin less.' },
+  { id: 'house', icon: '🏡', name: 'Farmhouse', price: 1200, level: 4, needs: 'mill', building: true, does: 'The last piece of your dream farm! 🎉' },
+  { id: 'dinoegg', icon: '🦕', name: 'Dinosaur egg', price: 1500, level: 4, does: 'Very rare and very special: a real baby dinosaur for your farm!' },
 ];
 
 const LEVELS = [null,
@@ -58,7 +61,7 @@ export function freshFarm(today) {
 }
 
 export const grown = (a) => a.growth >= KINDS[a.type].grow;
-const capOf = (f) => (f.built.barn ? { small: 14, sheep: 4, cow: 3 } : { small: 8, sheep: 2, cow: 1 });
+const capOf = (f) => (f.built.barn ? { small: 14, sheep: 4, cow: 3, dino: 2 } : { small: 8, sheep: 2, cow: 1, dino: 1 });
 const countOf = (f, group) => f.animals.filter((a) => (group === 'small' ? KINDS[a.type].small : a.type === group)).length;
 const roomFor = (f, type) => { const g = KINDS[type].small ? 'small' : type; return countOf(f, g) < capOf(f)[g]; };
 const feedCost = (f, a) => Math.max(0, KINDS[a.type].feed - (f.built.mill ? 1 : 0));
@@ -87,7 +90,7 @@ export function catchUp(f, today) {
     const brokenAlready = f.fenceDays === 0;
     f.fenceDays = Math.max(0, f.fenceDays - 1);
     const prey = f.animals.filter((a) => (a.type === 'chicken' || a.type === 'duck') && grown(a));
-    if (!foxCame && brokenAlready && prey.length > 3 && !hasGrown(f, 'croc') && Math.random() < FOX_CHANCE) {
+    if (!foxCame && brokenAlready && prey.length > 3 && !hasGrown(f, 'croc') && !hasGrown(f, 'dino') && Math.random() < FOX_CHANCE) {
       foxCame = true;
       const gone = prey[rnd(prey.length)];
       f.animals = f.animals.filter((a) => a !== gone);
@@ -158,6 +161,7 @@ export function createFarm(ctx) {
     quack: () => voice('sawtooth', [[420, 300], [400, 280]], 0.16, 0.2, 0.08),
     chirp: () => voice('sine', [[2200, 2600], [2400, 2900], [2300, 2700]], 0.05, 0.08, 0.06),
     snap: () => voice('square', [[160, 70], [150, 60]], 0.09, 0.14, 0.12),
+    roar: () => voice('sawtooth', [[140, 90], [180, 110], [120, 70]], 0.25, 0.22, 0.12),
     boing: () => voice('sine', [[220, 880], [880, 330]], 0.18, 0.18, 0.15),
     hiss: () => voice('sawtooth', [[3000, 2600], [3200, 2400], [2900, 2500]], 0.12, 0.13, 0.03),
     baa: () => voice('sawtooth', [[520, 480], [500, 460], [480, 420]], 0.13, 0.12, 0.07),
@@ -262,7 +266,7 @@ export function createFarm(ctx) {
       </div>
       <div class="farm-fence ${f.fenceDays <= 2 ? 'warn' : ''}">
         🪵 ${f.fenceDays ? `Fence: ${f.fenceDays} day${f.fenceDays === 1 ? '' : 's'} left` : 'Fence broken! 🦊'}
-        <button class="farm-btn small" data-action="farm-buy" data-item="repair" ${f.fenceDays >= 5 ? 'disabled' : ''}>${f.fenceDays >= 5 ? 'OK ✓' : 'Fix 🪙 6'}</button>
+        <button class="farm-btn small" data-action="farm-buy" data-item="repair" ${f.fenceDays >= 5 ? 'disabled' : ''}>${f.fenceDays >= 5 ? 'OK ✓' : `Fix 🪙 ${SHOP.find((x) => x.id === 'repair').price}`}</button>
       </div>
       <button class="farm-btn shop" data-action="farm-shop">🛒 Shop</button>`;
   }
@@ -286,7 +290,7 @@ export function createFarm(ctx) {
     let id = 'egg';
     if (f.level >= 2 && !has('sheep')) id = 'lamb';
     else if (f.level >= 3 && !has('cow')) id = 'calf';
-    else if (f.level >= 4) id = ['barn', 'mill', 'house'].find((b) => !f.built[b]) || null;
+    else if (f.level >= 4) id = ['barn', 'mill', 'house'].find((b) => !f.built[b]) || (roomFor(f, 'dino') ? 'dinoegg' : null);
     else if (f.level >= 2 && has('duck') && !f.built.pond) id = 'pond';
     else if (!roomFor(f, 'chicken')) id = f.level >= 2 ? 'box' : null;
     return id && SHOP.find((x) => x.id === id);
@@ -330,7 +334,7 @@ export function createFarm(ctx) {
           ${f.gift ? '<button class="farm-btn feed" data-action="farm-gift">🎁 Open your gift egg!</button>' : ''}
           ${hungry ? `<button class="farm-btn feed" data-action="farm-feed">🌾 Feed ${plan.free ? `<small>${plan.free} free</small>` : ''} <small>🪙 ${plan.coins}</small></button>` : f.animals.length ? '<div class="mini-note">✓ Everyone is fed</div>' : ''}
           ${value ? `<button class="farm-btn sell" data-action="farm-sell">🧺 Sell for 🪙 ${value}</button>` : ''}
-          ${f.fenceDays <= 2 && f.animals.length ? '<button class="farm-btn warn" data-action="farm-buy" data-item="repair">🪵 Fix the fence 🪙 6</button>' : ''}
+          ${f.fenceDays <= 2 && f.animals.length ? `<button class="farm-btn warn" data-action="farm-buy" data-item="repair">🪵 Fix the fence 🪙 ${SHOP.find((x) => x.id === 'repair').price}</button>` : ''}
           ${it ? `<div class="farm-goal ${pct >= 1 ? 'ready' : ''}">
             <span>${pct >= 1 ? '✅' : 'Saving for'} ${it.icon} ${it.name}</span>
             <div class="farm-bar"><i style="width:${Math.round(pct * 100)}%"></i><span>${Math.min(Math.max(0, coins), it.price)} / ${it.price}</span></div>
@@ -338,6 +342,22 @@ export function createFarm(ctx) {
           </div>` : ''}
         </div>
       </div>`;
+  }
+
+  // A still (not moving) tally of the child's animals for the family board, e.g. 🐔3 🐣1 🦆1.
+  function tallyHTML(id) {
+    const f = farmOf(id);
+    if (!f.animals.length) return f.gift ? '<span class="tally">🎁 a gift egg is waiting</span>' : '<span class="tally">No animals yet</span>';
+    const counts = {};
+    for (const a of f.animals) { const icon = grown(a) ? KINDS[a.type].icon : KINDS[a.type].babyIcon; counts[icon] = (counts[icon] || 0) + 1; }
+    return `<span class="tally">${Object.entries(counts).map(([icon, n]) => `${icon}<b>${n}</b>`).join(' ')}</span>`;
+  }
+
+  function goalText(id, coins) {
+    const it = goalItem(farmOf(id));
+    if (!it) return '';
+    const need = it.price - Math.max(0, coins);
+    return need > 0 ? `🎯 ${need} more → ${it.icon} ${it.name}` : `✅ Ready for ${it.icon} ${it.name}!`;
   }
 
   // Small farm picture for the side panel and home screen card.
@@ -358,17 +378,28 @@ export function createFarm(ctx) {
     return el;
   }
 
-  function rollEgg() {
+  // Mystery eggs are mostly chickens; rare eggs lean to rare animals (1 in 20 is a dinosaur); dinosaur eggs always are.
+  function rollEgg(kind = 'mystery') {
+    if (kind === 'dino') return 'dino';
+    if (kind === 'rare') {
+      const r = Math.random();
+      return r < 0.4 ? 'duck' : r < 0.65 ? 'lizard' : r < 0.85 ? 'croc' : r < 0.95 ? 'chicken' : 'dino'; // no snakes in a rare egg
+    }
+    if (Math.random() < 0.005) return 'dino';
+    return rollMystery();
+  }
+  function rollMystery() {
     const r = Math.random();
     return r < 0.66 ? 'chicken' : r < 0.86 ? 'duck' : r < 0.93 ? 'lizard' : r < 0.98 ? 'snake' : 'croc';
   }
 
   // Tap the egg three times to crack it open.
-  function hatchMystery(f, title = 'A mystery egg!', { gift = false } = {}) {
+  function hatchMystery(f, title = 'A mystery egg!', { gift = false, kind = 'mystery' } = {}) {
     return new Promise((resolve) => {
       let taps = 0;
-      let type = rollEgg();
-      if (gift) while (type === 'snake') type = rollEgg(); // a starter egg always stays on the farm
+      let type = rollEgg(kind);
+      if (gift) while (type === 'snake' || type === 'dino') type = rollMystery(); // a starter egg is a normal farm animal
+      if (type === 'dino' && !roomFor(f, 'dino')) type = 'croc';
       // Saved before the animation, so closing the app mid-hatch never loses the animal or the coins.
       // A snake doesn't stay: it slithers off and leaves 3 free feeds behind.
       const a = type === 'snake' ? null : { id: f.nextId++, type, growth: 0 };
@@ -498,7 +529,7 @@ export function createFarm(ctx) {
         continue;
       }
       if (a.type === 'chicken') {
-        if (hasGrown(f, 'lizard') && Math.random() < 0.15) { f.basket.golden = (f.basket.golden || 0) + 1; msgs.push('A golden egg! 🌟'); }
+        if (Math.random() < (hasGrown(f, 'lizard') ? 0.15 : 0) + (hasGrown(f, 'dino') ? 0.15 : 0)) { f.basket.golden = (f.basket.golden || 0) + 1; msgs.push('A golden egg! 🌟'); }
         else f.basket.egg = (f.basket.egg || 0) + 1;
         laid++;
       }
@@ -587,13 +618,13 @@ export function createFarm(ctx) {
           const locked = f.level < it.level;
           const owned = it.building && f.built[it.id];
           const needs = it.needs && !f.built[it.needs];
-          const full = (it.id === 'egg' && !roomFor(f, 'chicken')) || (it.id === 'lamb' && !roomFor(f, 'sheep')) || (it.id === 'calf' && !roomFor(f, 'cow'));
+          const full = ((it.id === 'egg' || it.id === 'rareegg') && !roomFor(f, 'chicken')) || (it.id === 'dinoegg' && !roomFor(f, 'dino')) || (it.id === 'lamb' && !roomFor(f, 'sheep')) || (it.id === 'calf' && !roomFor(f, 'cow'));
           const noDuck = it.needsDuck && !f.animals.some((a) => a.type === 'duck');
           const hens = f.animals.filter((a) => a.type === 'chicken' && grown(a)).length;
           if (it.id === 'sellhen') {
             if (!hens) return '';
             return `<div class="shop-item"><span class="shop-icon">${it.icon}</span><div><b>${it.name}</b><small>${it.does}</small></div>
-              <button class="farm-btn small sellhen" data-buy="sellhen">+ 🪙 8</button></div>`;
+              <button class="farm-btn small sellhen" data-buy="sellhen">+ 🪙 ${-it.price}</button></div>`;
           }
           const reason = locked ? `🔒 ${LEVELS[it.level].name}` : owned ? 'Built ✓' : needs ? `Build the ${SHOP.find((x) => x.id === it.needs).name.toLowerCase()} first` : noDuck ? 'Get a duck first' : full ? (f.built.barn ? 'No room' : 'No room: build the big barn') : '';
           return `<div class="shop-item ${locked ? 'locked' : ''}">
@@ -641,10 +672,10 @@ export function createFarm(ctx) {
       const hen = f.animals.filter((a) => a.type === 'chicken' && grown(a))[0];
       if (!hen) return;
       f.animals = f.animals.filter((a) => a !== hen);
-      f.sold += 8;
+      f.sold += -it.price;
       save();
       SOUNDS.coins();
-      ctx.speak('Your hen went to a happy new farm. 8 coins!');
+      ctx.speak(`Your hen went to a happy new farm. ${-it.price} coins!`);
       return ctx.renderKid();
     }
     if (balance(k.id) < it.price) {
@@ -656,6 +687,8 @@ export function createFarm(ctx) {
     save();
     SOUNDS.coins();
     if (id === 'egg') await hatchMystery(f);
+    else if (id === 'rareegg') await hatchMystery(f, 'A rare egg! ✨', { kind: 'rare' });
+    else if (id === 'dinoegg') await hatchMystery(f, 'A dinosaur egg! 🦕', { kind: 'dino' });
     else if (id === 'box') await openBox(f);
     else if (id === 'repair') { f.fenceDays = f.built.strong ? FENCE_DAYS * 2 : FENCE_DAYS; ctx.toast('🪵 Fence fixed! The fox will stay out.'); ctx.speak('Fence fixed!'); }
     else if (id === 'lamb' || id === 'calf') {
@@ -711,5 +744,5 @@ export function createFarm(ctx) {
     }
   }
 
-  return { bodyHTML, miniHTML, previewIcons, hungryCount, balance, action, opened, farmOf, catchUp: (id) => catchUp(farmOf(id), today()) };
+  return { bodyHTML, miniHTML, tallyHTML, goalText, previewIcons, hungryCount, balance, action, opened, farmOf, catchUp: (id) => catchUp(farmOf(id), today()) };
 }
