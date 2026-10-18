@@ -26,6 +26,27 @@ Extra chore prices: line up the shoes 1 · wipe the table, water plants, pack aw
 
 **Typical day:** keen about 46 coins, average about 35, forgetful about 24.
 
+## Keeping chores at the heart of it
+
+As the farm grows, selling eggs, wool, milk, apples and honey can bring in as many coins as the jobs. Two rules keep the jobs essential (Joel's choice, 18 Oct 2026):
+
+- **Your animals work as hard as you do.** Animals only lay, grow wool, give milk, and the garden, orchard and bees only produce, on days the child finished a routine (all morning jobs, or all after-dinner jobs) or did at least 2 extra jobs. On other days the animals eat and babies grow, but nothing is made ("😴 Your animals are resting today").
+- **⭐ Job stars.** Every job done gives 1 star (morning, after-dinner, bedtime and confirmed extra jobs). Stars never come from selling. Big things cost stars as well as coins, about 1 star per 10 coins:
+
+| Item | Stars | | Item | Stars |
+|---|---|---|---|---|
+| Vegetable patch | 5 | | Orchard | 25 |
+| Rare egg | 5 | | Calf | 30 |
+| Strong fence | 8 | | Farm stand | 30 |
+| Chicken coop | 10 | | Big barn | 50 |
+| Beehive | 10 | | Pony | 50 |
+| Lamb | 15 | | Windmill | 70 |
+| Duck pond | 15 | | Farmhouse | 120 |
+| Farm dog | 20 | | Dinosaur egg | 150 |
+| | | | Big beautiful farmhouse | 300 |
+
+Mystery eggs, mystery boxes, fence repairs, feed, shears and milk bottles need no stars, so the everyday loop never stalls. A child doing about 8–10 jobs a day reaches the big farmhouse's stars in roughly the same 3–4 months as its coins, so neither farm income nor jobs alone can rush it.
+
 ## The farm
 
 | Animal | Comes from | Feed per day | Grows up after | Makes |

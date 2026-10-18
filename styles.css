@@ -968,3 +968,5 @@ svg.bld.stand { width: 74px; height: 66px; }
 .pony.gallop { animation: gallop 2.6s ease-in-out; }
 @keyframes gallop { 0% { transform: translateX(0) scaleX(1); } 40% { transform: translateX(-55vw) scaleX(1) translateY(-6px); } 50% { transform: translateX(-55vw) scaleX(-1); } 90% { transform: translateX(0) scaleX(-1) translateY(-6px); } 100% { transform: translateX(0) scaleX(1); } }
 @media (prefers-reduced-motion: reduce) { .farm-dog, .bld.hive-wrap .bee, .pony.gallop { animation: none; } }
+.farm-stars { font-size: 0.8em; color: #a16207; margin-left: 6px; }
+.star-note { margin: 0 0 8px; font-size: 15px; font-weight: 800; color: #a16207; }

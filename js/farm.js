@@ -27,30 +27,32 @@ export const GOODS = {
 // The farm stand adds 1 coin to everything sold.
 const priceOf = (f, g) => GOODS[g].price + (f.built.stand ? 1 : 0);
 
+// stars: ⭐ job stars needed too (about 1 for every 10 coins on big things). Stars only come from doing jobs,
+// so however much the farm sells, the next big thing still takes real chores.
 export const SHOP = [
   { id: 'sellhen', icon: '🐔', name: 'Sell a hen', price: -10, level: 1, does: 'Make room in the coop. A grown hen goes to a new farm for 10 coins.' },
   { id: 'egg', icon: '🥚', name: 'Mystery egg', price: 30, level: 1, does: "Hatch it to see what's inside! Usually a chicken… sometimes a duck, a lizard, a crocodile, a cheeky snake… or, very rarely, a dinosaur!" },
   { id: 'repair', icon: '🪵', name: 'Fix the fence', price: 10, level: 1, does: 'Keeps the fox out for another week.' },
-  { id: 'veg', icon: '🥕', name: 'Vegetable patch', price: 60, level: 1, building: true, does: 'Grows carrots and greens: 2 free feeds every day you feed your animals.' },
-  { id: 'coop', icon: '🛖', name: 'Chicken coop', price: 100, level: 1, building: true, does: 'A cosy home for your hens: room for 4 more small animals, and the fox can never take a hen from the coop.' },
-  { id: 'rareegg', icon: '💎', name: 'Rare egg', price: 90, level: 2, does: 'A sparkly egg with rarer animals: ducks, lizards, crocodiles… and a 1 in 20 chance of a dinosaur! (Never a snake.)' },
+  { id: 'veg', icon: '🥕', name: 'Vegetable patch', price: 60, stars: 5, level: 1, building: true, does: 'Grows carrots and greens: 2 free feeds every day you feed your animals.' },
+  { id: 'coop', icon: '🛖', name: 'Chicken coop', price: 100, stars: 10, level: 1, building: true, does: 'A cosy home for your hens: room for 4 more small animals, and the fox can never take a hen from the coop.' },
+  { id: 'rareegg', icon: '💎', name: 'Rare egg', price: 90, stars: 5, level: 2, does: 'A sparkly egg with rarer animals: ducks, lizards, crocodiles… and a 1 in 20 chance of a dinosaur! (Never a snake.)' },
   { id: 'box', icon: '🎁', name: 'Mystery box', price: 45, level: 2, does: 'Food, an egg, golden corn, a lamb, a decoration… or even a calf!' },
-  { id: 'lamb', icon: '🐑', name: 'Lamb', price: 150, level: 2, does: 'Feed it and it grows wool to shear and sell.' },
+  { id: 'lamb', icon: '🐑', name: 'Lamb', price: 150, stars: 15, level: 2, does: 'Feed it and it grows wool to shear and sell.' },
   { id: 'shears', icon: '✂️', name: 'Sheep shears', price: 25, level: 2, building: true, tool: true, does: 'You need these to shear your sheep. Every bag of wool sells for 10 coins!' },
-  { id: 'strong', icon: '🧱', name: 'Strong fence', price: 80, level: 2, building: true, does: 'Fence repairs last two weeks instead of one.' },
-  { id: 'hive', icon: '🐝', name: 'Beehive', price: 120, level: 2, building: true, does: 'Busy bees make a jar of honey every 3 days you feed your animals. Honey sells for 8!' },
-  { id: 'dog', icon: '🐕', name: 'Farm dog', price: 200, level: 2, building: true, does: 'A loyal farm dog. The fox never comes near your farm again, even if the fence breaks.' },
-  { id: 'pond', icon: '💧', name: 'Duck pond', price: 160, level: 2, building: true, needsDuck: true, does: 'Happy ducks lay 2 eggs a day.' },
-  { id: 'calf', icon: '🐮', name: 'Calf', price: 350, level: 3, does: 'Grows into a cow that gives milk, and one day has a calf of her own.' },
-  { id: 'orchard', icon: '🍎', name: 'Apple orchard', price: 250, level: 3, building: true, does: 'Three apple trees: 2 apples every day you feed your animals. Apples sell for 3.' },
-  { id: 'stand', icon: '🏪', name: 'Farm stand', price: 300, level: 3, building: true, does: 'Sell from your own stand: everything you sell is worth 1 coin more.' },
+  { id: 'strong', icon: '🧱', name: 'Strong fence', price: 80, stars: 8, level: 2, building: true, does: 'Fence repairs last two weeks instead of one.' },
+  { id: 'hive', icon: '🐝', name: 'Beehive', price: 120, stars: 10, level: 2, building: true, does: 'Busy bees make a jar of honey every 3 days you feed your animals. Honey sells for 8!' },
+  { id: 'dog', icon: '🐕', name: 'Farm dog', price: 200, stars: 20, level: 2, building: true, does: 'A loyal farm dog. The fox never comes near your farm again, even if the fence breaks.' },
+  { id: 'pond', icon: '💧', name: 'Duck pond', price: 160, stars: 15, level: 2, building: true, needsDuck: true, does: 'Happy ducks lay 2 eggs a day.' },
+  { id: 'calf', icon: '🐮', name: 'Calf', price: 350, stars: 30, level: 3, does: 'Grows into a cow that gives milk, and one day has a calf of her own.' },
+  { id: 'orchard', icon: '🍎', name: 'Apple orchard', price: 250, stars: 25, level: 3, building: true, does: 'Three apple trees: 2 apples every day you feed your animals. Apples sell for 3.' },
+  { id: 'stand', icon: '🏪', name: 'Farm stand', price: 300, stars: 30, level: 3, building: true, does: 'Sell from your own stand: everything you sell is worth 1 coin more.' },
   { id: 'bottles', icon: '🍼', name: 'Milk bottles', price: 20, level: 3, building: true, tool: true, does: 'You need these to milk your cow. Every bottle of milk sells for 5 coins.' },
-  { id: 'barn', icon: '🛖', name: 'Big barn', price: 500, level: 4, building: true, does: 'Room for 14 small animals, 4 sheep, 3 cows and 2 dinosaurs.' },
-  { id: 'pony', icon: '🐴', name: 'Pony', price: 600, level: 4, building: true, does: 'Your very own pony! Tap it to go for a gallop around the farm.' },
-  { id: 'mill', icon: '⚙️', name: 'Windmill', price: 700, level: 4, needs: 'barn', building: true, does: 'Grinds feed: small animals eat free, and everyone else costs 1 coin less.' },
-  { id: 'house', icon: '🏡', name: 'Farmhouse', price: 1200, level: 4, needs: 'mill', building: true, does: 'A cosy farmhouse for your farm family. Next dream: the big beautiful farmhouse!' },
-  { id: 'manor', icon: '🏰', name: 'Big beautiful farmhouse', price: 3000, level: 4, needs: 'house', building: true, does: 'The ultimate dream: a big, beautiful farmhouse with a porch, flowers and a light in every window. 🎉' },
-  { id: 'dinoegg', icon: '🦕', name: 'Dinosaur egg', price: 1500, level: 4, does: 'Very rare and very special: a real baby dinosaur for your farm!' },
+  { id: 'barn', icon: '🛖', name: 'Big barn', price: 500, stars: 50, level: 4, building: true, does: 'Room for 14 small animals, 4 sheep, 3 cows and 2 dinosaurs.' },
+  { id: 'pony', icon: '🐴', name: 'Pony', price: 600, stars: 50, level: 4, building: true, does: 'Your very own pony! Tap it to go for a gallop around the farm.' },
+  { id: 'mill', icon: '⚙️', name: 'Windmill', price: 700, stars: 70, level: 4, needs: 'barn', building: true, does: 'Grinds feed: small animals eat free, and everyone else costs 1 coin less.' },
+  { id: 'house', icon: '🏡', name: 'Farmhouse', price: 1200, stars: 120, level: 4, needs: 'mill', building: true, does: 'A cosy farmhouse for your farm family. Next dream: the big beautiful farmhouse!' },
+  { id: 'manor', icon: '🏰', name: 'Big beautiful farmhouse', price: 3000, stars: 300, level: 4, needs: 'house', building: true, does: 'The ultimate dream: a big, beautiful farmhouse with a porch, flowers and a light in every window. 🎉' },
+  { id: 'dinoegg', icon: '🦕', name: 'Dinosaur egg', price: 1500, stars: 150, level: 4, does: 'Very rare and very special: a real baby dinosaur for your farm!' },
 ];
 
 const LEVELS = [null,
@@ -157,6 +159,8 @@ export function createFarm(ctx) {
     return f;
   };
   const balance = (id) => ctx.earned(id) + farmOf(id).sold - farmOf(id).spent;
+  const starsLeft = (id) => Math.max(0, ctx.stars(id) - (farmOf(id).starsSpent || 0));
+  const starText = (it) => (it.stars ? ` + ⭐ ${it.stars}` : '');
   const save = () => ctx.kvSet('farms', state.farms);
   const today = () => ctx.todayKey();
 
@@ -340,7 +344,7 @@ export function createFarm(ctx) {
     const value = goods.reduce((s, [g, n]) => s + priceOf(f, g) * n, 0);
     const canHatch = (f.basket.egg || 0) > 0 && f.nest.length < 2 && roomFor(f, 'chicken');
     return `
-      <div class="farm-coins">🪙 <b>${coins}</b></div>
+      <div class="farm-coins">🪙 <b>${coins}</b> <span class="farm-stars">⭐ ${starsLeft(k.id)}</span></div>
       ${goalHTML(k, f, coins)}
       <div class="farm-level">
         <div>${lv.icon} <b>${lv.name}</b></div>
@@ -391,13 +395,17 @@ export function createFarm(ctx) {
     return id && SHOP.find((x) => x.id === id);
   }
 
+  function goalPct(k, it, coins) { return Math.min(1, Math.max(0, coins) / it.price, it.stars ? starsLeft(k.id) / it.stars : 1); }
+  function goalBar(k, it, coins, pct) {
+    return `<div class="farm-bar"><i style="width:${Math.round(pct * 100)}%"></i><span>🪙 ${Math.min(Math.max(0, coins), it.price)} / ${it.price}${it.stars ? ` · ⭐ ${Math.min(starsLeft(k.id), it.stars)} / ${it.stars}` : ''}</span></div>`;
+  }
   function goalHTML(k, f, coins) {
     const it = goalItem(f);
     if (!it) return '';
-    const pct = Math.min(1, Math.max(0, coins) / it.price);
+    const pct = goalPct(k, it, coins);
     return `<div class="farm-goal ${pct >= 1 ? 'ready' : ''}">
       <span>${pct >= 1 ? '✅ You can buy' : 'Saving for'} ${it.icon} ${it.name}</span>
-      <div class="farm-bar"><i style="width:${Math.round(pct * 100)}%"></i><span>${Math.min(Math.max(0, coins), it.price)} / ${it.price}</span></div></div>`;
+      ${goalBar(k, it, coins, pct)}</div>`;
   }
 
   function bodyHTML(k) {
@@ -414,7 +422,7 @@ export function createFarm(ctx) {
     const hungry = f.animals.filter((a) => a.fedDay !== today()).length;
     const value = Object.entries(f.basket).reduce((s, [g, n]) => s + priceOf(f, g) * n, 0);
     const it = goalItem(f);
-    const pct = it ? Math.min(1, Math.max(0, coins) / it.price) : 0;
+    const pct = it ? goalPct(k, it, coins) : 0;
     const shown = f.animals.slice(0, 10);
     return `
       <div class="farm-mini">
@@ -432,7 +440,7 @@ export function createFarm(ctx) {
           ${f.fenceDays <= 2 && f.animals.length ? `<button class="farm-btn warn" data-action="farm-buy" data-item="repair">🪵 Fix the fence 🪙 ${SHOP.find((x) => x.id === 'repair').price}</button>` : ''}
           ${it ? `<div class="farm-goal ${pct >= 1 ? 'ready' : ''}">
             <span>${pct >= 1 ? '✅' : 'Saving for'} ${it.icon} ${it.name}</span>
-            <div class="farm-bar"><i style="width:${Math.round(pct * 100)}%"></i><span>${Math.min(Math.max(0, coins), it.price)} / ${it.price}</span></div>
+            ${goalBar(k, it, coins, pct)}
             ${pct >= 1 ? `<button class="farm-btn buy" data-action="farm-buy" data-item="${it.id}">Buy it! 🪙 ${it.price}</button>` : ''}
           </div>` : ''}
         </div>
@@ -607,8 +615,11 @@ export function createFarm(ctx) {
     const f = farmOf(k.id);
     const hungry = f.animals.filter((a) => a.fedDay !== today()).sort((a, b) => grown(a) - grown(b));
     const msgs = [];
+    // Your animals work as hard as you do: on a day without jobs done, they eat and grow but make nothing.
+    const worked = ctx.worked(k.id);
+    if (!worked && hungry.length) msgs.push('😴 Your animals are resting today. They work on days you do your jobs!');
     // Gardens, orchard and bees: once a day, when the animals are fed.
-    if (hungry.length && f.prodDay !== today()) {
+    if (worked && hungry.length && f.prodDay !== today()) {
       f.prodDay = today();
       if (f.built.veg) { f.feedPacks += 2; msgs.push('🥕 Your vegetable patch grew 2 free feeds!'); }
       if (f.built.orchard) { f.basket.apple = (f.basket.apple || 0) + 2; msgs.push('🍎 You picked 2 apples!'); }
@@ -630,6 +641,7 @@ export function createFarm(ctx) {
         if (grown(a)) msgs.push(`Your ${kind.baby.toLowerCase()} grew into a ${kind.name.toLowerCase()}!`);
         continue;
       }
+      if (!worked) continue;
       if (a.type === 'chicken') {
         if (Math.random() < (hasGrown(f, 'lizard') ? 0.15 : 0) + (hasGrown(f, 'dino') ? 0.15 : 0)) { f.basket.golden = (f.basket.golden || 0) + 1; msgs.push('A golden egg! 🌟'); }
         else f.basket.egg = (f.basket.egg || 0) + 1;
@@ -719,7 +731,8 @@ export function createFarm(ctx) {
     const f = farmOf(k.id);
     const coins = balance(k.id);
     return `
-      <div class="shop-head"><h2>🛒 Farm shop</h2><span class="farm-coins">🪙 <b>${coins}</b></span><button class="farm-btn small" data-close>Close</button></div>
+      <div class="shop-head"><h2>🛒 Farm shop</h2><span class="farm-coins">🪙 <b>${coins}</b> <span class="farm-stars">⭐ ${starsLeft(k.id)}</span></span><button class="farm-btn small" data-close>Close</button></div>
+      <p class="star-note">⭐ Job stars come from doing your jobs (1 star for each job). Big things need stars too!</p>
       <div class="shop-list">
         ${SHOP.map((it) => {
           const locked = f.level < it.level;
@@ -737,7 +750,7 @@ export function createFarm(ctx) {
           return `<div class="shop-item ${locked ? 'locked' : ''}">
             <span class="shop-icon">${it.icon}</span>
             <div><b>${it.name}</b><small>${it.does}</small></div>
-            <button class="farm-btn small" data-buy="${it.id}" ${reason || coins < it.price ? 'disabled' : ''}>${reason || `🪙 ${it.price}`}</button>
+            <button class="farm-btn small" data-buy="${it.id}" ${reason || coins < it.price || starsLeft(k.id) < (it.stars || 0) ? 'disabled' : ''}>${reason || `🪙 ${it.price}${starText(it)}`}</button>
           </div>`;
         }).join('')}
       </div>`;
@@ -760,7 +773,9 @@ export function createFarm(ctx) {
           x.classList.remove('armed');
         });
         const btn = el.querySelector(`[data-buy="${id}"]`);
-        ctx.speak(`${it.name}. ${it.does} ${btn.disabled ? btn.textContent : it.price > 0 ? `It costs ${it.price} coins. Tap again to buy.` : 'Tap again to sell.'}`, true);
+        const cost = `${it.price} coins${it.stars ? ` and ${it.stars} job stars` : ''}`;
+        const short = it.stars && starsLeft(k.id) < it.stars ? ` You need ${it.stars - starsLeft(k.id)} more job stars: do some jobs!` : '';
+        ctx.speak(`${it.name}. ${it.does} ${btn.disabled ? `It costs ${cost}.${short}` : it.price > 0 ? `It costs ${cost}. Tap again to buy.` : 'Tap again to sell.'}`, true);
         if (!btn.disabled) { btn.classList.add('armed'); btn.dataset.label = btn.innerHTML; btn.innerHTML = 'Tap again ✓'; }
         return;
       }
@@ -789,8 +804,13 @@ export function createFarm(ctx) {
       ctx.speak(`You need ${it.price - balance(k.id)} more coins. Do some jobs to earn them!`, true);
       return ctx.toast(`🪙 You need ${it.price - balance(k.id)} more coins for the ${esc(it.name.toLowerCase())}.`);
     }
+    if (it.stars && starsLeft(k.id) < it.stars) {
+      ctx.speak(`You need ${it.stars - starsLeft(k.id)} more job stars. Every job you do gives you a star!`, true);
+      return ctx.toast(`⭐ You need ${it.stars - starsLeft(k.id)} more job stars for the ${esc(it.name.toLowerCase())}. Every job = 1 star.`);
+    }
     if (it.building && f.built[id]) return;
     f.spent += it.price;
+    f.starsSpent = (f.starsSpent || 0) + (it.stars || 0);
     save();
     SOUNDS.coins();
     if (id === 'egg') await hatchMystery(f);
@@ -859,5 +879,5 @@ export function createFarm(ctx) {
     }
   }
 
-  return { bodyHTML, miniHTML, tallyHTML, goalText, previewIcons, hungryCount, balance, action, opened, farmOf, catchUp: (id) => catchUp(farmOf(id), today()) };
+  return { starsLeft, bodyHTML, miniHTML, tallyHTML, goalText, previewIcons, hungryCount, balance, action, opened, farmOf, catchUp: (id) => catchUp(farmOf(id), today()) };
 }

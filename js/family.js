@@ -167,6 +167,16 @@ function dayCoins(settings, kid, day, fam) {
   return items;
 }
 
+// ⭐ Job stars: one for every job done that day (morning, after-dinner, bedtime, confirmed extras).
+// Stars only come from chores, never from selling, and big farm things cost stars as well as coins.
+function dayStars(settings, kid, day) {
+  if (!day) return 0;
+  const plan = planOf(settings, kid, day);
+  return plan.habits.filter((h) => day.done?.[h.id]).length
+    + [...plan.house, ...plan.bedtime].filter((h) => day.nightDone?.[h.id]).length
+    + Object.keys(day.extras || {}).length;
+}
+
 const dayComplete = (settings, kid, day) => {
   if (!day) return false;
   const plan = planOf(settings, kid, day);
@@ -179,11 +189,14 @@ export function summarize(settings, days, dinners, today) {
   (byDay[today] ||= {});
   const fam = familyNights(settings, byDay, dinners);
   const coins = {};
+  const stars = {};
   const todayCoins = {};
   const streak = {};
   for (const k of settings.kids) {
     coins[k.id] = 0;
+    stars[k.id] = 0;
     for (const key of Object.keys(byDay)) {
+      stars[k.id] += dayStars(settings, k, byDay[key][k.id]);
       const items = dayCoins(settings, k, byDay[key][k.id], fam[key]);
       const sum = items.reduce((a, b) => a + b.coins, 0);
       coins[k.id] += sum;
@@ -195,7 +208,7 @@ export function summarize(settings, days, dinners, today) {
     while (dayComplete(settings, k, byDay[key]?.[k.id])) { n++; key = addDays(key, -1); }
     streak[k.id] = n;
   }
-  return { coins, todayCoins, streak, family: fam[today] };
+  return { coins, stars, todayCoins, streak, family: fam[today] };
 }
 
 export function fmtMinutes(msVal) {

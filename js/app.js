@@ -192,7 +192,16 @@ const farm = createFarm({
   state, esc, kid: (id) => kid(id), todayKey: () => todayKey(), kvSet, earned: (id) => (state.sum?.coins[id] || 0) + (state.coinAdjust || []).filter((a) => a.kidId === id).reduce((n, a) => n + a.n, 0),
   speak: (...a) => speak(...a), unlockAudio: () => unlockAudio(), tone: (fn) => tone(fn), pop: (...a) => pop(...a),
   chime: () => chime(), burst: (...a) => burst(...a), toast: (h) => toast(h), renderKid: () => renderKid(),
+  stars: (id) => state.sum?.stars?.[id] || 0, worked: (id) => workedToday(kid(id), state.days?.[id]),
 });
+// "Your animals work as hard as you do": the farm only produces on days a routine is finished
+// (all morning jobs, or all after-dinner jobs) or at least two extra jobs were done.
+function workedToday(k, d) {
+  if (!k || !d) return false;
+  if (doneCount(k, d, 'morning') === listFor(k, 'morning').length) return true;
+  if (houseJobsFor(state.settings, k).length && nightFinishedAt(state.settings, k, d)) return true;
+  return Object.keys(d.extras || {}).length >= 2;
+}
 const portal = createPortal({
   state, esc, kid: (id) => kid(id), clock, todayKey: () => todayKey(), loadDay, dayPut, kvSet, refreshSummary: () => refreshSummary(),
   coinsOf: (id) => coinsOf(id), flyCoins: (...a) => flyCoins(...a), speak: (...a) => speak(...a), toast: (h) => toast(h),
@@ -777,7 +786,7 @@ function renderFarmScreen(k) {
         <div class="hello"><h1>🐔 ${esc(k.name)}'s farm</h1><p>Feed your animals, sell what they make, and grow your farm!</p></div>
         <div class="chips">
           <div class="session-chip" title="Farm time left">⏳ ${clock.fmtDuration(sessionLeft(k.id))}</div>
-          <div class="coin-chip">🪙 ${coinsOf(k.id)} · 🔥 ${streakOf(k.id)}</div>
+          <div class="coin-chip">🪙 ${coinsOf(k.id)} · ⭐ ${farm.starsLeft(k.id)} · 🔥 ${streakOf(k.id)}</div>
         </div>
         <button class="btn mine-mini" data-action="mine" aria-label="Mine (a grown-up opens it)">⛏${mineOpenLeft() ? '' : '🔑'}</button>
         <button class="btn speak ${readAloudOn() ? 'on' : ''}" data-action="toggle-speak" aria-pressed="${readAloudOn()}" aria-label="Read aloud">${readAloudOn() ? '🔊' : '🔇'}</button>
