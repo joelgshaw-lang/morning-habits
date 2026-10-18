@@ -324,6 +324,22 @@ const farmLockText = (k) => {
   return r === 'night' ? '🔒 Farm after your after-dinner jobs' : r === 'extras' ? '🔒 Farm after your morning jobs or an extra job' : '🔒 Farm after your jobs';
 };
 
+// At night the farm is a reward: finish the after-dinner chores, press the button, and it opens for
+// 3 minutes before bedtime. It's one visit per night and doesn't use up the daytime visits.
+const nightFarmReady = (k, d) => defaultTab() === 'night' && !d.nightFarm && !!nightFinishedAt(state.settings, k, d)
+  && clock.now() < clock.atTime(state.settings.nightClose, state.settings.dayStartHour);
+
+async function openNightFarm(id) {
+  unlockAudio();
+  const k = kid(id);
+  const d = state.days[id];
+  if (!nightFarmReady(k, d)) return;
+  if (!(await askKidCode(id))) return;
+  d.nightFarm = clock.now().toISOString();
+  await dayPut(d);
+  enterFarm(k, false);
+}
+
 async function openFarm(id, { grown = false } = {}) {
   unlockAudio();
   const k = kid(id);
@@ -727,6 +743,7 @@ function columnHTML(k, d, r) {
     main = `<div class="all-done-card"><div class="big">${r === 'night' ? '🌙' : '🏆'}</div><h2>${r === 'night' ? 'All done. Sleep tight!' : 'All done!'}</h2></div>`;
   } else {
     main = `${r === 'night' && d.nightStartedAt ? nightTimerHTML(k, d) : ''}
+      ${nightFarmReady(k, d) ? `<button class="night-reward" data-action="night-farm"><span>🎉 Night chores done!</span><b>🐔 Open my farm · 3 min</b><small>Then get ready for bed</small></button>` : ''}
       ${r === 'night' ? `<div class="part-label">${isHouseJob(next) ? '🍽️ After-dinner job' : '🛁 Bedtime'}</div>` : ''}
       ${tileHTML(k, next, d, null, r).replace('class="tile', 'class="tile next-tile')}
       ${r === 'night' ? '' : `<div class="next-hint">${next.type === 'timer' ? 'Tap to start your prayer timer' : 'Do it, then hold here ✓'}</div>`}
@@ -734,11 +751,15 @@ function columnHTML(k, d, r) {
   }
   const locked = farmLocked(k, d);
   const left = visitsLeft(k.id);
-  const farmBtn = locked
-    ? `<div class="farm-lock">${farmLockText(k)}</div>`
-    : left > 0
-      ? `<button class="farm-open" data-action="open-farm">🐔 My farm <small>${left} left today</small></button>`
-      : `<div class="farm-lock">🌙 Farm again tomorrow</div>`;
+  const nightReady = nightFarmReady(k, d);
+  const farmBtn = r === 'night'
+    ? nightReady ? `<button class="farm-open" data-action="night-farm">🐔 Farm · 3 min 🎉</button>`
+      : d.nightFarm ? `<div class="farm-lock">🌙 Farm again tomorrow</div>` : `<div class="farm-lock">${farmLockText(k)}</div>`
+    : locked
+      ? `<div class="farm-lock">${farmLockText(k)}</div>`
+      : left > 0
+        ? `<button class="farm-open" data-action="open-farm">🐔 My farm <small>${left} left today</small></button>`
+        : `<div class="farm-lock">🌙 Farm again tomorrow</div>`;
   const breathsToday = d.breaths || 0;
   const towardSwing = (state.breathTotal?.[k.id] || 0) % BREATHS_PER_SWING;
   return `
@@ -904,6 +925,10 @@ function afterDone(habitId, allowUndo, r = 'morning') {
     speak(r === 'night' ? `${h.name}, done! Night routine finished. Sleep tight!` : `${h.name}, done! You finished everything. Amazing!`);
     allDoneMoment(r);
     state.autoHomeAt = Date.now() + ALL_DONE_HOME_MS;
+  } else if (r === 'night' && isHouseJob(h) && nightFarmReady(k, state.day)) {
+    pop(true);
+    speak(`Night chores done, ${k.name}! Tap the big button to see your farm for 3 minutes, then get ready for bed.`);
+    burst(app.querySelector(`[data-col="${k.id}"] .night-reward`), 24);
   } else {
     pop();
     const next = r === 'extras' ? null : nextJob(k, state.day, r);
@@ -1402,7 +1427,7 @@ document.addEventListener('click', async (e) => {
   const a = el.dataset.action;
   if (a.startsWith('dev-')) return devAction(a, el);
   const col = el.closest('[data-col]');
-  if (col && a !== 'open-farm') useKid(col.dataset.col);
+  if (col && a !== 'open-farm' && a !== 'night-farm') useKid(col.dataset.col);
   if (a.startsWith('farm-')) return farm.action(a, el);
   switch (a) {
     case 'open-farm': return openFarm(el.closest('[data-col]').dataset.col);
@@ -1410,6 +1435,7 @@ document.addEventListener('click', async (e) => {
     case 'reminders': return openReminders();
     case 'portal': return portal.open();
     case 'claim': return claimJob(el.dataset.job);
+    case 'night-farm': return openNightFarm(el.closest('[data-col]').dataset.col);
     case 'extras-sheet': return extrasSheet();
     case 'start-night': return startNight();
     case 'home': return goHome();

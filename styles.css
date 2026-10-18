@@ -831,6 +831,13 @@ svg.bld { width: 70px; height: 70px; }
 .job-pick.claimed { background: #fef3c7; }
 .job-pick.done { opacity: 0.5; }
 
+/* ----- night farm reward ----- */
+.night-reward { min-height: 120px; border: 0; border-radius: 22px; background: linear-gradient(135deg, #4f46e5, var(--kid)); color: #fff; box-shadow: var(--shadow);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font: inherit; animation: nudge 2s ease-in-out infinite; }
+.night-reward span { font-size: 18px; font-weight: 800; opacity: 0.9; }
+.night-reward b { font-size: 28px; }
+.night-reward small { font-size: 15px; opacity: 0.85; }
+
 /* ----- toast ----- */
 #toast {
   position: fixed;
