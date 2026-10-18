@@ -949,3 +949,22 @@ body.dev .screen { padding-bottom: 80px; }
 .ca-btns .ca.plus { background: #16a34a; }
 .ca-btns .ca.minus { background: #dc2626; }
 svg.bld.manor { width: 150px; height: 100px; }
+
+/* ---------- farm: zoomable world, new buildings, dog and pony ---------- */
+.farm-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; transition: transform 0.3s ease; }
+.farm-world.dragging { transition: none; }
+.zoom-btns { position: absolute; right: 10px; bottom: 10px; z-index: 6; display: flex; flex-direction: column; gap: 8px; }
+.zoom-btns button { width: 56px; height: 56px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.92); font-size: 24px; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2); }
+svg.bld.veg { width: 90px; height: 50px; }
+svg.bld.orchard { width: 120px; height: 72px; }
+svg.bld.stand { width: 74px; height: 66px; }
+.bld.hive-wrap { position: relative; width: 56px; height: 66px; }
+.bld.hive-wrap svg { width: 56px; height: 66px; }
+.bld.hive-wrap .bee { position: absolute; top: 0; left: 20px; font-size: 18px; animation: buzz 3s ease-in-out infinite; }
+@keyframes buzz { 0% { transform: translate(0, 0); } 25% { transform: translate(22px, -10px); } 50% { transform: translate(6px, -22px); } 75% { transform: translate(-16px, -8px); } 100% { transform: translate(0, 0); } }
+.farm-dog { position: absolute; left: 6%; bottom: 8px; font-size: 52px; animation: wag 0.9s ease-in-out infinite alternate; pointer-events: none; transform-origin: bottom center; }
+@keyframes wag { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
+.pony { position: absolute; left: 70%; bottom: 10px; font-size: 64px; border: 0; background: none; padding: 0; cursor: pointer; z-index: 2; }
+.pony.gallop { animation: gallop 2.6s ease-in-out; }
+@keyframes gallop { 0% { transform: translateX(0) scaleX(1); } 40% { transform: translateX(-55vw) scaleX(1) translateY(-6px); } 50% { transform: translateX(-55vw) scaleX(-1); } 90% { transform: translateX(0) scaleX(-1) translateY(-6px); } 100% { transform: translateX(0) scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .farm-dog, .bld.hive-wrap .bee, .pony.gallop { animation: none; } }

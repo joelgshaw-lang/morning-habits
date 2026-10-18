@@ -61,12 +61,14 @@ Each child can open their farm **twice a day for 3 minutes**, with their own cod
 
 | Stage | How to reach it | Unlocks | Typical day reached |
 |---|---|---|---|
-| 🐣 Little Coop | Start (free starter egg) | Mystery egg, fence repair, chicken coop (100: +4 small-animal room, hens safe from the fox) | Day 1 |
-| 🌾 Barnyard | 4 grown hens or ducks | Rare egg (90), mystery box (45), lamb (150), sheep shears (25, needed to shear), strong fence (80), duck pond (160, once you have a duck) | Day 8–10 |
-| 🐑 Big Farm | Shear your first wool | Calf (350), milk bottles (20, needed to milk) | Day 23–31 |
-| 🐄 Dream Farm | Grow a cow | Big barn (500), windmill (700: small animals eat free, others 1 coin cheaper), farmhouse (1200), 🏰 big beautiful farmhouse (3000, the ultimate goal), dinosaur egg (1500) | Day 41–49 |
+| 🐣 Little Coop | Start (free starter egg) | Mystery egg, fence repair, 🥕 vegetable patch (60: 2 free feeds a day), chicken coop (100: +4 small-animal room, hens safe from the fox) | Day 1 |
+| 🌾 Barnyard | 4 grown hens or ducks | Rare egg (90), mystery box (45), lamb (150), sheep shears (25, needed to shear), 🐝 beehive (120: a jar of honey worth 8 every 3 fed days), 🐕 farm dog (200: the fox never comes), strong fence (80), duck pond (160, once you have a duck) | Day 8–10 |
+| 🐑 Big Farm | Shear your first wool | Calf (350), milk bottles (20, needed to milk), 🍎 apple orchard (250: 2 apples worth 3 each fed day), 🏪 farm stand (300: everything sells for 1 more) | Day 23–31 |
+| 🐄 Dream Farm | Grow a cow | 🐴 Pony (600: tap it to gallop), big barn (500), windmill (700: small animals eat free, others 1 coin cheaper), farmhouse (1200), 🏰 big beautiful farmhouse (3000, the ultimate goal), dinosaur egg (1500) | Day 41–49 |
 
 **Farmhouse:** about 8 weeks for a keen child, 10 for an average child, 12 for a forgetful one. **Big beautiful farmhouse (3000):** about 4 more weeks for a keen child and 5–7 for an average one (job coins plus wool, milk and eggs, roughly 70–90 coins a day by then), so about 3–4 months in all. Farms that sheared or milked before shears and bottles existed get them free.
+
+**The farm view zooms:** as buildings and animals are added, the field becomes a bigger world that starts zoomed out to fit. Children can zoom in with ➕/➖ or a pinch, and drag to look around.
 
 **Grown-up coins:** the 🪙 Coins tab in the Grown-ups portal adds or takes away coins (never below zero), with a reason and a history. **Dinosaur egg:** about 2½, 3 and 4 months.
 
