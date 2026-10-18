@@ -57,7 +57,19 @@ const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 async function loadDay(kidId) {
   const id = `${todayKey()}|${kidId}`;
-  const rec = (await dayGet(id)) || { id, dayKey: todayKey(), kidId, done: {}, prayerAttempts: [] };
+  let rec = await dayGet(id);
+  if (!rec) {
+    rec = { id, dayKey: todayKey(), kidId, done: {}, prayerAttempts: [] };
+    // Jobs claimed yesterday but not checked yet move to today, so a grown-up can still say yes in the morning.
+    const yKey = clock.dayKey(new Date(clock.now().getTime() - 86400000), state.settings.dayStartHour);
+    const y = await dayGet(`${yKey}|${kidId}`);
+    if (y?.claims && Object.keys(y.claims).length) {
+      rec.claims = { ...y.claims };
+      y.claims = {};
+      await dayPut(y);
+      await dayPut(rec);
+    }
+  }
   rec.log ||= []; // every done/undo, so Stage 2 coins can't be farmed by tick-undo-tick
   rec.drops ||= []; // Fruit Tree: times this child stopped to pray
   rec.fruit ||= []; // Fruit Tree: moments planted
@@ -171,12 +183,13 @@ async function refreshSummary() {
   state.dinners = (await kvGet('dinners')) || {};
   const all = await dayAll();
   state.sum = summarize(state.settings, all, state.dinners, todayKey());
+  state.coinAdjust = (await kvGet('coinAdjust')) || []; // coins a grown-up added or took away in the portal
   state.breathTotal = {};
   for (const d of all) state.breathTotal[d.kidId] = (state.breathTotal[d.kidId] || 0) + (d.breaths || 0);
   if (!state.farms) state.farms = (await kvGet('farms')) || {};
 }
 const farm = createFarm({
-  state, esc, kid: (id) => kid(id), todayKey: () => todayKey(), kvSet, earned: (id) => state.sum?.coins[id] || 0,
+  state, esc, kid: (id) => kid(id), todayKey: () => todayKey(), kvSet, earned: (id) => (state.sum?.coins[id] || 0) + (state.coinAdjust || []).filter((a) => a.kidId === id).reduce((n, a) => n + a.n, 0),
   speak: (...a) => speak(...a), unlockAudio: () => unlockAudio(), tone: (fn) => tone(fn), pop: (...a) => pop(...a),
   chime: () => chime(), burst: (...a) => burst(...a), toast: (h) => toast(h), renderKid: () => renderKid(),
 });

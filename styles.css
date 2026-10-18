@@ -938,3 +938,14 @@ body.dev .screen { padding-bottom: 80px; }
 .mine-frame { position: fixed; inset: 0; z-index: 50; background: #1a110b; }
 .mine-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
 .tab.mine-tab { background: linear-gradient(135deg, #fde68a, #f59e0b); color: #5b3a00; }
+
+/* ---------- Grown-ups portal: add or take away coins ---------- */
+.coin-adjust { background: #fff; border: 3px solid var(--kid); border-radius: 22px; padding: 16px; margin: 12px 0; display: grid; gap: 12px; }
+.ca-balance { font-size: 26px; font-weight: 900; text-align: center; }
+.ca-why, .ca-btns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.ca-why button { border: 2px solid #e5e7eb; background: #f9fafb; border-radius: 14px; padding: 10px 14px; font: inherit; font-weight: 800; font-size: 16px; min-height: 48px; }
+.ca-why button.on { border-color: var(--kid); background: #fef3c7; }
+.ca-btns .ca { min-width: 92px; min-height: 64px; border: 0; border-radius: 18px; font: inherit; font-size: 24px; font-weight: 900; color: #fff; }
+.ca-btns .ca.plus { background: #16a34a; }
+.ca-btns .ca.minus { background: #dc2626; }
+svg.bld.manor { width: 150px; height: 100px; }

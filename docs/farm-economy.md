@@ -35,8 +35,8 @@ Extra chore prices: line up the shoes 1 · wipe the table, water plants, pack aw
 | 🦆 Duck | Mystery egg (20%) | 1 | 5 feeds | A duck egg (sells for 4); 2 a day with the pond |
 | 🦎 Lizard | Mystery egg (7%, rare) | 1 | 5 feeds | Hens sometimes lay a golden egg (sells for 10) |
 | 🐊 Crocodile | Mystery egg (2%, super rare) | 2 | 8 feeds | Foxes stay away |
-| 🐑 Sheep | Buy a lamb (150) or mystery box | 2 | 10 feeds | Wool grows each fed day; shear at 3 (sells for 10) |
-| 🐄 Cow | Buy a calf (350), mystery box, or born | 3 | 16 feeds | Milk each fed day (sells for 5); a calf every 14 milkings |
+| 🐑 Sheep | Buy a lamb (150) or mystery box | 2 | 10 feeds | Wool grows each fed day; shear at 3 with ✂️ sheep shears (sells for 10) |
+| 🐄 Cow | Buy a calf (350), mystery box, or born | 3 | 16 feeds | Milk each fed day with 🍼 milk bottles (sells for 5); a calf every 14 milkings |
 
 🥚 **Eggs:** Mystery egg 30 · 💎 Rare egg 90 (from Barnyard: duck 30%, lizard 25%, crocodile 20%, snake 10%, chicken 10%, dinosaur 5%) · 🦕 Dinosaur egg 1500 (Dream Farm).
 
@@ -61,12 +61,14 @@ Each child can open their farm **twice a day for 3 minutes**, with their own cod
 
 | Stage | How to reach it | Unlocks | Typical day reached |
 |---|---|---|---|
-| 🐣 Little Coop | Start (free starter egg) | Mystery egg, fence repair | Day 1 |
-| 🌾 Barnyard | 4 grown hens or ducks | Rare egg (90), mystery box (45), lamb (150), strong fence (80), duck pond (160, once you have a duck) | Day 8–10 |
-| 🐑 Big Farm | Shear your first wool | Calf (350) | Day 23–31 |
-| 🐄 Dream Farm | Grow a cow | Big barn (500), windmill (700: small animals eat free, others 1 coin cheaper), farmhouse (1200), dinosaur egg (1500) | Day 41–49 |
+| 🐣 Little Coop | Start (free starter egg) | Mystery egg, fence repair, chicken coop (100: +4 small-animal room, hens safe from the fox) | Day 1 |
+| 🌾 Barnyard | 4 grown hens or ducks | Rare egg (90), mystery box (45), lamb (150), sheep shears (25, needed to shear), strong fence (80), duck pond (160, once you have a duck) | Day 8–10 |
+| 🐑 Big Farm | Shear your first wool | Calf (350), milk bottles (20, needed to milk) | Day 23–31 |
+| 🐄 Dream Farm | Grow a cow | Big barn (500), windmill (700: small animals eat free, others 1 coin cheaper), farmhouse (1200), 🏰 big beautiful farmhouse (3000, the ultimate goal), dinosaur egg (1500) | Day 41–49 |
 
-**Farmhouse:** about 8 weeks for a keen child, 10 for an average child, 12 for a forgetful one. **Dinosaur egg:** about 2½, 3 and 4 months.
+**Farmhouse:** about 8 weeks for a keen child, 10 for an average child, 12 for a forgetful one. **Big beautiful farmhouse (3000):** about 4 more weeks for a keen child and 5–7 for an average one (job coins plus wool, milk and eggs, roughly 70–90 coins a day by then), so about 3–4 months in all. Farms that sheared or milked before shears and bottles existed get them free.
+
+**Grown-up coins:** the 🪙 Coins tab in the Grown-ups portal adds or takes away coins (never below zero), with a reason and a history. **Dinosaur egg:** about 2½, 3 and 4 months.
 
 ## The Mine (gems, separate from coins)
 

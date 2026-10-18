@@ -1,12 +1,12 @@
 // The Grown-ups portal (grown-up PIN): check jobs children have claimed, allocate after-dinner jobs,
-// change morning jobs, add extra jobs with your own prices, and open a child's farm or mine any time.
+// change morning jobs, add extra jobs with your own prices, add or take away coins, and open a child's farm or mine any time.
 
 const ICONS = ['⭐', '🧹', '🧽', '🧺', '🗑️', '🍽️', '🫧', '🪴', '🐶', '🚗', '📚', '🛏️', '👟', '🧸', '🪟', '🧼', '🍳', '👕', '🪥', '🎒'];
 const MORNING_IDEAS = [
   { name: 'Get dressed', icon: '👕' }, { name: 'Brush teeth', icon: '🪥' }, { name: 'Eat breakfast', icon: '🥣' },
   { name: 'Feed the pet', icon: '🐶' }, { name: 'Read', icon: '📚' }, { name: 'Pack lunch', icon: '🍎' },
 ];
-const TABS = [['check', '✅ Check jobs'], ['night', '🌙 Night jobs'], ['morning', '☀️ Morning jobs'], ['extras', '⭐ Extra jobs'], ['open', '🔓 Farm & mine']];
+const TABS = [['check', '✅ Check jobs'], ['coins', '🪙 Coins'], ['night', '🌙 Night jobs'], ['morning', '☀️ Morning jobs'], ['extras', '⭐ Extra jobs'], ['open', '🔓 Farm & mine']];
 
 export function createPortal(ctx) {
   const { state, esc } = ctx;
@@ -71,6 +71,36 @@ export function createPortal(ctx) {
       </div>`;
   }
 
+  // Add or take away coins by hand (a missed job, a kindness, a correction). Saved as a list, so it shows its history.
+  const WHY = ['⭐ Extra job', '💛 Kindness', '🧾 Owed from before', '↩️ Correction'];
+  let why = WHY[0];
+  function coinsTab() {
+    const k = ctx.kid(kidId);
+    const mine = (state.coinAdjust || []).filter((a) => a.kidId === kidId).slice(-8).reverse();
+    return `${kidChips()}
+      <div class="coin-adjust" style="--kid:${k.color}">
+        <div class="ca-balance">${k.avatar} ${esc(k.name)} has <b>🪙 <span class="coin-num">${ctx.coinsOf(kidId)}</span></b></div>
+        <div class="ca-why">${WHY.map((w) => `<button class="${w === why ? 'on' : ''}" data-why="${esc(w)}">${w}</button>`).join('')}</div>
+        <div class="ca-btns">${[-10, -5, -1].map((n) => `<button class="ca minus" data-adj="${n}">− ${-n}</button>`).join('')}${[1, 5, 10].map((n) => `<button class="ca plus" data-adj="${n}">+ ${n}</button>`).join('')}</div>
+      </div>
+      ${mine.length ? `<h3>Recent changes for ${esc(k.name)}</h3>${mine.map((a) => `<div class="claim-row"><span>${a.n > 0 ? '➕' : '➖'}</span><b>${a.n > 0 ? '+' : '−'}🪙 ${Math.abs(a.n)}</b><small>${esc(a.why)} · ${new Date(a.t).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}</small></div>`).join('')}` : ''}`;
+  }
+  async function adjustCoins(n, fromRect) {
+    const k = ctx.kid(kidId);
+    const before = ctx.coinsOf(kidId);
+    if (n < 0) n = Math.max(n, -before); // never below zero
+    if (!n) return ctx.toast(`${esc(k.name)} has no coins to take away.`);
+    state.coinAdjust = [...(state.coinAdjust || []), { kidId, n, why, t: ctx.clock.now().toISOString() }];
+    await ctx.kvSet('coinAdjust', state.coinAdjust);
+    await ctx.refreshSummary();
+    draw();
+    if (n > 0) {
+      await new Promise((r) => setTimeout(r, 60));
+      ctx.flyCoins(n, fromRect, el?.querySelector('.ca-balance .coin-num'), before);
+      ctx.speak(`${n} coin${n === 1 ? '' : 's'} for ${k.name}!`, true);
+    } else ctx.toast(`➖ Took away 🪙 ${-n} from ${esc(k.name)}.`);
+  }
+
   function nightTab() {
     const alloc = state.settings.nightAlloc ||= {};
     return `<p>After-dinner jobs: tap a child to give them the job (tap again to take it off). These are timed by “Start night chores”.</p>
@@ -109,7 +139,7 @@ export function createPortal(ctx) {
   }
 
   function draw() {
-    const body = { check: checkTab, night: nightTab, morning: morningTab, extras: extrasTab, open: openTab }[tab]();
+    const body = { check: checkTab, coins: coinsTab, night: nightTab, morning: morningTab, extras: extrasTab, open: openTab }[tab]();
     const html = `<div class="farm-sheet portal">
       <div class="portal-head"><h2>👨‍👩‍👧 Grown-ups</h2><button class="farm-btn small" data-close>Done</button></div>
       <nav class="portal-tabs">${TABS.map(([id, name]) => `<button class="${id === tab ? 'on' : ''}" data-tab="${id}">${name}</button>`).join('')}</nav>
@@ -179,6 +209,8 @@ export function createPortal(ctx) {
     if (ds.kid) { kidId = ds.kid; return draw(); }
     if (ds.icon && t.closest('.icon-pick')) { t.parentElement.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b === t)); return; }
     if (ds.confirm) return confirmClaim(kidId, ds.confirm, t.getBoundingClientRect());
+    if (ds.why) { why = ds.why; return draw(); }
+    if (ds.adj) return adjustCoins(Number(ds.adj), t.getBoundingClientRect());
     if (ds.reject) {
       const d = await ctx.loadDay(kidId);
       if (d.claims) delete d.claims[ds.reject];

@@ -102,6 +102,10 @@ Each child has a gem mine under a temple built on Jesus, the foundation (`mine.h
 - When a child uses their last swing of the day, a short read-aloud moment reminds them it's a game, but they will stand before God (2 Cor 5:10), and that they're safe on Jesus (1 Cor 3:11–14).
 - **The grown-up PIN** opens the mine for 20 minutes (then "⏰ Mine time is over" and back to the jobs), and guards the 👨‍👩‍👧 controls (unlocked for 15 minutes). Opening the mine doesn't unlock the grown-up controls.
 
+## Grown-ups: coins
+
+In **👨‍👩‍👧 Grown-ups** (PIN), the **🪙 Coins** tab adds or takes away coins for a child (−10 to +10 at a time, with a reason). Jobs a child claimed but nobody checked carry over to the next morning, so they can still be confirmed.
+
 ## Dev mode (fake the time)
 
 Open the app with `?dev=1` on the end of the URL (`?dev=0` turns it off). A black bar appears at the bottom:
