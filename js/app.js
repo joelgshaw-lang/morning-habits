@@ -468,7 +468,8 @@ async function claimJob(jobId) {
       await portal.confirmClaim(k.id, h.id);
       return;
     }
-    speak('Great! A grown-up will check it soon.');
+    speak(`Great! Your ${h.coins || 2} coins are waiting. A grown-up will check it soon.`);
+    toast(`⏳ 🪙 ${h.coins || 2} waiting: a grown-up checks your job, then the coins are yours.`);
     renderKid();
   });
 }
@@ -766,6 +767,7 @@ function columnHTML(k, d, r) {
     <div class="col" data-col="${k.id}" style="--kid:${k.color}">
       <div class="col-head">
         <span class="face">${k.avatar || '🙂'}</span><b>${esc(k.name)}</b>
+        ${(() => { const w = Object.keys(d.claims || {}).reduce((t, id) => t + (listFor(k, 'extras').find((c) => c.id === id)?.coins || 2), 0); return w ? `<span class="col-waiting" title="Coins waiting for a grown-up to check">⏳ +${w}</span>` : ''; })()}
         <span class="col-coins">🪙 <span class="coin-num">${coinsOf(k.id)}</span> · 🔥 ${streakOf(k.id)}${asked ? ` · 🔔 ${asked}` : ''}</span>
       </div>
       <div class="col-main">${main}</div>
@@ -983,7 +985,9 @@ function flyCoins(amount, fromRect, targetEl, startValue) {
 // Celebrate coins just earned: night jobs done, bedtime bonus, and the family win.
 function coinNews(before) {
   const id = state.kidId;
-  const gained = coinsOf(id) - (before?.coins[id] || 0);
+  // Compare earned-before with earned-after. (Comparing the spendable balance, which includes farm
+  // spending and sales, with earned-before made this 0 or less for anyone who had spent coins.)
+  const gained = (state.sum?.coins[id] || 0) - (before?.coins[id] || 0);
   const famWon = state.sum?.family?.win && !before?.family?.win;
   const had = new Set((before?.todayCoins[id] || []).map((c) => c.why));
   const fresh = (state.sum.todayCoins[id] || []).filter((c) => !had.has(c.why)).map((c) => c.why);
@@ -992,7 +996,7 @@ function coinNews(before) {
   if (gained > 0) {
     const target = app.querySelector(`[data-col="${id}"] .coin-num`) || app.querySelector('.coin-chip');
     flyCoins(gained, state.coinFrom, target?.classList.contains('coin-num') ? target : null, coinsOf(id) - gained);
-    setTimeout(() => toast(`<span>🪙 +${gained} coins! ${fresh.join(' · ')}${note ? `<br>${note}` : ''}</span>`), 600);
+    setTimeout(() => toast(`<span>🪙 +${gained} coin${gained === 1 ? '' : 's'}! ${fresh.join(' · ')}${note ? `<br>${note}` : ''}</span>`), 600);
   }
   if (famWon) setTimeout(familyWinMoment, 3700);
 }
