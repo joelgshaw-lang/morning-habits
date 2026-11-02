@@ -11,8 +11,6 @@ const baseHabits = (chore) => [
 // The night has two parts: after-dinner house jobs (allocated per child, timed by "Start night chores"),
 // then this bedtime list. Toilet, teeth and in bed by bedtime earn the bedtime bonus.
 const nightHabits = () => [
-  { id: 'room', name: 'Tidy my room', icon: '🧺' },
-  { id: 'bag', name: 'Pack my bag', icon: '🎒' },
   { id: 'shower', name: 'Bath or shower', icon: '🛁' },
   { id: 'pjs', name: 'Pyjamas on', icon: '👕' },
   { id: 'teeth', name: 'Brush teeth', icon: '🪥' },
@@ -22,7 +20,7 @@ const nightHabits = () => [
 
 // Bump version when adding fields; app.js fills missing fields into saved settings.
 export const DEFAULT_SETTINGS = {
-  version: 9,
+  version: 10,
   windowOpen: '06:30',
   windowClose: '07:30',
   nightOpen: '18:00',

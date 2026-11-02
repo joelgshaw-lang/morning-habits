@@ -7,7 +7,9 @@ export const COINS = {
   morningOnTime: 2, // each morning job done by the end of the morning window…
   morningLate: 1,   // …or later that day
   morningAll: 3,    // every morning job done on time
-  earlyStart: [['06:45', 4], ['07:00', 3], ['07:15', 2]], // starting the morning by these times
+  firstThing: 20,   // every morning job done first thing: within 45 minutes of starting, no reminders, started by 7:30
+  firstThingMin: 45,
+  before7: 5,       // started the morning before 7:00
   nightJob: 1,      // each night job
   startMax: 4,      // start night jobs within 5 minutes of "Dinner's finished"…
   startStep: 1,     // …then 1 fewer coin for every 5 minutes of waiting
@@ -138,9 +140,12 @@ function dayCoins(settings, kid, day, fam) {
   if (morning.length > onTime) items.push({ coins: (morning.length - onTime) * COINS.morningLate, why: 'Morning jobs done late' });
   if (onTime === plan.habits.length) items.push({ coins: COINS.morningAll, why: 'Whole morning on time' });
   const began = morningStart(day);
-  const early = began && COINS.earlyStart.find(([t]) => began <= onDay(day.dayKey, t));
-  if (early) items.push({ coins: early[1], why: `Started by ${early[0].replace(/^0/, '')}` });
+  if (began && began < onDay(day.dayKey, '07:00')) items.push({ coins: COINS.before7, why: 'Started before 7am' });
   const reminded = (r) => (day.reminders || []).filter((x) => x.routine === r).length;
+  if (began && began <= close && morning.length === plan.habits.length && plan.habits.length && !reminded('morning')
+    && Math.max(...morning.map((h) => ms(day.done[h.id]))) - began <= COINS.firstThingMin * 60000) {
+    items.push({ coins: COINS.firstThing, why: 'Morning jobs first thing, no delay' });
+  }
   if (onTime === plan.habits.length && !reminded('morning')) items.push({ coins: COINS.noReminders, why: 'Morning with no reminders' });
   const house = plan.house.filter((h) => day.nightDone?.[h.id]);
   const houseCoins = house.reduce((a, h) => a + (h.coins || 2), 0);

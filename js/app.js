@@ -1,7 +1,7 @@
 import { openDB, kvGet, kvSet, dayGet, dayPut, dayDelete, dayAll } from './db.js';
 import * as clock from './clock.js';
 import { DEFAULT_SETTINGS, BREATHS_PER_SWING, BREATHS_PER_DAY } from './config.js';
-import { summarize, startOffer, startCoins, fmtMinutes, nightFinishedAt, houseJobsFor, planFor, COINS, EXTRAS_DAY_CAP } from './family.js';
+import { summarize, startOffer, startCoins, fmtMinutes, nightFinishedAt, morningStart, houseJobsFor, planFor, COINS, EXTRAS_DAY_CAP } from './family.js';
 import { createPortal } from './portal.js';
 import { createFarm } from './farm.js';
 import { askPin } from './pinpad.js';
@@ -703,11 +703,24 @@ function tileCoins(h, r) {
 // A peek at the child's farm, with a button to go there.
 const nextJob = (k, d, r) => listFor(k, r).find((h) => !mapFor(d, r)[h.id]);
 
-// What starting the morning right now is worth.
+// What starting the morning right now is worth: 🪙 5 before 7am, and 🪙 20 for doing it all first thing.
 function earlyOffer() {
   const s = state.settings;
-  const hit = COINS.earlyStart.find(([t]) => clock.now() <= clock.atTime(t, s.dayStartHour));
-  return hit ? `Start now for 🪙 ${hit[1]} (by ${clock.fmtTime(clock.atTime(hit[0], s.dayStartHour))})` : '';
+  const now = clock.now();
+  if (now > clock.atTime(s.windowClose, s.dayStartHour)) return '';
+  const all = `all done in ${COINS.firstThingMin} min = 🪙 ${COINS.firstThing}`;
+  return now < clock.atTime('07:00', s.dayStartHour) ? `Start before 7 for 🪙 ${COINS.before7} · ${all}` : `Start now: ${all}`;
+}
+
+// Under the next morning job: the time to beat for the "first thing, no delay" bonus.
+function morningGoalHTML(d) {
+  const s = state.settings;
+  const began = morningStart(d) || (d.startedAt ? new Date(d.startedAt).getTime() : null);
+  if (!began || began > clock.atTime(s.windowClose, s.dayStartHour).getTime()) return '';
+  if ((d.reminders || []).some((x) => x.routine === 'morning')) return '';
+  const by = began + COINS.firstThingMin * 60000;
+  if (nowMs() > by) return '';
+  return `<div class="morning-goal">⏱ All done by ${clock.fmtTime(new Date(by))} → 🪙 ${COINS.firstThing}</div>`;
 }
 
 // The family board: every child's next job side by side. No sign-in for chores: walk up, hold your job,
@@ -748,6 +761,7 @@ function columnHTML(k, d, r) {
       ${r === 'night' ? `<div class="part-label">${isHouseJob(next) ? '🍽️ After-dinner job' : '🛁 Bedtime'}</div>` : ''}
       ${tileHTML(k, next, d, null, r).replace('class="tile', 'class="tile next-tile')}
       ${r === 'night' ? '' : `<div class="next-hint">${next.type === 'timer' ? 'Tap to start your prayer timer' : 'Do it, then hold here ✓'}</div>`}
+      ${r === 'morning' ? morningGoalHTML(d) : ''}
       <div class="job-row">${list.filter((h) => r !== 'night' || isHouseJob(h) === isHouseJob(next) || state.undos[k.id]?.habitId === h.id).map((h) => tileHTML(k, h, d, null, r).replace('class="tile', `class="tile mini-tile ${h === next ? 'is-next' : ''}`)).join('')}</div>`;
   }
   const locked = farmLocked(k, d);
@@ -1101,7 +1115,7 @@ async function readySetGo() {
   await dayPut(state.day);
   renderKid();
   burst(app.querySelector('.tiles'), 20);
-  speak(`Let's go, ${k.name}!`);
+  speak(`Let's go, ${k.name}! Finish all your jobs in ${COINS.firstThingMin} minutes for ${COINS.firstThing} coins!`);
 }
 
 // ---------- press-and-hold tiles ----------
@@ -1502,6 +1516,8 @@ function migrate(s) {
       if (shower && shower.name === 'Shower or bath') shower.name = 'Bath or shower';
     }
   }
+  // v10: "Tidy my room" and "Pack my bag" are no longer bedtime jobs (past days keep their own list).
+  if ((s.version || 1) < 10) for (const k of s.kids) k.nightHabits = (k.nightHabits || []).filter((h) => h.id !== 'room' && h.id !== 'bag');
   // New default night jobs (toilet, in bed) join each child's saved night routine.
   for (const dk of DEFAULT_SETTINGS.kids) {
     const k = s.kids.find((x) => x.id === dk.id);

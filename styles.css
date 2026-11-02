@@ -666,6 +666,7 @@ svg.bld { width: 70px; height: 70px; }
 .col .tile.next-tile .tile-name { font-size: 32px; text-align: center; line-height: 1.1; }
 .col .tile.next-tile .tile-sub { font-size: 19px; }
 .col .next-hint { font-size: 17px; }
+.morning-goal { text-align: center; font-size: 16px; font-weight: 800; color: #15803d; background: #dcfce7; border-radius: 12px; padding: 4px 10px; margin: 2px auto; width: max-content; max-width: 100%; }
 .col .job-row { gap: 5px; }
 .col .tile.mini-tile { min-height: 64px; padding: 4px 2px; border-radius: 14px; border-width: 3px; }
 .col .tile.mini-tile .tile-icon { font-size: 28px; }
@@ -697,19 +698,14 @@ svg.bld { width: 70px; height: 70px; }
   .screen.board { height: auto; overflow: visible; }
 }
 
-/* ----- the surprise snake ----- */
+/* ----- the surprise snake (it boings out, wiggles, and stays on the farm) ----- */
 .snake-stage { position: relative; height: 180px; overflow: visible; }
 .snake-pop { position: absolute; left: 50%; top: 0; width: 170px; height: 170px; margin-left: -85px;
-  animation: snake-boing 0.9s cubic-bezier(.2, 1.8, .4, 1) both, snake-wiggle 0.35s ease-in-out 0.9s 4, snake-slither 2.2s ease-in 2.4s forwards; }
+  animation: snake-boing 0.9s cubic-bezier(.2, 1.8, .4, 1) both, snake-wiggle 0.35s ease-in-out 0.9s 4; }
 .snake-pop .art { width: 100%; height: 100%; }
-.snake-pop .tongue { animation: tongue 0.3s ease-in-out infinite alternate; transform-origin: 78px 60px; }
+.art .tongue { animation: tongue 0.3s ease-in-out infinite alternate; transform-origin: 78px 60px; }
 @keyframes snake-boing { 0% { transform: translateY(80px) scale(0.2); } 60% { transform: translateY(-30px) scale(1.15, 0.9); } 100% { transform: none; } }
 @keyframes snake-wiggle { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
-@keyframes snake-slither {
-  0% { transform: translateX(0); } 20% { transform: translateX(80px) translateY(-10px) rotate(6deg); }
-  40% { transform: translateX(200px) translateY(8px) rotate(-6deg); } 60% { transform: translateX(340px) translateY(-8px) rotate(6deg); }
-  100% { transform: translateX(110vw) rotate(0); opacity: 0.6; }
-}
 @keyframes tongue { from { transform: scaleY(0.4); } to { transform: scaleY(1.1); } }
 
 /* ----- coins flying in ----- */
