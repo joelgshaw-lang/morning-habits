@@ -515,7 +515,7 @@ svg.bld { width: 70px; height: 70px; }
 .animal.hop .body { animation: hop 0.5s ease; }
 .animal.eat .body { animation: hop 0.4s ease 2; }
 .fox { position: absolute; right: -4px; top: 45%; font-size: 52px; animation: peek 3s ease-in-out infinite; }
-.farm-panel { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.farm-panel { display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding-bottom: 8px; }
 .farm-coins { font-size: 34px; font-weight: 900; text-align: center; background: #fff; border-radius: 22px; box-shadow: var(--shadow); padding: 6px 12px; }
 .farm-goal { background: #fff; border-radius: 22px; box-shadow: var(--shadow); padding: 8px 12px; font-size: 18px; font-weight: 900; }
 .farm-goal .farm-bar { margin-top: 4px; background: #fef3c7; }
@@ -589,6 +589,7 @@ svg.bld { width: 70px; height: 70px; }
   .field { min-height: 340px; }
   .shop-item { grid-template-columns: 48px 1fr; }
   .shop-item .farm-btn { grid-column: span 2; }
+  .screen.tab-farm { height: auto; overflow: visible; }
 }
 
 /* ----- simple one-screen view ----- */
