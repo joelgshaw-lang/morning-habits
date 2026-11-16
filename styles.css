@@ -982,3 +982,5 @@ svg.bld.stand { width: 74px; height: 66px; }
 .voice-row b small { display: block; font-size: 15px; color: var(--muted); font-weight: 700; }
 .voice-row.on { outline: 3px solid #65a30d; }
 .voice-speeds { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0 10px; }
+.portal-time { margin-left: auto; margin-right: 12px; font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--muted); }
+.portal-time.soon { color: #b91c1c; }

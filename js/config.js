@@ -1,5 +1,7 @@
 // The grown-up PIN (6 digits) for the portal, reminders, confirming jobs and opening the mine.
 export const GROWN_PIN = '040910';
+// After the PIN, grown-up screens stay open this long, then ask for the PIN again.
+export const GROWN_MINUTES = 3;
 
 // Default family setup. Saved to IndexedDB on first run; grown-ups change it in the Grown-ups portal.
 

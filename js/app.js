@@ -268,7 +268,7 @@ function timesUp() {
   setTimeout(() => { el.remove(); timesUpShown = false; goHome(); }, 4000);
 }
 
-let grownUntil = 0; // after the grown-up PIN, a few minutes without asking again (e.g. several reminders in a row)
+let grownUntil = 0; // after the grown-up PIN, a minute without asking again (e.g. several reminders in a row)
 
 async function grownUp(note, grace = false) {
   if (grace && Date.now() < grownUntil) return true;

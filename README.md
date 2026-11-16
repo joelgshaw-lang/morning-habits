@@ -100,7 +100,7 @@ Each child has a gem mine under a temple built on Jesus, the foundation (`mine.h
 - Gems go in the treasure chest, into the temple (Altar → Chapel → Temple → Great Temple → City), or into recipes (buildings, pillars, braces, workshop upgrades) that unlock as the temple grows.
 - **🔥 The fire**: a grown-up holds the button in 👨‍👩‍👧 (the Sunday family moment). Wobbly props burn, tunnels cave in, and things built above can fall into the mine and need rescuing. A fireside talk and prayer follows.
 - When a child uses their last swing of the day, a short read-aloud moment reminds them it's a game, but they will stand before God (2 Cor 5:10), and that they're safe on Jesus (1 Cor 3:11–14).
-- **The grown-up PIN** opens the mine for 20 minutes (then "⏰ Mine time is over" and back to the jobs), and guards the 👨‍👩‍👧 controls (unlocked for 15 minutes). Opening the mine doesn't unlock the grown-up controls.
+- **The grown-up PIN (040910)** opens the mine for 20 minutes (then "⏰ Mine time is over" and back to the jobs), and guards the 👨‍👩‍👧 controls (unlocked for 3 minutes, then the PIN is needed again; the Grown-ups portal also closes after 3 minutes). Opening the mine doesn't unlock the grown-up controls.
 
 ## Farm: jobs stay essential
 

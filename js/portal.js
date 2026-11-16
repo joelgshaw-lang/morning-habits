@@ -1,3 +1,4 @@
+import { GROWN_MINUTES } from './config.js';
 import { voiceSettings, saveVoiceSettings, englishVoices, utterance, onVoicesReady } from './voice.js';
 
 // The Grown-ups portal (grown-up PIN): check jobs children have claimed, allocate after-dinner jobs,
@@ -15,6 +16,8 @@ export function createPortal(ctx) {
   let el = null;
   let tab = 'check';
   let kidId = null;
+  let expiresAt = 0;
+  let tick = null;
   const kids = () => state.settings.kids;
   const saveSettings = () => ctx.kvSet('settings', state.settings);
   const uid = (p) => `${p}${Date.now().toString(36)}`;
@@ -25,10 +28,20 @@ export function createPortal(ctx) {
     // Open on the first child with jobs waiting to be checked.
     const waiting = kids().find((k) => Object.keys(state.days[k.id]?.claims || {}).length);
     kidId = startKid || waiting?.id || kidId || kids()[0].id;
+    // Grown-up time runs out after GROWN_MINUTES, then the PIN is needed again.
+    expiresAt = Date.now() + GROWN_MINUTES * 60e3;
+    clearInterval(tick);
+    tick = setInterval(() => {
+      const left = expiresAt - Date.now();
+      if (left <= 0) { close(); return ctx.toast('🔒 Grown-up time is over. Enter the PIN to go back in.'); }
+      const t = el?.querySelector('.portal-time');
+      if (t) { t.textContent = `🔒 ${Math.floor(left / 60000)}:${String(Math.floor(left / 1000) % 60).padStart(2, '0')}`; t.classList.toggle('soon', left < 30000); }
+    }, 1000);
     draw();
   }
 
   function close() {
+    clearInterval(tick);
     el?.remove();
     el = null;
     ctx.endGrace(); // the next grown-up action asks for the PIN again
@@ -171,7 +184,7 @@ export function createPortal(ctx) {
   function draw() {
     const body = { check: checkTab, coins: coinsTab, night: nightTab, morning: morningTab, extras: extrasTab, open: openTab, voice: voiceTab }[tab]();
     const html = `<div class="farm-sheet portal">
-      <div class="portal-head"><h2>👨‍👩‍👧 Grown-ups</h2><button class="farm-btn small" data-close>Done</button></div>
+      <div class="portal-head"><h2>👨‍👩‍👧 Grown-ups</h2><span class="portal-time" title="Grown-up time left">🔒 ${GROWN_MINUTES}:00</span><button class="farm-btn small" data-close>Done</button></div>
       <nav class="portal-tabs">${TABS.map(([id, name]) => `<button class="${id === tab ? 'on' : ''}" data-tab="${id}">${name}</button>`).join('')}</nav>
       <div class="portal-body">${body}</div></div>`;
     if (!el) {

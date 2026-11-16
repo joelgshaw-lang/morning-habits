@@ -923,7 +923,14 @@ function bigReveal(artHref, scale, labelHTML, from, { soft = false, ms = 2800, h
 // ---------- grown-up PIN (same as the main app: GROWN_PIN in js/config.js) ----------
 const GROWN_PIN = '040910';
 let pinUntil = 0;
-// grace: entering the PIN keeps the grown-up controls open for 15 minutes. The mine gate passes grace=false,
+const GROWN_MS = 3 * 60e3; // same as GROWN_MINUTES in js/config.js
+let lockTimer = null;
+function lockGrownUps() {
+  pinUntil = 0;
+  const d = document.getElementById('drawer');
+  if (d.classList.contains('show')) { d.classList.remove('show'); caption('🔒 Grown-up time is over. Enter the PIN to go back in.', 2600); }
+}
+// grace: entering the PIN keeps the grown-up controls open for 3 minutes. The mine gate passes grace=false,
 // so opening the mine for a child never unlocks the grown-up controls too.
 function needPin(grace = true, note = '') {
   if (grace && Date.now() < pinUntil) return Promise.resolve(true);
@@ -936,7 +943,7 @@ function needPin(grace = true, note = '') {
     const show = () => { dots.textContent = '●'.repeat(entry.length) + '○'.repeat(LEN - entry.length); };
     show();
     document.getElementById('pinPad').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map((d) => d === '' ? '<span></span>' : `<button class="btn no" data-d="${d}">${d}</button>`).join('');
-    const done = (ok) => { ov('pinOv', false); document.getElementById('pinPad').onclick = null; if (ok && grace) pinUntil = Date.now() + 15 * 60e3; /* grown-up controls stay open for 15 minutes */ res(ok); };
+    const done = (ok) => { ov('pinOv', false); document.getElementById('pinPad').onclick = null; if (ok && grace) { pinUntil = Date.now() + GROWN_MS; clearTimeout(lockTimer); lockTimer = setTimeout(lockGrownUps, GROWN_MS); } /* grown-up controls stay open for 3 minutes */ res(ok); };
     document.getElementById('pinPad').onclick = (e) => {
       const b = e.target.closest('[data-d]'); if (!b) return;
       const d = b.dataset.d;
@@ -1864,7 +1871,7 @@ document.getElementById('chestBtn').onclick = () => openChest();
 document.getElementById('lensBtn').onclick = () => { if (!Object.values(S.plots).includes('bell')) return caption('🔔 Build a Bell Tower to see the fire’s path all week.<em>Open your treasure chest to find the recipe.</em>', 3200, 'joy'); lens = !lens; render(); caption(lens ? '👁 Danger lens on: the orange path is where the fire will run. Red falls in.' : '👁 Danger lens off.', 2600, 'joy'); };
 document.getElementById('lookBtn').onclick = () => { cam.ty = cam.ty > 5 ? 0 : Math.max(0, Math.min(maxY(), (S.mole.r - 5) * CH)); };
 document.getElementById('speakBtn').onclick = () => { S.readAloud = !S.readAloud; render(); if (S.readAloud) speak('Read aloud is on.', true); };
-document.getElementById('lockNow').onclick = () => { pinUntil = 0; document.getElementById('drawer').classList.remove('show'); caption('🔒 Locked.', 1500); };
+document.getElementById('lockNow').onclick = () => { pinUntil = 0; clearTimeout(lockTimer); document.getElementById('drawer').classList.remove('show'); caption('🔒 Locked.', 1500); };
 document.getElementById('grownBtn').onclick = async () => { if (await needPin()) document.getElementById('drawer').classList.add('show'); };
 document.getElementById('drawerClose').onclick = () => document.getElementById('drawer').classList.remove('show');
 if (EMBED) {
