@@ -13,20 +13,16 @@ const baseHabits = (chore) => [
   chore,
 ];
 
-// The night has two parts: after-dinner house jobs (allocated per child, timed by "Start night chores"),
-// then this bedtime list. Toilet, teeth and in bed by bedtime earn the bedtime bonus.
-const nightHabits = () => [
-  { id: 'shower', name: 'Bath or shower', icon: '🛁' },
-  { id: 'pjs', name: 'Pyjamas on', icon: '👕' },
-  { id: 'teeth', name: 'Brush teeth', icon: '🪥' },
-  { id: 'toilet', name: 'Go to the toilet', icon: '🚽' },
-  { id: 'inbed', name: 'In bed', icon: '🛌' },
-];
+// Night = the after-dinner house jobs only (allocated per child in the portal, timed by "Start night chores").
+// Bath, pyjamas, teeth, toilet and bed happen upstairs, after the child taps "🌙 Going up!" on the iPad.
+// Next morning a grown-up says how bedtime went ("Last night 🛏️"), which pays the bedtime bonus.
+const nightHabits = () => [];
 
 // Bump version when adding fields; app.js fills missing fields into saved settings.
 export const DEFAULT_SETTINGS = {
-  version: 10,
+  version: 11,
   windowOpen: '06:30',
+  startBy: '07:15', // start the morning by this time, or that morning's job coins are lost (job stars still count)
   windowClose: '07:30',
   nightOpen: '18:00',
   nightClose: '20:00', // bedtime for everyone
@@ -92,6 +88,7 @@ export const DEFAULT_SETTINGS = {
   ],
 };
 
-// Breath prayers: a child holds 🙏 on the board to log one. 10 of them = 1 mine swing.
-export const BREATHS_PER_SWING = 10;
-export const BREATHS_PER_DAY = 20;
+// Breath prayers: a child holds 🙏 on the board for one guided breath (about 5 seconds).
+// Up to 3 a day. They are time with God, so they give no coins and no pickaxe swings.
+export const BREATHS_PER_DAY = 3;
+export const BREATH_MS = 5000;

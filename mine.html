@@ -395,7 +395,10 @@ const GOOD = [
   { e: '🕊️', t: 'I stopped a fight or let it go', gem: 'sapphire' },
   { e: '⏳', t: 'I waited without whining', gem: 'chalcedony' },
   { e: '🤝', t: 'I helped without being asked', gem: 'emerald' },
-  { e: '🙋', t: 'I told the truth when it was hard', gem: 'chrysolite' },
+  // Goodness = doing good: giving back what isn't mine (Joel's meaning, same as the fruit check-in).
+  { e: '🫴', t: 'I gave back something that wasn’t mine', gem: 'chrysolite' },
+  // Faithfulness = keeping my word, and telling the truth (being someone people can trust).
+  { e: '🙋', t: 'I told the truth when it was hard', gem: 'jasper' },
   { e: '✋', t: 'I did what I said I’d do', gem: 'jasper' },
   { e: '🪶', t: 'I used a soft voice and gentle hands', gem: 'beryl' },
   { e: '😤', t: 'I calmed down when I was cross', gem: 'amethyst' },
@@ -411,12 +414,12 @@ const SORRY = [
   { e: '🗯️', t: 'I used unkind words', prop: 'stubble' },
   { e: '🤥', t: 'I wasn’t truthful', prop: 'wood' },
 ];
-const GOOD_EX = { 1: 'Said thank you without being reminded', 3: 'Helped a sibling finish their job', 5: 'Forgave someone who really hurt them, or gave up something they really wanted' };
+const GOOD_EX = { 1: 'Said thank you without being reminded', 3: 'Helped a sibling finish their job', 5: 'Gave up something they really wanted so someone else could have it' };
 const SORRY_EX = { 1: 'A grumpy word or an eye roll', 3: 'Yelled at a sibling or slammed a door', 5: 'Hurt someone on purpose, or a big lie' };
 const BURNS = ['wood', 'hay', 'stubble'];
 // Kid-sized meanings, shown when a gem appears: the fruit is God's work in them (1 Cor 3:6–7, Gal 5:22).
 const MEANING = { carnelian: 'putting others first', topaz: 'being glad in God and for others', sapphire: 'making and keeping things calm', chalcedony: 'waiting with a calm heart',
-  emerald: 'doing something nice for someone', chrysolite: 'doing right even when it’s hard', jasper: 'keeping your word', beryl: 'soft hands, soft words', amethyst: 'my body listens to me, not my mad feelings' };
+  emerald: 'doing something nice for someone', chrysolite: 'doing good: giving back what isn’t mine', jasper: 'keeping your word and telling the truth', beryl: 'soft hands, soft words', amethyst: 'my body listens to me, not my mad feelings' };
 const PROP_WORD = { wood: 'rotten wood', hay: 'mouldy hay', stubble: 'dry stubble' };
 const KIDS = [
   // fig: the little person who walks toward the light in the end-of-day recap.
@@ -983,7 +986,7 @@ function openCards(kind) {
   const logs = S.logs[S.day] || {};
   document.getElementById('cardGrid').innerHTML = pickList.map((a, i) => {
     const used = kind === 'good' && (logs[a.t] || 0) >= PER_CARD;
-    const tag = kind === 'good' ? (a.pray ? '🟨 breathe and pray' : a.spot ? '💌 tell them' : a.sib ? '🙌 for you both' : a.gem === 'hand' ? '🙌 helping hand' : a.gem === 'pearl' ? '⚪ pearl' : a.gem === 'gold' ? '🟨 gold' : a.gem === 'gospel' ? '❓ mystery gem' : `💎 ${GEMS[a.gem][0]}`) : '';
+    const tag = kind === 'good' ? (a.pray ? '🙏 breathe and pray' : a.spot ? '💌 tell them' : a.sib ? '🙌 for you both' : a.gem === 'hand' ? '🙌 helping hand' : a.gem === 'pearl' ? '⚪ pearl' : a.gem === 'gold' ? '🟨 gold' : a.gem === 'gospel' ? '❓ mystery gem' : `💎 ${GEMS[a.gem][0]}`) : '';
     return `<button class="tile ${kind === 'good' ? 'g' : 'b'} ${used ? 'done' : ''}" data-i="${i}"><span class="e">${a.e}</span>${a.t}<small>${used ? 'done twice today' : tag}</small></button>`;
   }).join('');
   document.getElementById('cardsOk').disabled = true;
@@ -1113,15 +1116,12 @@ function stopAndPray(a) {
       word.innerHTML = `${inhale ? 'Breathe in' : 'Breathe out'}<br><span style="color:#b07a00">${inhale ? b.in : b.out}</span>`;
       speak(inhale ? b.in : b.out, true);
     }, 400 + i * MS));
+    // A breath prayer gives no swing and no gold: praying is time with God, not a way to earn.
+    // (It isn't counted in the day's gem list either, so praying never uses up a gem.)
     timers.push(setTimeout(async () => {
       close();
-      const logs = S.logs[S.day] = S.logs[S.day] || {};
-      logs[a.t] = (logs[a.t] || 0) + 1;
-      S.swings += 1;
-      const spot = seedGem('gold', '🙏', 3);
-      render(); if (spot) aim(spot.r);
       chime([523, 659, 784, 1047]);
-      caption('🙏 Amen. God heard you. He loves talking with you.<em>Something golden is hidden by the mole. +1 ⛏</em>', 4200, 'joy');
+      caption('🙏 Amen. God heard you.<em>He loves talking with you.</em>', 4200, 'joy');
     }, 400 + BREATHS * 2 * MS));
   };
   ov('prayOv', true);
@@ -1189,7 +1189,15 @@ function firesideTalk() {
   });
 }
 
-function askRating(a, good) {
+// A good thing only makes a gem when a grown-up has seen it: the grown-up types the PIN, then picks the
+// stars with the child. (Saying sorry needs no PIN: owning up should always be easy.)
+// If the grown-up controls are already open (PIN typed in the last 3 minutes), it doesn't ask again.
+async function askRating(a, good) {
+  if (good && !(Date.now() < pinUntil) && !(await needPin(false, 'a grown-up gives the gem'))) {
+    caption(`${a.e} Show a grown-up!<em>Ask a grown-up to type the PIN and give your gem.</em>`, 3200, 'love');
+    speak('Ask a grown-up to give your gem.', true);
+    return null;
+  }
   return new Promise((res) => {
     document.getElementById('rateTitle').textContent = `${a.e} ${a.t}`;
     const icon = good ? '⭐' : '🪰';
@@ -1209,7 +1217,7 @@ function askRating(a, good) {
     document.getElementById('ownedBtn').onclick = () => chosen && finish({ n: chosen, how: 'owned' });
     document.getElementById('noticedBtn').onclick = () => chosen && finish({ n: chosen, how: 'noticed' });
     document.getElementById('rateCancel').onclick = () => finish(null);
-    ov('rateOv', true); // no PIN for ratings: the PIN only guards the grown-up controls
+    ov('rateOv', true);
   });
 }
 
@@ -1452,9 +1460,13 @@ function dayEndSteps() {
     .flatMap(([t, n]) => Array.from({ length: Math.min(n, 2) }, () => GOOD.find((g) => g.t === t)))
     .filter(Boolean).slice(0, 6);
   const sorry = [...new Set((S.sorryLogs || {})[S.day] || [])].map((t) => SORRY.find((x) => x.t === t)).filter(Boolean).slice(0, 3);
+  // The "stand before God" line comes at most once a week (S.judgeDay = the last day it was shown),
+  // so it stays special and doesn't scare little ones every bedtime. "Safe on Jesus" still comes every day.
+  const weekly = !S.judgeDay || S.day - S.judgeDay >= 7 || S.day < S.judgeDay;
+  if (weekly) S.judgeDay = S.day;
   const steps = [
     { t: `🌙 Great digging today, ${kid.name}.`, ms: 3800 },
-    { t: 'Even though this is just a game, you will actually stand before God one day.', ref: '2 Corinthians 5:10', big: true, ms: 5200 },
+    ...(weekly ? [{ t: 'Even though this is just a game, you will actually stand before God one day.', ref: '2 Corinthians 5:10', big: true, ms: 5200 }] : []),
     good.length
       ? { t: 'In heaven, God will remember the good you did with him. Like today…', ref: 'Hebrews 6:10', show: 'good', ms: 4600 + good.length * 1300, say: good.map((g) => g.t).join('. ') }
       : { t: 'In heaven, God will remember the good you do with him. Tomorrow is a new day to make moments like that.', ref: 'Hebrews 6:10', ms: 6000 },
@@ -1473,6 +1485,7 @@ function maybeDayEnd() {
   if (busy || document.getElementById('reveal').classList.contains('show')) { setTimeout(maybeDayEnd, 800); return; }
   S.dayEndShown = S.day; save();
   const { steps, good, sorry } = dayEndSteps(), el = document.getElementById('dayEnd');
+  save(); // remembers which day the weekly line was shown
   const total = steps.reduce((a, b) => a + b.ms, 0);
   el.innerHTML = `
     <div class="heaven">
@@ -1890,13 +1903,34 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && S)
 document.getElementById('kidGrid').addEventListener('click', (e) => {
   const b = e.target.closest('[data-k]'); if (!b) return;
   save(); loadKid(b.dataset.k); ov('kidsOv', false); aim(S.mole.r); render();
+  if (mineLeft() <= 0) { mineGate().then((ok) => { if (ok) firstOpen().then(takeInbox); }); return; } // each child's mine is opened separately
   if (S.lastOpen === S.day) { caption(`${kid.av} Hi ${kid.name}! Let’s dig.`, 2000, 'joy'); takeGifts().then(takeInbox); } else firstOpen().then(takeInbox);
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { makingRight = false; placing = null; render(); capEl.classList.remove('show'); } });
 
 // ---------- the mine is opened by a grown-up, for 20 minutes at a time ----------
+// Each child has their own unlock (mine4.openUntil.<child>), so opening Judah's mine never opens Eliana's.
 const MINE_OPEN_MS = 20 * 60e3;
-function mineLeft() { try { return Math.max(0, Number(localStorage.getItem('mine4.openUntil') || 0) - Date.now()); } catch { return 0; } }
+const openKey = (id = kid.id) => `mine4.openUntil.${id}`;
+function mineLeft() { try { return Math.max(0, Number(localStorage.getItem(openKey()) || 0) - Date.now()); } catch { return 0; } }
+// Run once at start-up, after the child is chosen:
+// - The old shared unlock (mine4.openUntil, used by every child, and set for 8 hours by the main app)
+//   now counts only for the child opening the mine right now, for at most 20 minutes. Then it is removed.
+// - Any child's unlock with more than 20 minutes left is cut back: to 20 minutes for the child opening now,
+//   and cleared for everyone else.
+function tidyUnlocks() {
+  try {
+    const now = Date.now(), cap = now + MINE_OPEN_MS;
+    const old = Number(localStorage.getItem('mine4.openUntil') || 0);
+    localStorage.removeItem('mine4.openUntil');
+    if (old > now) localStorage.setItem(openKey(), String(Math.max(Number(localStorage.getItem(openKey()) || 0), Math.min(old, cap))));
+    for (const k of KIDS) {
+      const until = Number(localStorage.getItem(openKey(k.id)) || 0);
+      if (until <= now) localStorage.removeItem(openKey(k.id));
+      else if (until > cap) k.id === kid.id ? localStorage.setItem(openKey(k.id), String(cap)) : localStorage.removeItem(openKey(k.id));
+    }
+  } catch {}
+}
 function leaveMine() {
   save();
   if ('speechSynthesis' in window) speechSynthesis.cancel();
@@ -1906,7 +1940,7 @@ function leaveMine() {
 async function mineGate() {
   if (mineLeft() > 0) return true;
   const ok = await needPin(false, 'opens the mine for 20 minutes');
-  if (ok) { try { localStorage.setItem('mine4.openUntil', String(Date.now() + MINE_OPEN_MS)); } catch {} render(); return true; }
+  if (ok) { try { localStorage.setItem(openKey(), String(Date.now() + MINE_OPEN_MS)); } catch {} render(); return true; }
   if (EMBED) parent.postMessage({ type: 'mine-close' }, location.origin);
   else caption('🔑 Ask a grown-up to open the mine.', 0, 'love');
   return false;
@@ -1930,6 +1964,7 @@ try { startKid = localStorage.getItem('mine4.kid') || 'judah'; } catch {}
 const params = new URLSearchParams(location.search);
 if (params.get('kid')) startKid = params.get('kid');
 loadKid(startKid);
+tidyUnlocks();
 if (params.get('fresh')) { S = freshState(); S.readAloud = kid.age < 8; }
 for (let i = 0; i < (Number(params.get('weeks')) || 0); i++) autoWeek();
 aim(S.mole.r);

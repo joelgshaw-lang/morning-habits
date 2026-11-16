@@ -7,26 +7,37 @@ export const COINS = {
   morningOnTime: 2, // each morning job done by the end of the morning window…
   morningLate: 1,   // …or later that day
   morningAll: 3,    // every morning job done on time
-  firstThing: 20,   // every morning job done first thing: within 45 minutes of starting, no reminders, started by 7:30
-  firstThingMin: 45,
-  before7: 5,       // started the morning before 7:00
+  // Morning rule: start by settings.startBy (7:15), or that morning's job coins are lost. Job stars still count.
   nightJob: 1,      // each night job
   startMax: 4,      // start night jobs within 5 minutes of "Dinner's finished"…
   startStep: 1,     // …then 1 fewer coin for every 5 minutes of waiting
   startStepMin: 5,
   under40: 2,       // all night jobs done within 40 minutes of pressing Start…
   under20: 3,       // …and 3 more if it took under 20 minutes
-  bedtime: 3,       // toilet, teeth and in bed by bedtime
   familyWin: 3,     // everyone finished their night jobs (each child gets this)
   beatLast: 2,      // the family finished faster than last time
   record: 3,        // the family set a new record
-  reminder: -1,     // each time a grown-up had to remind them (tapped on the 🔔 Reminders button)
-  noReminders: 2,   // a whole morning or night routine done with no reminders
+  asked: -20,       // a grown-up had to ask (🔔). At most once per routine (morning, night), and a day never goes below zero.
+  // "Last night 🛏️": next morning a grown-up says how bedtime went.
+  bedStayed: 15,    // stayed in bed
+  bedOnce: 5,       // got up once
+  bedNot: 0,        // got up more than once
 };
 // Extra chores are priced by effort in config.js (1 to 5 coins each). A grown-up ticks them,
 // up to this many coins a day.
 export const EXTRAS_DAY_CAP = 20;
-export const BEDTIME_JOBS = ['toilet', 'teeth', 'inbed'];
+
+// Which set of rules a day follows. Saved on each day's plan, so days from before these rules
+// (16 Nov 2026) keep the coins they earned at the time, and nobody's coins drop below what they've spent.
+export const RULES_VERSION = 2;
+// The old rules, only for those older days. Don't use these for anything new.
+const OLD_COINS = { firstThing: 20, firstThingMin: 45, before7: 5, reminder: -1, noReminders: 2, bedtime: 3 };
+const OLD_BEDTIME_JOBS = ['toilet', 'teeth', 'inbed'];
+
+// The bedtime bonus from the grown-up's "Last night 🛏️" choice: 'stayed', 'once' or 'not'.
+export function bedtimeBonus(how) {
+  return how === 'stayed' ? COINS.bedStayed : how === 'once' ? COINS.bedOnce : COINS.bedNot;
+}
 
 const ms = (iso) => new Date(iso).getTime();
 const pad = (n) => String(n).padStart(2, '0');
@@ -72,6 +83,8 @@ export function planFor(settings, kid) {
     house: houseJobsFor(settings, kid).map((h) => ({ id: h.id, coins: h.coins || 2 })),
     bedtime: kid.nightHabits.map((h) => ({ id: h.id })),
     extras: Object.fromEntries(settings.extraChores.map((c) => [c.id, c.coins || 2])),
+    startBy: settings.startBy || '07:15',
+    rules: RULES_VERSION,
   };
 }
 const planOf = (settings, kid, day) => day?.plan || planFor(settings, kid);
@@ -92,11 +105,23 @@ export function morningStart(day) {
   return pressed && ticks[0] - pressed <= 20 * 60000 ? pressed : ticks[0];
 }
 
-export function bedtimeBonus(settings, kid, day, bedtime) {
-  const jobs = BEDTIME_JOBS.filter((id) => planOf(settings, kid, day).bedtime.some((h) => h.id === id));
-  if (!day || jobs.length < BEDTIME_JOBS.length) return false;
+// Old rules only: toilet, teeth and in bed ticked by bedtime.
+function oldBedtimeBonus(settings, kid, day, bedtime) {
+  const jobs = OLD_BEDTIME_JOBS.filter((id) => planOf(settings, kid, day).bedtime.some((h) => h.id === id));
+  if (!day || jobs.length < OLD_BEDTIME_JOBS.length) return false;
   const limit = onDay(day.dayKey, bedtime);
   return jobs.every((id) => day.nightDone?.[id] && ms(day.nightDone[id]) <= limit);
+}
+
+// The "start by" time (7:15) on a day, as a timestamp.
+export function startByMs(settings, day) {
+  return onDay(day.dayKey, day.plan?.startBy || settings.startBy || '07:15');
+}
+
+// Did this child start the morning by the start-by time? (Uses the real start: see morningStart.)
+export function startedInTime(settings, day) {
+  const began = morningStart(day);
+  return began != null && began <= startByMs(settings, day);
 }
 
 // The family's night for each day: did everyone finish, how fast, and did they beat last time or the record?
@@ -130,23 +155,23 @@ function familyNights(settings, byDay, dinners) {
 
 // Coins earned on one day by one child, as a list of reasons, for showing and adding up.
 function dayCoins(settings, kid, day, fam) {
+  if (!day) return [];
+  if (!day.plan?.rules) return oldDayCoins(settings, kid, day, fam); // a day from before these rules
+  const plan = day.plan;
   const items = [];
-  if (!day) return items;
-  const plan = planOf(settings, kid, day);
+  // Morning: coins only if the morning started by 7:15 (stars count either way).
   const close = onDay(day.dayKey, settings.windowClose);
   const morning = plan.habits.filter((h) => day.done?.[h.id]);
-  const onTime = morning.filter((h) => ms(day.done[h.id]) <= close).length;
-  if (onTime) items.push({ coins: onTime * COINS.morningOnTime, why: `${onTime} morning job${onTime === 1 ? '' : 's'} on time` });
-  if (morning.length > onTime) items.push({ coins: (morning.length - onTime) * COINS.morningLate, why: 'Morning jobs done late' });
-  if (onTime === plan.habits.length) items.push({ coins: COINS.morningAll, why: 'Whole morning on time' });
-  const began = morningStart(day);
-  if (began && began < onDay(day.dayKey, '07:00')) items.push({ coins: COINS.before7, why: 'Started before 7am' });
-  const reminded = (r) => (day.reminders || []).filter((x) => x.routine === r).length;
-  if (began && began <= close && morning.length === plan.habits.length && plan.habits.length && !reminded('morning')
-    && Math.max(...morning.map((h) => ms(day.done[h.id]))) - began <= COINS.firstThingMin * 60000) {
-    items.push({ coins: COINS.firstThing, why: 'Morning jobs first thing, no delay' });
+  if (morning.length && startedInTime(settings, day)) {
+    const onTime = morning.filter((h) => ms(day.done[h.id]) <= close).length;
+    if (onTime) items.push({ coins: onTime * COINS.morningOnTime, why: `${onTime} morning job${onTime === 1 ? '' : 's'} on time` });
+    if (morning.length > onTime) items.push({ coins: (morning.length - onTime) * COINS.morningLate, why: 'Morning jobs done late' });
+    if (onTime === plan.habits.length) items.push({ coins: COINS.morningAll, why: 'Whole morning on time' });
   }
-  if (onTime === plan.habits.length && !reminded('morning')) items.push({ coins: COINS.noReminders, why: 'Morning with no reminders' });
+  // "Last night 🛏️", chosen by a grown-up this morning.
+  const bed = day.lastNight ? bedtimeBonus(day.lastNight.how) : 0;
+  if (bed) items.push({ coins: bed, why: day.lastNight.how === 'stayed' ? 'Stayed in bed last night' : 'Only got up once last night' });
+  // After-dinner house jobs and the night race.
   const house = plan.house.filter((h) => day.nightDone?.[h.id]);
   const houseCoins = house.reduce((a, h) => a + (h.coins || 2), 0);
   if (houseCoins) items.push({ coins: houseCoins, why: `${house.length} after-dinner job${house.length === 1 ? '' : 's'}` });
@@ -159,13 +184,59 @@ function dayCoins(settings, kid, day, fam) {
   const start = startCoins(fam?.dinner, day.nightStartedAt);
   if (start) items.push({ coins: start, why: 'Quick start after dinner' });
   const finished = nightFinishedAt(settings, kid, day);
-  if (allIn([...plan.house, ...plan.bedtime], day.nightDone) && !reminded('night')) items.push({ coins: COINS.noReminders, why: 'Night with no reminders' });
-  const n = (day.reminders || []).length;
-  if (n) items.push({ coins: n * COINS.reminder, why: `${n} reminder${n === 1 ? '' : 's'}` });
   const took = finished && day.nightStartedAt ? finished - ms(day.nightStartedAt) : null;
   if (took != null && took <= 40 * 60000) items.push({ coins: COINS.under40, why: 'Done in under 40 minutes' });
   if (took != null && took <= 20 * 60000) items.push({ coins: COINS.under20, why: 'Super fast: under 20 minutes' });
-  if (bedtimeBonus(settings, kid, day, settings.nightClose)) items.push({ coins: COINS.bedtime, why: 'In bed on time' });
+  if (fam?.win) items.push({ coins: COINS.familyWin, why: 'Family win' });
+  if (fam?.beatLast) items.push({ coins: COINS.beatLast, why: 'Faster than last time' });
+  if (fam?.record) items.push({ coins: COINS.record, why: 'New family record' });
+  // 🔔 A grown-up had to ask: −20, at most once in the morning and once at night.
+  const askedIn = new Set((day.reminders || []).map((x) => x.routine).filter((r) => r === 'morning' || r === 'night'));
+  for (const r of askedIn) items.push({ coins: COINS.asked, why: `A grown-up had to ask (${r})` });
+  // The day never goes below zero.
+  const total = items.reduce((a, b) => a + b.coins, 0);
+  if (total < 0) items.push({ coins: -total, why: 'A day never goes below zero' });
+  return items;
+}
+
+// The old rules (days saved before 16 Nov 2026). Kept so past coins never change.
+function oldDayCoins(settings, kid, day, fam) {
+  const items = [];
+  if (!day) return items;
+  const plan = planOf(settings, kid, day);
+  const close = onDay(day.dayKey, settings.windowClose);
+  const morning = plan.habits.filter((h) => day.done?.[h.id]);
+  const onTime = morning.filter((h) => ms(day.done[h.id]) <= close).length;
+  if (onTime) items.push({ coins: onTime * COINS.morningOnTime, why: `${onTime} morning job${onTime === 1 ? '' : 's'} on time` });
+  if (morning.length > onTime) items.push({ coins: (morning.length - onTime) * COINS.morningLate, why: 'Morning jobs done late' });
+  if (onTime === plan.habits.length) items.push({ coins: COINS.morningAll, why: 'Whole morning on time' });
+  const began = morningStart(day);
+  if (began && began < onDay(day.dayKey, '07:00')) items.push({ coins: OLD_COINS.before7, why: 'Started before 7am' });
+  const reminded = (r) => (day.reminders || []).filter((x) => x.routine === r).length;
+  if (began && began <= close && morning.length === plan.habits.length && plan.habits.length && !reminded('morning')
+    && Math.max(...morning.map((h) => ms(day.done[h.id]))) - began <= OLD_COINS.firstThingMin * 60000) {
+    items.push({ coins: OLD_COINS.firstThing, why: 'Morning jobs first thing, no delay' });
+  }
+  if (onTime === plan.habits.length && !reminded('morning')) items.push({ coins: OLD_COINS.noReminders, why: 'Morning with no reminders' });
+  const house = plan.house.filter((h) => day.nightDone?.[h.id]);
+  const houseCoins = house.reduce((a, h) => a + (h.coins || 2), 0);
+  if (houseCoins) items.push({ coins: houseCoins, why: `${house.length} after-dinner job${house.length === 1 ? '' : 's'}` });
+  const bedtime = plan.bedtime.filter((h) => day.nightDone?.[h.id]).length;
+  if (bedtime) items.push({ coins: bedtime * COINS.nightJob, why: `${bedtime} bedtime job${bedtime === 1 ? '' : 's'}` });
+  const extras = Object.keys(day.extras || {});
+  const priceOf = (id) => plan.extras[id] ?? settings.extraChores.find((c) => c.id === id)?.coins ?? 2;
+  const extraCoins = Math.min(EXTRAS_DAY_CAP, extras.reduce((a, id) => a + priceOf(id), 0));
+  if (extraCoins) items.push({ coins: extraCoins, why: `${extras.length} extra chore${extras.length === 1 ? '' : 's'}` });
+  const start = startCoins(fam?.dinner, day.nightStartedAt);
+  if (start) items.push({ coins: start, why: 'Quick start after dinner' });
+  const finished = nightFinishedAt(settings, kid, day);
+  if (allIn([...plan.house, ...plan.bedtime], day.nightDone) && !reminded('night')) items.push({ coins: OLD_COINS.noReminders, why: 'Night with no reminders' });
+  const n = (day.reminders || []).length;
+  if (n) items.push({ coins: n * OLD_COINS.reminder, why: `${n} reminder${n === 1 ? '' : 's'}` });
+  const took = finished && day.nightStartedAt ? finished - ms(day.nightStartedAt) : null;
+  if (took != null && took <= 40 * 60000) items.push({ coins: COINS.under40, why: 'Done in under 40 minutes' });
+  if (took != null && took <= 20 * 60000) items.push({ coins: COINS.under20, why: 'Super fast: under 20 minutes' });
+  if (oldBedtimeBonus(settings, kid, day, settings.nightClose)) items.push({ coins: OLD_COINS.bedtime, why: 'In bed on time' });
   if (fam?.win) items.push({ coins: COINS.familyWin, why: 'Family win' });
   if (fam?.beatLast) items.push({ coins: COINS.beatLast, why: 'Faster than last time' });
   if (fam?.record) items.push({ coins: COINS.record, why: 'New family record' });
@@ -185,7 +256,9 @@ function dayStars(settings, kid, day) {
 const dayComplete = (settings, kid, day) => {
   if (!day) return false;
   const plan = planOf(settings, kid, day);
-  return allIn(plan.habits, day.done) && allIn([...plan.house, ...plan.bedtime], day.nightDone);
+  const night = [...plan.house, ...plan.bedtime];
+  // A child with no night jobs tonight has nothing to finish at night.
+  return allIn(plan.habits, day.done) && (!night.length || allIn(night, day.nightDone));
 };
 
 export function summarize(settings, days, dinners, today) {

@@ -1,11 +1,12 @@
 import { openDB, kvGet, kvSet, dayGet, dayPut, dayDelete, dayAll } from './db.js';
 import * as clock from './clock.js';
-import { DEFAULT_SETTINGS, GROWN_PIN, BREATHS_PER_SWING, BREATHS_PER_DAY } from './config.js';
-import { summarize, startOffer, startCoins, fmtMinutes, nightFinishedAt, morningStart, houseJobsFor, planFor, COINS, EXTRAS_DAY_CAP } from './family.js';
+import { DEFAULT_SETTINGS, GROWN_PIN, BREATHS_PER_DAY, BREATH_MS } from './config.js';
+import { summarize, startOffer, startCoins, fmtMinutes, nightFinishedAt, morningStart, houseJobsFor, planFor, COINS, EXTRAS_DAY_CAP, startByMs, bedtimeBonus } from './family.js';
 import { createPortal } from './portal.js';
 import { createFarm } from './farm.js';
 import { askPin } from './pinpad.js';
 import { utterance } from './voice.js';
+import { initFruit, openFruitTime, skipFruitToday, runNightFruit, fruitTileHTML, fruitBadgeHTML, sayBadge } from './fruit.js';
 
 const app = document.getElementById('app');
 const overlay = document.getElementById('overlay');
@@ -18,6 +19,8 @@ const UNDO_MS = 8000;
 const FOCUS_HOME_MS = 9000;      // after a tick, the board resets soon so kids go and do the next job
 const SESSION_MS = 3 * 60 * 1000;   // farm time per visit (mine time doesn't count)
 const FARM_VISITS_PER_DAY = 2;      // a child can open their farm twice a day on their own
+const COIN_SHOW_MS = 8000;          // a child's coins show on the board for a few seconds after they earn, then hide again
+const MINE_GROWN_MS = 20 * 60000;   // a grown-up opening a child's mine from the portal gives 20 minutes
 const PRAISE = ['Great job!', 'Awesome!', 'You did it!', 'Super star!', 'Way to go!', 'Nice work!', 'Brilliant!', 'Keep it up!', 'Fantastic!', 'Well done!'];
 
 const state = {
@@ -39,6 +42,7 @@ const state = {
   farms: null,       // each child's farm (farm.js), saved in IndexedDB
   days: {},          // today's record for every child (the family board shows all three)
   farmKid: null,     // child whose farm screen is open
+  coinShow: {},      // child id -> until when their coins show on the board (only just after earning)
 };
 
 // ---------- helpers ----------
@@ -131,7 +135,8 @@ function mineSwings(kidId) {
   } catch { return 0; }
 }
 // A grown-up opens the mine with the PIN (inside mine.html) for 20 minutes; 🔑 shows when it needs opening.
-function mineOpenLeft() { try { return Math.max(0, Number(localStorage.getItem('mine4.openUntil') || 0) - Date.now()); } catch { return 0; } }
+// Each child has their own unlock (mine4.openUntil.<child>), so opening one child's mine never opens another's.
+function mineOpenLeft(id = state.kidId) { try { return Math.max(0, Number(localStorage.getItem(`mine4.openUntil.${id}`) || 0) - Date.now()); } catch { return 0; } }
 // Digging waits until the morning jobs are done, so the game never competes with getting ready.
 function mineLocked(k = kid()) {
   const w = windowInfo('morning');
@@ -151,8 +156,9 @@ function openMine() {
   el.innerHTML = `<iframe src="./mine.html?embed=1&kid=${encodeURIComponent(k.id)}" title="The Mine and the Temple" allow="autoplay"></iframe>`;
   document.body.appendChild(el);
 }
+// From the Grown-ups portal: opens this one child's mine for 20 minutes (no PIN inside the mine).
 function openMineFor(id) {
-  try { localStorage.setItem('mine4.openUntil', String(Date.now() + 8 * 3600000)); } catch {}
+  try { localStorage.setItem(`mine4.openUntil.${id}`, String(Date.now() + MINE_GROWN_MS)); } catch {}
   state.grownMine = true;
   state.kidId = id;
   state.day = state.days[id];
@@ -167,7 +173,8 @@ function openMineFor(id) {
 
 function closeMine() {
   state.mineOpen = false;
-  if (state.grownMine) { try { localStorage.removeItem('mine4.openUntil'); } catch {} state.grownMine = false; }
+  // A mine a grown-up opened from the portal locks again when it closes.
+  if (state.grownMine) { try { localStorage.removeItem(`mine4.openUntil.${state.kidId}`); } catch {} state.grownMine = false; }
   document.querySelector('.mine-frame')?.remove();
   state.lastTouch = Date.now();
   if (state.kidId) renderKid();
@@ -185,8 +192,6 @@ async function refreshSummary() {
   const all = await dayAll();
   state.sum = summarize(state.settings, all, state.dinners, todayKey());
   state.coinAdjust = (await kvGet('coinAdjust')) || []; // coins a grown-up added or took away in the portal
-  state.breathTotal = {};
-  for (const d of all) state.breathTotal[d.kidId] = (state.breathTotal[d.kidId] || 0) + (d.breaths || 0);
   if (!state.farms) state.farms = (await kvGet('farms')) || {};
 }
 const farm = createFarm({
@@ -208,7 +213,7 @@ const portal = createPortal({
   coinsOf: (id) => coinsOf(id), flyCoins: (...a) => flyCoins(...a), speak: (...a) => speak(...a), toast: (h) => toast(h),
   grownUp: (...a) => grownUp(...a), render: () => render(), listFor: (...a) => listFor(...a), doneCount: (...a) => doneCount(...a),
   sendToMine: (...a) => sendToMine(...a), openFarm: (id) => openFarm(id, { grown: true }), openMine: (id) => openMineFor(id),
-  endGrace: () => { grownUntil = 0; },
+  endGrace: () => { grownUntil = 0; }, coinTarget: (id) => coinTarget(id),
 });
 // Spendable coins: earned from jobs, plus farm sales, minus farm spending.
 const coinsOf = (id) => (state.sum ? farm.balance(id) : 0);
@@ -226,7 +231,8 @@ const sessions = readJSON('sessions', {});
 const nowMs = () => clock.now().getTime();
 const visitsLeft = (id) => { const f = farm.farmOf(id); return FARM_VISITS_PER_DAY - (f.visitDay === todayKey() ? f.visits || 0 : 0); };
 const sessionLeft = (id) => Math.max(0, SESSION_MS - (sessions[id]?.used || 0));
-const sessionPaused = () => !!state.prayer || state.farmUnlimited;
+// Farm time doesn't tick while praying, while a grown-up has the farm open, or while the mine is open.
+const sessionPaused = () => !!state.prayer || state.farmUnlimited || state.mineOpen;
 
 function beginSession(id) {
   const s = (sessions[id] ||= {});
@@ -268,7 +274,9 @@ function timesUp() {
   setTimeout(() => { el.remove(); timesUpShown = false; goHome(); }, 4000);
 }
 
-let grownUntil = 0; // after the grown-up PIN, a minute without asking again (e.g. several reminders in a row)
+// grace = true lets one grown-up action follow another within a minute without the PIN again.
+// The portal never uses it (it always asks), and closing the portal or the reminders sheet ends it.
+let grownUntil = 0;
 
 async function grownUp(note, grace = false) {
   if (grace && Date.now() < grownUntil) return true;
@@ -301,38 +309,20 @@ async function askKidCode(id) {
   return !!r;
 }
 
-// The farm opens once the child's current routine is done (any time during the day), for 2 minutes.
+// The farm opens once the child's current routine is done (any time during the day), for 3 minutes.
 // Morning: once the morning jobs are done. Daytime: the morning done, or a confirmed extra job.
-// Night: once the after-dinner jobs are done, until bedtime.
+// Night: closed. Night ends with "🌙 Going up!", not the farm.
 function farmLocked(k, d) {
   const r = defaultTab();
   const morningDone = doneCount(k, d, 'morning') === listFor(k, 'morning').length;
   if (r === 'morning') return !morningDone;
   if (r === 'extras') return !morningDone && !Object.keys(d.extras).length;
-  if (clock.now() >= clock.atTime(state.settings.nightClose, state.settings.dayStartHour)) return true;
-  return !!houseJobsFor(state.settings, k).length && !nightFinishedAt(state.settings, k, d);
+  return true;
 }
-const farmLockText = (k) => {
+const farmLockText = () => {
   const r = defaultTab();
-  if (r === 'night' && clock.now() >= clock.atTime(state.settings.nightClose, state.settings.dayStartHour)) return '😴 Bedtime: farm tomorrow';
-  return r === 'night' ? '🔒 Farm after your after-dinner jobs' : r === 'extras' ? '🔒 Farm after your morning jobs or an extra job' : '🔒 Farm after your jobs';
+  return r === 'night' ? '🌙 Farm again tomorrow' : r === 'extras' ? '🔒 Farm after your morning jobs or an extra job' : '🔒 Farm after your jobs';
 };
-
-// At night the farm is a reward: finish the after-dinner chores, press the button, and it opens for
-// 3 minutes before bedtime. It's one visit per night and doesn't use up the daytime visits.
-const nightFarmReady = (k, d) => defaultTab() === 'night' && !d.nightFarm && !!nightFinishedAt(state.settings, k, d)
-  && clock.now() < clock.atTime(state.settings.nightClose, state.settings.dayStartHour);
-
-async function openNightFarm(id) {
-  unlockAudio();
-  const k = kid(id);
-  const d = state.days[id];
-  if (!nightFarmReady(k, d)) return;
-  if (!(await askKidCode(id))) return;
-  d.nightFarm = clock.now().toISOString();
-  await dayPut(d);
-  enterFarm(k, false);
-}
 
 async function openFarm(id, { grown = false } = {}) {
   unlockAudio();
@@ -368,44 +358,75 @@ function enterFarm(k, grown) {
   farm.opened(k);
 }
 
-// ---------- reminders: a grown-up taps when they had to remind a child (−1 coin each) ----------
+// ---------- reminders: a grown-up taps 🔔 when they had to ask a child ----------
+// The first ask in a routine (morning or night) is −20. More asks in the same routine are noted but cost nothing
+// more, and a day never goes below zero (family.js). The routine comes from the time of day, using the same
+// windows as the board (morning until 11am, night from an hour before night opens), so a 1pm ask is never "night".
+const reminderRoutine = () => { const t = defaultTab(); return t === 'extras' ? null : t; };
+const WHO_KEY = 'remind.who'; // the last grown-up who asked (Dad or Mum), remembered on this iPad
+const whoAsked = () => { try { return localStorage.getItem(WHO_KEY) || 'Dad'; } catch { return 'Dad'; } };
+const askedIn = (d, r) => (d?.reminders || []).find((x) => x.routine === r);
 
 async function openReminders() {
-  if (!(await grownUp('reminders', true))) return;
-  const r = homeRoutine();
-  const days = await Promise.all(state.settings.kids.map((k) => loadDay(k.id)));
+  if (!(await grownUp('reminders'))) return;
   const el = document.createElement('div');
   el.className = 'farm-ov reminders-ov';
-  el.innerHTML = `
-    <div class="farm-sheet">
-      <h2>🔔 Had to remind someone?</h2>
-      <p>Each reminder is −🪙 ${-COINS.reminder}. A ${r} with no reminders earns +🪙 ${COINS.noReminders}.</p>
+  document.body.appendChild(el);
+  const draw = async () => {
+    const r = reminderRoutine();
+    const days = await Promise.all(state.settings.kids.map((k) => loadDay(k.id)));
+    days.forEach((d) => { state.days[d.kidId] = d; });
+    const who = whoAsked();
+    el.innerHTML = `<div class="farm-sheet">
+      <h2>🔔 Had to ask someone?</h2>
+      ${!r ? '<p>🔔 is for the morning and night routines. Come back then.</p>' : `
+      <p>The first ask this ${r} is −🪙 ${-COINS.asked}. Asking again this ${r} costs nothing more. A day never goes below zero.</p>
+      <div class="remind-who">Who asked? ${['Dad', 'Mum'].map((w) => `<button class="farm-btn small ${w === who ? 'sellhen' : ''}" data-who="${w}">${w === 'Dad' ? '👨' : '👩'} ${w}</button>`).join('')}</div>
       ${state.settings.kids.map((k, i) => {
-        const n = (days[i].reminders || []).length;
+        const d = days[i];
+        const first = askedIn(d, r);
+        const n = (d.reminders || []).filter((x) => x.routine === r).length;
+        const open = listFor(k, r).filter((h) => !mapFor(d, r)[h.id]);
+        const jobs = open.length ? open.map((h) => `<button class="farm-btn remind" data-remind="${k.id}" data-job="${h.id}" aria-label="Asked about ${esc(h.name)}">${h.icon}</button>`).join('')
+          : `<button class="farm-btn remind" data-remind="${k.id}" data-job="">🔔 Asked</button>`;
         return `<div class="remind-row" style="--kid:${k.color}">
-          <span class="face">${k.avatar}</span><b>${esc(k.name)}</b><span class="remind-count">🔔 ${n}</span>
-          <button class="farm-btn remind" data-remind="${k.id}">🔔 Remind −🪙 ${-COINS.reminder}</button>
-          <button class="farm-btn small" data-unremind="${k.id}" ${n ? '' : 'disabled'}>↩️</button>
+          <span class="face">${k.avatar}</span><b>${esc(k.name)}</b>
+          <span class="remind-count">${first ? `🔔 ${n} · ${first.icon || '🔔'} −🪙 ${-COINS.asked}` : '🔔 0'}</span>
+          <span class="remind-jobs">${first ? '' : '<small>Asked about:</small>'}${jobs}</span>
+          <button class="farm-btn small" data-unremind="${k.id}" ${n ? '' : 'disabled'} aria-label="Undo the last ask">↩️</button>
         </div>`;
-      }).join('')}
+      }).join('')}`}
       <button class="farm-btn" data-close>Done</button>
     </div>`;
-  document.body.appendChild(el);
+  };
   el.addEventListener('click', async (e) => {
-    if (e.target.closest('[data-close]')) { el.remove(); return render(); }
+    if (e.target.closest('[data-close]')) { el.remove(); grownUntil = 0; return render(); }
+    const w = e.target.closest('[data-who]');
+    if (w) { try { localStorage.setItem(WHO_KEY, w.dataset.who); } catch {} return draw(); }
     const add = e.target.closest('[data-remind]');
     const undoBtn = e.target.closest('[data-unremind]');
     const id = add?.dataset.remind || undoBtn?.dataset.unremind;
-    if (!id) return;
+    const r = reminderRoutine();
+    if (!id || !r) return;
+    const k = kid(id);
     const d = await loadDay(id);
     d.reminders ||= [];
-    if (add) d.reminders.push({ t: clock.now().toISOString(), routine: homeRoutine() });
-    else d.reminders.pop();
+    if (add) {
+      const h = listFor(k, r).find((x) => x.id === add.dataset.job);
+      const first = !askedIn(d, r);
+      d.reminders.push({ t: clock.now().toISOString(), routine: r, job: h?.id || null, icon: h?.icon || '🔔', name: h?.name || '', who: whoAsked() });
+      // One grace line for the child, said once (the first ask in this routine).
+      if (first) speak(`${k.name}, ${whoAsked()} had to ask${h ? ` about ${h.name}` : ''}. That's OK. Tomorrow is a fresh start.`, true);
+    } else {
+      // Take back the last ask in this routine.
+      const i = d.reminders.map((x) => x.routine).lastIndexOf(r);
+      if (i >= 0) d.reminders.splice(i, 1);
+    }
     await dayPut(d);
-    el.remove();
     await refreshSummary();
-    openReminders();
+    draw();
   });
+  await draw();
 }
 
 // ---------- extra jobs: a child claims one, a grown-up confirms it ----------
@@ -468,25 +489,88 @@ async function claimJob(jobId) {
   });
 }
 
-// ---------- breath prayers: logged from the board; every 10 gives a pickaxe swing in the mine ----------
+// ---------- breath prayers: one guided breath, held on the board ----------
+// Hold 🙏 for one slow breath (about 5 seconds). The button swells: "Breathe in… Jesus loves me… breathe out…",
+// then a chime and "Amen!". Up to 3 a day. Prayer is time with God, not a way to earn: no coins, no pickaxe swings.
+const BREATH_WORDS = [[0, 'Breathe in…'], [0.4, 'Jesus loves me…'], [0.7, 'breathe out…']];
 
-// Just logs it: hold the 🙏 button on the board for a moment and it counts. No guided prayer on screen.
+function startBreath(btn, id, pointerId) {
+  unlockAudio();
+  btn.classList.add('breathing');
+  btn.style.setProperty('--breath-ms', `${BREATH_MS}ms`);
+  const hold = { kind: 'breath', kidId: id, el: btn, started: Date.now() };
+  const say = (words) => { const l = holdEl(hold)?.querySelector('small'); if (l) l.textContent = words; };
+  say(BREATH_WORDS[0][1]);
+  hold.timers = BREATH_WORDS.slice(1).map(([at, words]) => setTimeout(() => say(words), at * BREATH_MS));
+  if (readAloudOn(id)) speakSlow('Breathe in. Jesus loves me. Breathe out.');
+  hold.timer = setTimeout(() => { endHold(pointerId, false); logBreathPrayer(id); }, BREATH_MS);
+  holds.set(pointerId, hold);
+}
+
 async function logBreathPrayer(id) {
-  const k = kid(id);
   const d = state.days[id];
-  if ((d.breaths || 0) >= BREATHS_PER_DAY) return toast(`🙏 That's ${BREATHS_PER_DAY} breath prayers today. Amazing!`);
+  if ((d.breaths || 0) >= BREATHS_PER_DAY) return;
   d.breaths = (d.breaths || 0) + 1;
   await dayPut(d);
-  const total = (state.breathTotal[id] = (state.breathTotal?.[id] || 0) + 1);
   chime();
-  if (total % BREATHS_PER_SWING === 0) {
-    sendToMine(id, { swings: 1 });
-    speak(`Amen! ${BREATHS_PER_SWING} breath prayers. A pickaxe swing for your mine!`);
-    toast(`🙏 ${BREATHS_PER_SWING} breath prayers! ⛏ +1 pickaxe swing in ${esc(k.name)}'s mine`);
-  } else {
-    speak('Amen!');
-  }
-  renderKid();
+  if (readAloudOn(id)) speak('Amen!', true);
+  const btn = app.querySelector(`[data-col="${id}"] .breath-btn`);
+  if (btn) { btn.classList.add('amen'); const l = btn.querySelector('small'); if (l) l.textContent = 'Amen!'; }
+  setTimeout(() => { if (!state.farmKid && !state.prayer) renderKid(); }, 1800);
+}
+
+// ---------- "🌙 Going up!": the last iPad tap of the night ----------
+// After the after-dinner jobs, each child taps Going up. It runs the night fruit question (js/fruit.js),
+// then says goodnight. Bath, teeth and bed happen upstairs; next morning a grown-up says how bedtime went.
+async function goingUp(id) {
+  unlockAudio();
+  const k = kid(id);
+  const d = state.days[id];
+  if (d.wentUp) return;
+  await runNightFruit(k); // resolves { done } when the child finishes or closes it; goodnight either way
+  d.wentUp = clock.now().toISOString();
+  d.log.push({ t: d.wentUp, routine: 'night', action: 'going-up' });
+  await dayPut(d);
+  const el = document.createElement('div');
+  el.className = 'all-done-moment';
+  el.style.setProperty('--kid', k.color);
+  el.innerHTML = `<div><div class="big-emoji">🌙</div><h2>Goodnight, ${esc(k.name)}!</h2><p>Up you go. Sleep well. God is with you.</p></div>`;
+  document.body.appendChild(el);
+  speak(`Goodnight, ${k.name}! Up you go. Sleep well. God is with you.`, true);
+  setTimeout(() => burst(null, 24), 150);
+  el.addEventListener('click', () => el.remove());
+  setTimeout(() => el.remove(), 4000);
+  goHome();
+}
+
+// ---------- "Last night 🛏️": next morning a grown-up says how bedtime went ----------
+// One PIN, then a choice for each child who hasn't had one yet today. Pays the bedtime bonus (family.js COINS).
+const BED_CHOICES = [['stayed', '🛏️ Stayed in bed'], ['once', '🚶 Got up once'], ['not', '🌙 Not this time']];
+const lastNightDue = (d) => defaultTab() === 'morning' && !d.lastNight;
+
+async function openLastNight(firstId) {
+  if (!(await grownUp('how bedtime went'))) return;
+  const order = [firstId, ...state.settings.kids.map((k) => k.id).filter((id) => id !== firstId)];
+  sheet(`<h2>🛏️ Last night</h2><p>Did they stay in bed?</p>
+    ${order.filter((id) => lastNightDue(state.days[id])).map((id) => { const k = kid(id); return `<div class="remind-row bed-row" style="--kid:${k.color}">
+      <span class="face">${k.avatar}</span><b>${esc(k.name)}</b>
+      <span class="remind-jobs">${BED_CHOICES.map(([how, label]) => `<button class="farm-btn small" data-bed="${how}" data-kid="${id}">${label} <small>🪙 ${bedtimeBonus(how)}</small></button>`).join('')}</span></div>`; }).join('')}
+    <button class="farm-btn small" data-c="close">Done</button>`, async (e, el) => {
+    if (e.target.closest('[data-c="close"]')) return el.remove();
+    const b = e.target.closest('[data-bed]');
+    if (!b) return;
+    const id = b.dataset.kid;
+    const d = state.days[id];
+    if (d.lastNight) return;
+    const before = state.sum;
+    d.lastNight = { how: b.dataset.bed, t: clock.now().toISOString() };
+    await dayPut(d);
+    await refreshSummary();
+    b.closest('.remind-row').remove();
+    if (!el.querySelector('[data-bed]')) el.remove();
+    renderKid();
+    coinNews(before, id);
+  });
 }
 
 async function dinnerFinished() {
@@ -568,6 +652,12 @@ function speak(text, force = false) {
   speechSynthesis.cancel();
   speechSynthesis.speak(utterance(text));
 }
+// Said slowly and calmly (the breath prayer).
+function speakSlow(text) {
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utterance(text, 0.7));
+}
 
 let audioCtx;
 function unlockAudio() {
@@ -623,25 +713,35 @@ function pop(big = false) {
 
 // ---------- rendering ----------
 
+// The morning bar: one line ("Start by 7:15 · if we have to ask, −20") and a sun that slides down to 7:15,
+// so children who can't read the clock can see how long is left. (The night bar is hidden by styles.css.)
+const startByText = () => clock.fmtTime(clock.atTime(state.settings.startBy || '07:15', state.settings.dayStartHour)).replace(/am$/, '');
 function windowBarHTML(r = 'morning') {
-  const w = windowInfo(r);
-  const openTxt = clock.fmtTime(w.open);
-  const closeTxt = clock.fmtTime(w.close);
-  const night = r === 'night';
-  let label;
-  if (w.phase === 'before') label = night ? `🌙 Night routine starts at ${openTxt}` : `🐦 Early bird time! Start now`;
-  else if (w.phase === 'open') label = night ? `${w.mins} min until bedtime` : `${w.mins} min left`;
-  else label = night ? '😴 Bedtime. Sleep well!' : '🌙 Morning finished. See you tomorrow!';
-  // Fill turns green → yellow → red as the morning runs out.
-  const fill = w.phase === 'open' ? `hsl(${Math.round(120 * w.left)}, 80%, 50%)` : '';
-  const pct = (w.left * 100).toFixed(1);
-  return `
-    <div class="window-bar ${w.phase} ${night ? 'night' : ''}" data-routine="${r}" role="progressbar" aria-valuenow="${Math.round(w.left * 100)}" aria-valuemin="0" aria-valuemax="100">
+  const s = state.settings;
+  if (r === 'morning') {
+    const now = clock.now();
+    const open = clock.atTime(s.windowOpen, s.dayStartHour);
+    const by = clock.atTime(s.startBy || '07:15', s.dayStartHour);
+    const left = now < open ? 1 : now < by ? (by - now) / (by - open) : 0;
+    const phase = now < open ? 'before' : now < by ? 'open' : 'closed';
+    const pct = (left * 100).toFixed(1);
+    const fill = phase === 'open' ? `hsl(${Math.round(120 * left)}, 80%, 50%)` : '';
+    const label = phase === 'closed' ? `🌞 Keep going! Jobs still earn ⭐ · if we have to ask, −${-COINS.asked}`
+      : `Start by ${startByText()} · if we have to ask, −${-COINS.asked}`;
+    return `
+    <div class="window-bar ${phase}" data-routine="morning" role="progressbar" aria-valuenow="${Math.round(left * 100)}" aria-valuemin="0" aria-valuemax="100">
       <div class="window-fill" style="width:${pct}%;${fill ? `background:${fill}` : ''}"></div>
-      ${w.phase === 'open' ? `<span class="sun-edge" style="left:${pct}%">${night ? '🌙' : '☀️'}</span>` : ''}
+      ${phase === 'closed' ? '' : `<span class="sun-edge" style="left:${pct}%">☀️</span>`}
       <div class="window-label">${label}</div>
-    </div>
-    <div class="window-ends"><span>${w.phase === 'before' ? `Opens ${openTxt}` : openTxt}</span><span>${night ? 'Bedtime' : 'Ends'} ${closeTxt}</span></div>`;
+    </div>`;
+  }
+  const w = windowInfo(r);
+  const label = w.phase === 'before' ? `🌙 Night routine starts at ${clock.fmtTime(w.open)}` : w.phase === 'open' ? 'Night jobs, then Going up!' : '😴 Bedtime. Sleep well!';
+  return `
+    <div class="window-bar ${w.phase} night" data-routine="${r}">
+      <div class="window-fill" style="width:${(w.left * 100).toFixed(1)}%"></div>
+      <div class="window-label">${label}</div>
+    </div>`;
 }
 
 function clockHTML() {
@@ -670,7 +770,7 @@ function tileHTML(k, h, d, nudgeId, r) {
         <span class="tile-icon">${h.icon}</span>
         <span class="tile-name">${esc(h.name)}</span>
         <span class="tile-sub">${running ? `⏱ <span data-countdown="${k.id}">${clock.fmtDuration(runLeft(k.id))}</span> left` : `⏱ ${k.prayerMinutes} min · tap`}</span>
-        <span class="tile-coin">${tileCoins(h, r) === '💛' ? '💛' : `🪙 ${tileCoins(h, r)}`}</span>
+        <span class="tile-coin">${coinTag(tileCoins(h, r, k, d))}</span>
       </div>`;
   }
   return `
@@ -678,44 +778,51 @@ function tileHTML(k, h, d, nudgeId, r) {
       <span class="tile-icon">${h.icon}</span>
       <span class="tile-name">${esc(h.name)}</span>
       <span class="tile-sub">👇 Hold${r === 'extras' ? '' : ' when done'}</span>
-      <span class="tile-coin">${tileCoins(h, r) === '💛' ? '💛' : `🪙 ${tileCoins(h, r)}`}</span>
+      <span class="tile-coin">${coinTag(tileCoins(h, r, k, d))}</span>
     </div>`;
 }
 
 // What a job is worth right now: morning jobs pay more before the window closes; extra chores by effort.
 const extrasCoinsToday = (k, d) => Math.min(EXTRAS_DAY_CAP, listFor(k, 'extras').filter((c) => d.extras[c.id]).reduce((a, c) => a + (c.coins || 2), 0));
 
-function tileCoins(h, r) {
-  if (r === 'extras') return extrasCoinsToday(kid(), state.day) >= EXTRAS_DAY_CAP ? '💛' : h.coins || 2;
+// (k and d are the column's own child and day, not whoever touched the iPad last.)
+function tileCoins(h, r, k, d) {
+  if (r === 'extras') return extrasCoinsToday(k, d) >= EXTRAS_DAY_CAP ? '💛' : h.coins || 2;
   if (r === 'night') return h.coins || COINS.nightJob;
+  if (!morningInTime(d)) return '⭐';
   return windowInfo('morning').phase === 'closed' ? COINS.morningLate : COINS.morningOnTime;
+}
+const coinTag = (c) => (typeof c === 'number' ? `🪙 ${c}` : c);
+
+// Is this morning still worth coins? Yes if it started by 7:15, or hasn't started and it's not 7:15 yet.
+// (A Start press counts if a job follows within 20 minutes, like family.js morningStart.)
+function morningInTime(d) {
+  if (!d) return true;
+  const by = startByMs(state.settings, d);
+  const began = morningStart(d) ?? (d.startedAt && nowMs() - new Date(d.startedAt).getTime() <= 20 * 60000 ? new Date(d.startedAt).getTime() : nowMs());
+  return began <= by;
 }
 
 // A peek at the child's farm, with a button to go there.
 const nextJob = (k, d, r) => listFor(k, r).find((h) => !mapFor(d, r)[h.id]);
 
-// What starting the morning right now is worth: 🪙 5 before 7am, and 🪙 20 for doing it all first thing.
+// Under "Ready, set, go!": before 7:15 the rule, after it a kind word (jobs still earn stars).
 function earlyOffer() {
-  const s = state.settings;
-  const now = clock.now();
-  if (now > clock.atTime(s.windowClose, s.dayStartHour)) return '';
-  const all = `all done in ${COINS.firstThingMin} min = 🪙 ${COINS.firstThing}`;
-  return now < clock.atTime('07:00', s.dayStartHour) ? `Start before 7 for 🪙 ${COINS.before7} · ${all}` : `Start now: ${all}`;
+  return clock.now() <= clock.atTime(state.settings.startBy || '07:15', state.settings.dayStartHour)
+    ? `Start by ${startByText()}!` : 'Jobs still earn ⭐ stars';
 }
 
-// Under the next morning job: the time to beat for the "first thing, no delay" bonus.
-function morningGoalHTML(d) {
-  const s = state.settings;
-  const began = morningStart(d) || (d.startedAt ? new Date(d.startedAt).getTime() : null);
-  if (!began || began > clock.atTime(s.windowClose, s.dayStartHour).getTime()) return '';
-  if ((d.reminders || []).some((x) => x.routine === 'morning')) return '';
-  const by = began + COINS.firstThingMin * 60000;
-  if (nowMs() > by) return '';
-  return `<div class="morning-goal">⏱ All done by ${clock.fmtTime(new Date(by))} → 🪙 ${COINS.firstThing}</div>`;
+// On a child's own column, when a grown-up had to ask this routine: which job, and a grace line.
+function askedNoteHTML(d, r) {
+  const a = askedIn(d, r);
+  if (!a) return '';
+  return `<div class="asked-note">🔔 ${esc(a.who || 'A grown-up')} had to ask${a.job ? ` about ${a.icon}` : ''}<small>That's OK. Tomorrow is a fresh start.</small></div>`;
 }
 
 // The family board: every child's next job side by side. No sign-in for chores: walk up, hold your job,
 // walk away. Each child's farm opens with their code once their jobs are done.
+// To keep it fair, the board never shows coin totals, streaks or 🔔 counts side by side. A child's coins
+// show for a few seconds just after they earn (and on their own farm screen); 🔔 counts are in the portal.
 function columnHTML(k, d, r) {
   const list = listFor(k, r);
   const n = doneCount(k, d, r);
@@ -727,62 +834,86 @@ function columnHTML(k, d, r) {
   const nightGate = r === 'night' && hasHouse && !d.nightStartedAt && !nightFinishedAt(state.settings, k, d) && n === 0;
   const offer = nightGate && dinnerToday() ? startOffer(dinnerToday(), nowMs()) : null;
   const next = r === 'extras' ? null : nextJob(k, d, r);
-  const asked = (d.reminders || []).length;
   let main;
   if (notStarted) {
     main = `<button class="go-btn col-go" data-action="go">
       <span class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></span>
-      <span class="go-text">Ready, set, go!</span><span class="go-sub">${earlyOffer() || 'Start my morning'}</span></button>`;
+      <span class="go-text">Ready, set, go!</span><span class="go-sub">${earlyOffer()}</span></button>`;
   } else if (nightGate) {
     main = `<button class="go-btn night-go col-go" data-action="start-night">
       <span class="go-icon">🌙</span><span class="go-text">Start night chores!</span>
       <span class="go-sub">${houseJobsFor(state.settings, k).map((j) => j.icon).join(' ')} · under 20 min = 🪙 ${COINS.under40 + COINS.under20}</span>
-      ${offer ? `<span class="go-sub" data-offer="${dinnerToday()}">${offer.coins ? `Start now for 🪙 ${offer.coins}` : 'The family is waiting!'}</span>` : ''}</button>`;
+      ${offer ? `<span class="go-sub" data-offer="${dinnerToday()}">${offer.coins ? `Start now for 🪙 ${offer.coins}` : "Let's all finish together!"}</span>` : ''}</button>`;
   } else if (r === 'extras') {
     const done = list.filter((h) => d.extras[h.id]);
     const claims = d.claims || {};
     main = `<div class="col-note">⭐ Jobs you can do · tap one when it's done</div>
       <div class="icon-grid">${list.filter((h) => !d.extras[h.id] && !/^other/.test(h.id)).map((h) => `<button class="icon-job ${claims[h.id] ? 'claimed' : ''}" data-action="claim" data-job="${h.id}" aria-label="${esc(h.name)}">${h.icon}<small>${claims[h.id] ? '⏳' : `🪙${h.coins || 2}`}</small></button>`).join('')}</div>
       ${done.length ? `<div class="done-today">Done today: ${done.map((h) => h.icon).join(' ')}</div>` : ''}`;
+  } else if (all && r === 'night') {
+    // Night jobs done (or none tonight): one big "Going up!", the last iPad tap of the day.
+    main = d.wentUp
+      ? '<div class="all-done-card"><div class="big">🌙</div><h2>Gone up. Sleep tight!</h2></div>'
+      : `${d.nightStartedAt && total ? nightTimerHTML(k, d) : ''}
+        <button class="going-up" data-action="going-up"><span class="gu-moon">🌙</span><b>Going up!</b><small>${total ? 'Night jobs done! ' : ''}My last tap tonight</small></button>`;
   } else if (all) {
-    main = `<div class="all-done-card"><div class="big">${r === 'night' ? '🌙' : '🏆'}</div><h2>${r === 'night' ? 'All done. Sleep tight!' : 'All done!'}</h2></div>`;
+    main = '<div class="all-done-card"><div class="big">🏆</div><h2>All done!</h2></div>';
   } else {
     main = `${r === 'night' && d.nightStartedAt ? nightTimerHTML(k, d) : ''}
-      ${nightFarmReady(k, d) ? `<button class="night-reward" data-action="night-farm"><span>🎉 Night chores done!</span><b>🐔 Open my farm · 3 min</b><small>Then get ready for bed</small></button>` : ''}
-      ${r === 'night' ? `<div class="part-label">${isHouseJob(next) ? '🍽️ After-dinner job' : '🛁 Bedtime'}</div>` : ''}
+      ${r === 'night' ? '<div class="part-label">🍽️ After-dinner job</div>' : ''}
       ${tileHTML(k, next, d, null, r).replace('class="tile', 'class="tile next-tile')}
       ${r === 'night' ? '' : `<div class="next-hint">${next.type === 'timer' ? 'Tap to start your prayer timer' : 'Do it, then hold here ✓'}</div>`}
-      ${r === 'morning' ? morningGoalHTML(d) : ''}
-      <div class="job-row">${list.filter((h) => r !== 'night' || isHouseJob(h) === isHouseJob(next) || state.undos[k.id]?.habitId === h.id).map((h) => tileHTML(k, h, d, null, r).replace('class="tile', `class="tile mini-tile ${h === next ? 'is-next' : ''}`)).join('')}</div>`;
+      <div class="job-row">${list.map((h) => tileHTML(k, h, d, null, r).replace('class="tile', `class="tile mini-tile ${h === next ? 'is-next' : ''}`)).join('')}</div>`;
   }
-  const locked = farmLocked(k, d);
+  if (r !== 'extras') main += askedNoteHTML(d, r);
+  // Morning: a grown-up says how bedtime went last night (PIN), which pays the bedtime bonus.
+  const lastNight = r === 'morning' && lastNightDue(d)
+    ? '<button class="last-night" data-action="last-night">🛏️ Last night <small>👨‍👩‍👧 grown-up</small></button>' : '';
   const left = visitsLeft(k.id);
-  const nightReady = nightFarmReady(k, d);
-  const farmBtn = r === 'night'
-    ? nightReady ? `<button class="farm-open" data-action="night-farm">🐔 Farm · 3 min 🎉</button>`
-      : d.nightFarm ? `<div class="farm-lock">🌙 Farm again tomorrow</div>` : `<div class="farm-lock">${farmLockText(k)}</div>`
-    : locked
-      ? `<div class="farm-lock">${farmLockText(k)}</div>`
-      : left > 0
-        ? `<button class="farm-open" data-action="open-farm">🐔 My farm <small>${left} left today</small></button>`
-        : `<div class="farm-lock">🌙 Farm again tomorrow</div>`;
-  const breathsToday = d.breaths || 0;
-  const towardSwing = (state.breathTotal?.[k.id] || 0) % BREATHS_PER_SWING;
+  const farmBtn = farmLocked(k, d)
+    ? `<div class="farm-lock">${farmLockText()}</div>`
+    : left > 0
+      ? `<button class="farm-open" data-action="open-farm">🐔 My farm <small>${left} left today</small></button>`
+      : '<div class="farm-lock">🌙 Farm again tomorrow</div>';
+  // 🍓 Fruit time: only after this child's "Ready, set, go!" (it never blocks the start), with a free "Not today".
+  // (At night the fruit question is part of "Going up!".)
+  const fruitRow = r === 'morning' && !notStarted ? fruitTileHTML(k) : '';
+  const breaths = d.breaths || 0;
+  const showCoins = (state.coinShow[k.id] || 0) > Date.now();
   return `
     <div class="col" data-col="${k.id}" style="--kid:${k.color}">
       <div class="col-head">
         <span class="face">${k.avatar || '🙂'}</span><b>${esc(k.name)}</b>
+        ${fruitBadgeHTML(k)}
         ${(() => { const w = Object.keys(d.claims || {}).reduce((t, id) => t + (listFor(k, 'extras').find((c) => c.id === id)?.coins || 2), 0); return w ? `<span class="col-waiting" title="Coins waiting for a grown-up to check">⏳ +${w}</span>` : ''; })()}
-        <span class="col-coins">🪙 <span class="coin-num">${coinsOf(k.id)}</span> · 🔥 ${streakOf(k.id)}${asked ? ` · 🔔 ${asked}` : ''}</span>
+        ${showCoins ? coinChipHTML(k.id) : ''}
       </div>
+      ${lastNight}
       <div class="col-main">${main}</div>
+      ${fruitRow}
       <div class="col-farm-line">${farm.tallyHTML(k.id)}<span class="col-goal">${farm.goalText(k.id, coinsOf(k.id))}</span></div>
       <div class="col-foot">
         <button class="star-btn" data-action="extras-sheet" aria-label="Extra jobs">⭐</button>
-        <button class="breath-btn" aria-label="Hold to log a breath prayer" ${breathsToday >= BREATHS_PER_DAY ? 'disabled' : ''}>🙏 <small>${towardSwing}/${BREATHS_PER_SWING}</small></button>
+        <button class="breath-btn" aria-label="Hold for a breath prayer" ${breaths >= BREATHS_PER_DAY ? 'disabled' : ''}>🙏<small>${breaths >= BREATHS_PER_DAY ? '💛' : 'Hold'}</small></button>
         ${farmBtn}
       </div>
     </div>`;
+}
+
+// A child's coins, shown on their column only for a few seconds after they earn.
+const coinChipHTML = (id) => `<span class="col-coins" data-coins-until="${state.coinShow[id] || 0}">🪙 <span class="coin-num">${coinsOf(id)}</span></span>`;
+
+// Show a child's coins for a few seconds and return the number to fly coins into (null on other screens).
+function coinTarget(id) {
+  state.coinShow[id] = Date.now() + COIN_SHOW_MS;
+  const head = app.querySelector(`[data-col="${id}"] .col-head`);
+  if (head) {
+    let chip = head.querySelector('.col-coins');
+    if (!chip) { head.insertAdjacentHTML('beforeend', coinChipHTML(id)); chip = head.querySelector('.col-coins'); }
+    chip.dataset.coinsUntil = String(state.coinShow[id]);
+    return chip.querySelector('.coin-num');
+  }
+  return null;
 }
 
 const pendingCount = () => state.settings.kids.reduce((n, k) => n + Object.keys(state.days[k.id]?.claims || {}).length, 0);
@@ -803,6 +934,7 @@ function renderBoard() {
       ${raceBarHTML()}
       <div class="board-cols">${state.settings.kids.map((k) => columnHTML(k, state.days[k.id], r)).join('')}</div>
     </section>`;
+  showHolds();
 }
 
 function renderFarmScreen(k) {
@@ -845,6 +977,28 @@ async function render() {
   renderDevBar();
 }
 
+// "Judah, it's go time!" at 7:00 and 7:10 (15 and 5 minutes before the start-by time), once each,
+// for every child who hasn't started their morning yet. Remembered per day, so a reload doesn't repeat it.
+function goTimeVoice() {
+  if (defaultTab() !== 'morning' || state.farmKid || state.mineOpen) return;
+  const by = clock.atTime(state.settings.startBy || '07:15', state.settings.dayStartHour).getTime();
+  const now = nowMs();
+  const said = readJSON('goTime', {});
+  if (said.day !== todayKey()) Object.assign(said, { day: todayKey(), done: [] });
+  for (const before of [15, 5]) {
+    const at = by - before * 60000;
+    if (now < at || now > at + 5 * 60000 || said.done.includes(before)) continue;
+    said.done.push(before);
+    writeJSON('goTime', said);
+    const waiting = state.settings.kids.filter((k) => state.days[k.id] && !firstDoneTime(state.days[k.id]) && !state.runs[k.id]);
+    if (!waiting.length) continue;
+    const names = waiting.map((k) => k.name);
+    const who = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+    speak(`${who}, it's go time!`, true);
+    toast(`⏰ ${esc(who)}, it's go time!`);
+  }
+}
+
 // Light refresh every second: clock, window bar, idle timeout, 3am rollover.
 function tick() {
   if (!state.settings) return; // still starting up
@@ -856,7 +1010,6 @@ function tick() {
   if (bar) {
     const tmp = document.createElement('div');
     tmp.innerHTML = windowBarHTML(bar.dataset.routine);
-    bar.nextElementSibling.remove();
     bar.replaceWith(...tmp.children);
   }
   const c = app.querySelector('.clock');
@@ -864,8 +1017,11 @@ function tick() {
   sessionTick();
   app.querySelectorAll('[data-offer]').forEach((el) => {
     const o = startOffer(el.dataset.offer, nowMs());
-    el.textContent = o.coins ? `Start now for 🪙 ${o.coins} · drops in ${clock.fmtDuration(o.msToDrop)}` : 'Start now. The family is waiting!';
+    el.textContent = o.coins ? `Start now for 🪙 ${o.coins} · drops in ${clock.fmtDuration(o.msToDrop)}` : "Let's all finish together!";
   });
+  // Coins shown just after earning hide again after a few seconds.
+  app.querySelectorAll('.col-coins[data-coins-until]').forEach((el) => { if (Number(el.dataset.coinsUntil) < Date.now()) el.remove(); });
+  goTimeVoice();
   app.querySelectorAll('[data-night-start]').forEach((el) => {
     const took = nowMs() - new Date(el.dataset.nightStart).getTime();
     el.querySelector('.night-timer-label').textContent = nightTimerText(el.dataset.nightStart);
@@ -876,7 +1032,7 @@ function tick() {
   });
   app.querySelectorAll('[data-race]').forEach((el) => { el.textContent = fmtMinutes(nowMs() - new Date(el.dataset.race).getTime()); });
   const idle = Date.now() - state.lastTouch > (state.mineOpen ? 3 * IDLE_MS : IDLE_MS) && state.prayer?.phase !== 'confirm';
-  const away = state.kidId || state.prayer || state.farmKid;
+  const away = (state.kidId || state.prayer || state.farmKid) && !document.querySelector('.fr-ov'); // not during Fruit time
   // The automatic trip home waits while the child is still tapping (e.g. feeding their animals).
   const autoHome = state.autoHomeAt && Date.now() > state.autoHomeAt && Date.now() - state.lastTouch > 4000 && !document.querySelector('.farm-ov');
   if (away && (idle || autoHome)) goHome();
@@ -897,26 +1053,35 @@ function goHome() {
   render();
 }
 
-async function completeHabit(habitId) {
-  const r = state.tab;
-  const h = listFor(kid(), r).find((x) => x.id === habitId);
+// Tick a job for one child. The child is passed in (not "whoever touched last"), so two children
+// holding jobs at the same time each get their own tick and coins.
+async function completeHabit(id, habitId) {
+  const r = defaultTab();
+  const k = kid(id);
+  const d = state.days[id];
+  const h = listFor(k, r).find((x) => x.id === habitId);
+  if (!h || !d || mapFor(d, r)[habitId]) return;
   const at = clock.now().toISOString();
-  mapFor(state.day, r)[habitId] = at;
-  state.day.log.push({ t: at, routine: r, habit: habitId, action: 'done' });
-  await dayPut(state.day);
+  mapFor(d, r)[habitId] = at;
+  d.log.push({ t: at, routine: r, habit: habitId, action: 'done' });
+  await dayPut(d);
   const before = state.sum;
   await refreshSummary();
-  afterDone(habitId, h.type !== 'timer', r);
-  coinNews(before);
+  afterDone(id, habitId, h.type !== 'timer', r);
+  coinNews(before, id);
 }
 
-// Shared feedback after any habit is completed (tile tap or prayer timer).
-function afterDone(habitId, allowUndo, r = 'morning') {
-  const k = kid();
+// Say something for one child, if read-aloud is on for them.
+function speakFor(id, text) { if (readAloudOn(id)) speak(text, true); }
+
+// Shared feedback after any habit is completed (tile hold or prayer timer).
+function afterDone(id, habitId, allowUndo, r = 'morning') {
+  const k = kid(id);
+  const d = state.days[id];
   const h = listFor(k, r).find((x) => x.id === habitId);
-  const all = r !== 'extras' && doneCount(k, state.day, r) === listFor(k, r).length;
+  const all = r !== 'extras' && doneCount(k, d, r) === listFor(k, r).length;
   // Extra chores give mine swings for the first 4 a day only.
-  if (h.type !== 'timer' && (r !== 'extras' || doneCount(k, state.day, 'extras') <= 4)) sendToMine(k.id, r === 'extras' ? { swings: 1, hands: 1 } : { swings: 1 });
+  if (h.type !== 'timer' && (r !== 'extras' || doneCount(k, d, 'extras') <= 4)) sendToMine(k.id, r === 'extras' ? { swings: 1, hands: 1 } : { swings: 1 });
   if (all) sendToMine(k.id, { gold: 1, icon: r === 'night' ? '🌙' : '☀️' });
   if (allowUndo) {
     clearTimeout(state.undos[k.id]?.timer);
@@ -927,20 +1092,22 @@ function afterDone(habitId, allowUndo, r = 'morning') {
   state.coinFrom = tile?.getBoundingClientRect();
   tile?.classList.add('just-done');
   burst(tile);
-  if (all) {
+  if (all && r === 'night') {
+    // Night jobs done: the column now shows the big "🌙 Going up!" button.
     pop(true);
-    speak(r === 'night' ? `${h.name}, done! Night routine finished. Sleep tight!` : `${h.name}, done! You finished everything. Amazing!`);
-    allDoneMoment(r);
+    speakFor(id, `${h.name}, done! Night jobs finished, ${k.name}. When you're ready for bed, tap Going up!`);
+    burst(app.querySelector(`[data-col="${k.id}"] .going-up`), 24);
+    state.autoHomeAt = Date.now() + FOCUS_HOME_MS;
+  } else if (all) {
+    pop(true);
+    speakFor(id, `${h.name}, done! You finished everything. Amazing!`);
+    allDoneMoment(k, r);
     state.autoHomeAt = Date.now() + ALL_DONE_HOME_MS;
-  } else if (r === 'night' && isHouseJob(h) && nightFarmReady(k, state.day)) {
-    pop(true);
-    speak(`Night chores done, ${k.name}! Tap the big button to see your farm for 3 minutes, then get ready for bed.`);
-    burst(app.querySelector(`[data-col="${k.id}"] .night-reward`), 24);
   } else {
     pop();
-    const next = r === 'extras' ? null : nextJob(k, state.day, r);
-    speak(next ? `${h.name}, done! ${pick(PRAISE)} Next is ${next.name}. Off you go!` : `${h.name}, done! Thank you for helping!`);
-    state.nextNote = next ? `👉 Next: ${next.icon} <b>${esc(next.name)}</b>. Off you go!` : '';
+    const next = r === 'extras' ? null : nextJob(k, d, r);
+    speakFor(id, next ? `${h.name}, done! ${pick(PRAISE)} Next is ${next.name}. Off you go!` : `${h.name}, done! Thank you for helping!`);
+    state.nextNote = next ? `👉 ${esc(k.name)}, next: ${next.icon} <b>${esc(next.name)}</b>. Off you go!` : '';
     if (next) setTimeout(() => toast(state.nextNote), 300);
     state.autoHomeAt = Date.now() + FOCUS_HOME_MS;
   }
@@ -987,9 +1154,8 @@ function flyCoins(amount, fromRect, targetEl, startValue) {
   }
 }
 
-// Celebrate coins just earned: night jobs done, bedtime bonus, and the family win.
-function coinNews(before) {
-  const id = state.kidId;
+// Celebrate coins just earned by one child: jobs, night race, bedtime bonus, and the family win.
+function coinNews(before, id = state.kidId) {
   // Compare earned-before with earned-after. (Comparing the spendable balance, which includes farm
   // spending and sales, with earned-before made this 0 or less for anyone who had spent coins.)
   const gained = (state.sum?.coins[id] || 0) - (before?.coins[id] || 0);
@@ -999,8 +1165,8 @@ function coinNews(before) {
   const note = state.nextNote || '';
   state.nextNote = '';
   if (gained > 0) {
-    const target = app.querySelector(`[data-col="${id}"] .coin-num`) || app.querySelector('.coin-chip');
-    flyCoins(gained, state.coinFrom, target?.classList.contains('coin-num') ? target : null, coinsOf(id) - gained);
+    // The child's coins show on their column for a few seconds while the coins fly in.
+    flyCoins(gained, state.coinFrom, coinTarget(id), coinsOf(id) - gained);
     setTimeout(() => toast(`<span>🪙 +${gained} coin${gained === 1 ? '' : 's'}! ${fresh.join(' · ')}${note ? `<br>${note}` : ''}</span>`), 600);
   }
   if (famWon) setTimeout(familyWinMoment, 3700);
@@ -1021,17 +1187,18 @@ function familyWinMoment() {
   setTimeout(() => el.remove(), 5000);
 }
 
-async function undo() {
-  const u = state.undos[state.kidId];
-  if (!u || !state.day) return;
+async function undo(id = state.kidId) {
+  const u = state.undos[id];
+  const d = state.days[id];
+  if (!u || !d) return;
   const { habitId, routine } = u;
   clearTimeout(u.timer);
-  delete state.undos[state.kidId];
-  delete mapFor(state.day, routine)[habitId];
-  if (routine !== 'extras' || doneCount(kid(), state.day, 'extras') < 4) sendToMine(state.kidId, routine === 'extras' ? { swings: -1, hands: -1 } : { swings: -1 });
-  state.day.log.push({ t: clock.now().toISOString(), routine, habit: habitId, action: 'undo' });
+  delete state.undos[id];
+  delete mapFor(d, routine)[habitId];
+  if (routine !== 'extras' || doneCount(kid(id), d, 'extras') < 4) sendToMine(id, routine === 'extras' ? { swings: -1, hands: -1 } : { swings: -1 });
+  d.log.push({ t: clock.now().toISOString(), routine, habit: habitId, action: 'undo' });
   state.autoHomeAt = 0;
-  await dayPut(state.day);
+  await dayPut(d);
   await refreshSummary();
   renderKid();
 }
@@ -1048,8 +1215,7 @@ function burst(fromEl, count = 14) {
   setTimeout(() => box.remove(), 1600);
 }
 
-function allDoneMoment(r = 'morning') {
-  const k = kid();
+function allDoneMoment(k, r = 'morning') {
   const el = document.createElement('div');
   el.className = 'all-done-moment';
   el.style.setProperty('--kid', k.color);
@@ -1085,7 +1251,7 @@ async function readySetGo() {
   if (going) return;
   going = true;
   unlockAudio();
-  const k = kid();
+  const k = kid(); // the child whose column was tapped (kept, even if a sibling touches the iPad meanwhile)
   const el = document.createElement('div');
   el.className = 'rsg';
   document.body.appendChild(el);
@@ -1094,51 +1260,80 @@ async function readySetGo() {
     el.dataset.light = light;
     el.innerHTML = `<div class="rsg-lights"><i class="r"></i><i class="y"></i><i class="g"></i></div><div class="rsg-word">${word}</div>`;
     beep(freq, light === 'g' ? 0.6 : 0.25);
-    speak(word.replace('…', ''));
+    speakFor(k.id, word.replace('…', ''));
     await new Promise((r) => setTimeout(r, light === 'g' ? 700 : 900));
   }
   el.remove();
   going = false;
-  if (state.kidId !== k.id) return;
+  const d = state.days[k.id];
+  if (!d || firstDoneTime(d)) return;
   const at = clock.now().toISOString();
-  state.day.startedAt = at;
-  state.day.log.push({ t: at, action: 'start' });
-  await dayPut(state.day);
+  d.startedAt = at;
+  d.log.push({ t: at, action: 'start' });
+  await dayPut(d);
   renderKid();
-  burst(app.querySelector('.tiles'), 20);
-  speak(`Let's go, ${k.name}! Finish all your jobs in ${COINS.firstThingMin} minutes for ${COINS.firstThing} coins!`);
+  burst(app.querySelector(`[data-col="${k.id}"] .next-tile`), 20);
+  // Matches the morning rules: start by 7:15, and do the jobs before anyone has to ask.
+  const inTime = clock.now() <= clock.atTime(state.settings.startBy || '07:15', state.settings.dayStartHour);
+  speakFor(k.id, inTime ? `Let's go, ${k.name}! You started in time. Now do your jobs before anyone has to ask!`
+    : `Let's go, ${k.name}! Every job still earns a star.`);
 }
 
-// ---------- press-and-hold tiles ----------
+// ---------- press-and-hold (job tiles and the 🙏 breath) ----------
+// Every finger has its own hold, remembered by its pointerId together with the child whose column it is in.
+// So two children can hold at the same time: each tick goes to the right child, and lifting one finger
+// only cancels that finger's hold.
+const holds = new Map(); // pointerId -> { kind: 'tile' | 'breath', kidId, el, habitId, started, timer, timers }
 
-let hold = null;
+// The element a hold is on. If the board was redrawn meanwhile, find the new copy of it.
+function holdEl(x) {
+  if (x.el?.isConnected) return x.el;
+  const col = app.querySelector(`[data-col="${x.kidId}"]`);
+  x.el = x.kind === 'breath' ? col?.querySelector('.breath-btn')
+    : col?.querySelector(`.next-tile[data-habit="${x.habitId}"]`) || col?.querySelector(`[data-habit="${x.habitId}"]`);
+  return x.el;
+}
+// After the board is redrawn, show the holds that are still going.
+function showHolds() {
+  for (const x of holds.values()) holdEl(x)?.classList.add(x.kind === 'breath' ? 'breathing' : 'holding');
+}
 
-function startHold(tile) {
-  cancelHold();
+function startHold(tile, id, pointerId) {
+  endHold(pointerId, false);
   unlockAudio();
-  const h = listFor(kid(), state.tab).find((x) => x.id === tile.dataset.habit);
+  const h = listFor(kid(id), defaultTab()).find((x) => x.id === tile.dataset.habit);
+  if (!h) return;
   tile.classList.remove('hint');
   tile.classList.add('holding');
-  speak(h.name);
-  hold = {
-    tile,
-    started: Date.now(),
-    timer: setTimeout(() => { hold = null; tile.classList.remove('holding'); completeHabit(h.id); }, HOLD_MS),
-  };
+  speakFor(id, h.name);
+  holds.set(pointerId, {
+    kind: 'tile', kidId: id, el: tile, habitId: h.id, started: Date.now(),
+    timer: setTimeout(() => { endHold(pointerId, false); completeHabit(id, h.id); }, HOLD_MS),
+  });
 }
 
-function cancelHold() {
-  if (!hold) return;
-  clearTimeout(hold.timer);
-  const { tile, started } = hold;
-  hold = null;
-  tile.classList.remove('holding');
-  if (Date.now() - started < 400) {
+// Stop one finger's hold. lifted = the finger came up before the hold finished.
+function endHold(pointerId, lifted) {
+  const x = holds.get(pointerId);
+  if (!x) return;
+  holds.delete(pointerId);
+  clearTimeout(x.timer);
+  (x.timers || []).forEach(clearTimeout);
+  const el = holdEl(x);
+  el?.classList.remove('holding', 'breathing');
+  if (!lifted) return;
+  if (x.kind === 'breath') {
+    const label = el?.querySelector('small');
+    if (label) label.textContent = 'Hold';
+    toast('🙏 Keep your finger on 🙏 for one slow breath');
+    return;
+  }
+  if (Date.now() - x.started < 400 && el) {
     // A quick tap: show how to finish instead of ticking it.
-    tile.classList.add('hint');
-    const sub = tile.querySelector('.tile-sub');
+    el.classList.add('hint');
+    const sub = el.querySelector('.tile-sub');
     if (sub) sub.textContent = '👇 Keep your finger down!';
-    setTimeout(() => speak('Hold your finger down to finish.'), 600);
+    setTimeout(() => speakFor(x.kidId, 'Hold your finger down to finish.'), 600);
   }
 }
 
@@ -1201,7 +1396,7 @@ async function endRun(kidId, completed) {
   if (!run) return null;
   delete state.runs[kidId];
   updateWakeLock();
-  const day = state.kidId === kidId && state.day ? state.day : await loadDay(kidId);
+  const day = state.days[kidId] || await loadDay(kidId); // the board's own copy, so later ticks don't save over it
   const end = clock.now().toISOString();
   day.prayerAttempts.push({ start: run.startedAt, end, completed });
   delete day.prayerRun;
@@ -1223,7 +1418,7 @@ async function finishPrayer(kidId) {
     renderPrayer();
     if (state.kidId === kidId) speak('Amen! Prayer done. Well done.');
   } else if (state.kidId === kidId) {
-    afterDone('pray', false);
+    afterDone(kidId, 'pray', false);
   } else {
     toast(`🙏 Amen, ${esc(k.name)}! Prayer finished.`);
     if (!state.kidId) render();
@@ -1246,9 +1441,10 @@ function closeOverlay() {
 
 function closePrayer() {
   const finished = state.prayer?.phase === 'done';
+  const id = state.prayer?.kidId;
   closeOverlay();
   state.lastTouch = Date.now();
-  if (finished) afterDone('pray', false);
+  if (finished) afterDone(id, 'pray', false);
   else renderKid();
 }
 
@@ -1400,30 +1596,21 @@ async function devAction(action, el) {
 document.addEventListener('pointerdown', (e) => {
   state.lastTouch = Date.now();
   const pray = e.target.closest('.breath-btn');
-  if (pray && !pray.disabled) {
-    const id = pray.closest('[data-col]').dataset.col;
-    useKid(id);
-    unlockAudio();
-    pray.classList.add('holding');
-    breathHold = { pray, started: Date.now(), timer: setTimeout(() => { breathHold = null; pray.classList.remove('holding'); logBreathPrayer(id); }, HOLD_MS) };
+  const tile = !pray && e.target.closest('.tile[data-hold]');
+  const col = (pray || tile)?.closest('[data-col]');
+  if (!col) return;
+  const id = col.dataset.col;
+  useKid(id);
+  if (pray) {
+    const busy = [...holds.values()].some((x) => x.kind === 'breath' && x.kidId === id);
+    if (!pray.disabled && !busy && (state.days[id]?.breaths || 0) < BREATHS_PER_DAY) startBreath(pray, id, e.pointerId);
     return;
   }
-  const tile = e.target.closest('.tile[data-hold]');
-  if (!tile) return;
-  const col = tile.closest('[data-col]');
-  if (col) useKid(col.dataset.col);
-  startHold(tile);
+  startHold(tile, id, e.pointerId);
 }, true);
-let breathHold = null;
-function cancelBreathHold() {
-  if (!breathHold) return;
-  clearTimeout(breathHold.timer);
-  breathHold.pray.classList.remove('holding');
-  if (Date.now() - breathHold.started < 400) toast('🙏 Hold the button to log a breath prayer');
-  breathHold = null;
-}
-document.addEventListener('pointerup', () => { cancelHold(); cancelBreathHold(); });
-document.addEventListener('pointercancel', () => { cancelHold(); cancelBreathHold(); });
+// Only the finger that lifts loses its hold.
+document.addEventListener('pointerup', (e) => endHold(e.pointerId, true));
+document.addEventListener('pointercancel', (e) => endHold(e.pointerId, true));
 document.addEventListener('contextmenu', (e) => { if (e.target.closest('.tile')) e.preventDefault(); });
 
 document.addEventListener('change', (e) => {
@@ -1436,7 +1623,7 @@ document.addEventListener('click', async (e) => {
   const a = el.dataset.action;
   if (a.startsWith('dev-')) return devAction(a, el);
   const col = el.closest('[data-col]');
-  if (col && a !== 'open-farm' && a !== 'night-farm') useKid(col.dataset.col);
+  if (col && a !== 'open-farm') useKid(col.dataset.col);
   if (a.startsWith('farm-')) return farm.action(a, el);
   switch (a) {
     case 'open-farm': return openFarm(el.closest('[data-col]').dataset.col);
@@ -1444,13 +1631,17 @@ document.addEventListener('click', async (e) => {
     case 'reminders': return openReminders();
     case 'portal': return portal.open();
     case 'claim': return claimJob(el.dataset.job);
-    case 'night-farm': return openNightFarm(el.closest('[data-col]').dataset.col);
+    case 'going-up': return goingUp(col.dataset.col);
+    case 'last-night': return openLastNight(col.dataset.col);
     case 'extras-sheet': return extrasSheet();
     case 'start-night': return startNight();
     case 'home': return goHome();
     case 'go': return readySetGo();
+    case 'fruit-time': unlockAudio(); return openFruitTime(kid());
+    case 'fruit-skip': return skipFruitToday(kid());
+    case 'fruit-badge': return sayBadge(kid());
     case 'mine': return openMine();
-    case 'undo': e.stopPropagation(); return undo();
+    case 'undo': e.stopPropagation(); return undo(col?.dataset.col);
     case 'toggle-speak': {
       state.prefs.readAloud[state.kidId] = !readAloudOn();
       await kvSet('prefs', state.prefs);
@@ -1509,7 +1700,10 @@ function migrate(s) {
   }
   // v10: "Tidy my room" and "Pack my bag" are no longer bedtime jobs (past days keep their own list).
   if ((s.version || 1) < 10) for (const k of s.kids) k.nightHabits = (k.nightHabits || []).filter((h) => h.id !== 'room' && h.id !== 'bag');
-  // New default night jobs (toilet, in bed) join each child's saved night routine.
+  // v11: night is the after-dinner house jobs only. Bath, pyjamas, teeth, toilet and bed happen upstairs
+  // after "Going up!" (past days keep their own list, so their coins don't change).
+  if ((s.version || 1) < 11) for (const k of s.kids) k.nightHabits = (k.nightHabits || []).filter((h) => !['shower', 'pjs', 'teeth', 'toilet', 'inbed'].includes(h.id));
+  // New default night jobs join each child's saved night routine.
   for (const dk of DEFAULT_SETTINGS.kids) {
     const k = s.kids.find((x) => x.id === dk.id);
     for (const h of dk.nightHabits) if (k && !k.nightHabits.some((x) => x.id === h.id)) k.nightHabits.push(structuredClone(h));
@@ -1524,8 +1718,10 @@ async function init() {
   state.settings = migrate(saved || structuredClone(DEFAULT_SETTINGS));
   await kvSet('settings', state.settings);
   state.prefs = (await kvGet('prefs')) || { readAloud: {} };
+  await initFruit({ kids: state.settings.kids, dayStartHour: state.settings.dayStartHour, onChange: () => { if (!state.farmKid) renderKid(); } });
+  // ?dev=0 turns dev mode off. ?dev=1 turns it on only after the grown-up PIN (asked once the board shows).
   const dev = new URLSearchParams(location.search).get('dev');
-  if (dev !== null) setDev(dev !== '0');
+  if (dev === '0') setDev(false);
   navigator.storage?.persist?.();
 
   // Resume any prayer timers that were running before a reload.
@@ -1548,6 +1744,10 @@ async function init() {
   await render();
   setInterval(tick, 1000);
   setInterval(checkRuns, 250);
+  if (dev !== null && dev !== '0' && !devOn() && (await grownUp('turn on dev mode (fake time)'))) {
+    setDev(true);
+    await render();
+  }
 }
 
 init().catch((err) => {

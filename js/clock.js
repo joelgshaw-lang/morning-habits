@@ -11,15 +11,19 @@ function write(key, value) {
   try { value == null ? localStorage.removeItem(key) : localStorage.setItem(key, value); } catch {}
 }
 
+// The fake time only counts while dev mode is on (turning dev mode on needs the grown-up PIN),
+// so a forgotten fake time can never stay on for the kids.
+const offset = () => (read('dev.mode') === '1' ? Number(read(OFFSET_KEY) || 0) : 0);
+
 export function now() {
-  return new Date(Date.now() + Number(read(OFFSET_KEY) || 0));
+  return new Date(Date.now() + offset());
 }
 export function setFakeTime(date) { write(OFFSET_KEY, String(date.getTime() - Date.now())); }
 export function addMinutes(min) { setFakeTime(new Date(now().getTime() + min * 60000)); }
 export function clearFakeTime() { write(OFFSET_KEY, null); }
-export function isFaked() { return Number(read(OFFSET_KEY) || 0) !== 0; }
+export function isFaked() { return offset() !== 0; }
 
-export function fastTimers() { return read(FAST_KEY) === '1'; }
+export function fastTimers() { return read('dev.mode') === '1' && read(FAST_KEY) === '1'; }
 export function setFastTimers(on) { write(FAST_KEY, on ? '1' : null); }
 
 const pad = (n) => String(n).padStart(2, '0');

@@ -53,6 +53,22 @@ Tips for a shared kitchen iPad:
 - **Guided Access** (Settings → Accessibility → Guided Access) keeps kids inside the app.
 - Keep the app on the home screen. iPadOS keeps home screen app data; plain Safari tabs can be cleared after weeks of non-use.
 
+## Current rules (16 Nov 2026)
+
+These win over anything older further down.
+
+- **Morning:** tap **Ready, set, go!** by 7:15 (change it in Grown-ups → Morning). Starting later means no coins that morning (job stars still count). If a grown-up has to ask (🔔), that routine loses 🪙 20, once, and the day never goes below zero. The child's column shows which job, plus "Tomorrow is a fresh start."
+- **🍓 Fruit time:** after Ready, set, go, each child meets the next 3 fruits of the Spirit (✓ this is / ✗ this is not pictures, read aloud), gives stars (under-8s get 3 face stars, 8+ get 5), then a 2-question "which fruit is which" quiz. After all 9 they pick their own fruit for the week. "Not today" is always allowed. Their Fruit Friend badge shows on their column.
+- **Night:** house jobs only (bath, teeth and bed are off the iPad). Then **🌙 Going up!**: one night fruit question and "How did your fruit go today?", then goodnight. The iPad stays downstairs. No farm at night.
+- **Next morning:** a grown-up taps **Last night 🛏️** (PIN): stayed in bed 🪙 15, got up once 🪙 5, otherwise nothing.
+- **🙏 Breath prayer:** hold for one guided 5-second breath, up to 3 a day. No coins or swings for prayer.
+- **Fair board:** coins, streaks and 🔔 counts are not shown side by side. A child's coins show briefly when earned and on their farm. Two children can hold jobs at the same time.
+- **Grown-ups:** the PIN is needed every time; the area closes after 3 minutes (🔒 Lock now closes it sooner). Tabs include 🍓 Fruit (one child at a time) and 🔊 Voice. `?dev=1` also asks for the PIN.
+- **Farm:** shop words show real prices. To sell, pick the animal, say goodbye, hold to sell, and "Bring it back" works for 10 seconds. For under-8s the fox only scares the animals.
+- **Mine:** each child's mine unlock lasts 20 minutes. Good-deed gems need the grown-up PIN. Stop & Pray gives no reward.
+
+Plans and reviews: `docs/review-round3.md` (latest review and what's next), `docs/redesign-plan.md` (Joel's plan).
+
 ## How kids use it
 
 - **Start night chores:** every night the Night tab starts with a big **Start night chores!** button, which starts a clock. All night jobs done within 40 minutes 🪙 5, within 20 minutes 🪙 5 more (🪙 10 in total). The bar is green for 20 minutes, then amber, then red.
@@ -100,7 +116,7 @@ Each child has a gem mine under a temple built on Jesus, the foundation (`mine.h
 - Gems go in the treasure chest, into the temple (Altar → Chapel → Temple → Great Temple → City), or into recipes (buildings, pillars, braces, workshop upgrades) that unlock as the temple grows.
 - **🔥 The fire**: a grown-up holds the button in 👨‍👩‍👧 (the Sunday family moment). Wobbly props burn, tunnels cave in, and things built above can fall into the mine and need rescuing. A fireside talk and prayer follows.
 - When a child uses their last swing of the day, a short read-aloud moment reminds them it's a game, but they will stand before God (2 Cor 5:10), and that they're safe on Jesus (1 Cor 3:11–14).
-- **The grown-up PIN (040910)** opens the mine for 20 minutes (then "⏰ Mine time is over" and back to the jobs), and guards the 👨‍👩‍👧 controls (unlocked for 3 minutes, then the PIN is needed again; the Grown-ups portal also closes after 3 minutes). Opening the mine doesn't unlock the grown-up controls.
+- **The grown-up PIN** (set in `js/config.js`) opens the mine for 20 minutes (then "⏰ Mine time is over" and back to the jobs), and guards the 👨‍👩‍👧 controls (unlocked for 3 minutes, then the PIN is needed again; the Grown-ups portal also closes after 3 minutes). Opening the mine doesn't unlock the grown-up controls.
 
 ## Farm: jobs stay essential
 

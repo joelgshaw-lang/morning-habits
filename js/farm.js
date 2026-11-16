@@ -3,7 +3,8 @@ import { animalArt, snakeArt } from './farm-art.js';
 // The farm: coins from chores buy mystery eggs, feed, a fence, sheep, cows and buildings.
 // Prices and growth times come from a 90-day simulation (docs/farm-economy.md): a new stage every one to
 // three weeks, a few steady wins every day, and the farmhouse after about two months.
-// Animals never die. Hungry animals just stop laying until they're fed. The fox only comes through a broken fence.
+// Animals never die. Hungry animals just stop laying until they're fed. The fox only comes through a broken fence,
+// and for children under 8 it only gives the animals a fright (no eggs that day): it never takes one.
 
 export const KINDS = {
   chicken: { name: 'Chicken', baby: 'Chick', babyIcon: '🐣', icon: '🐔', feed: 1, grow: 5, sound: 'cluck', small: true },
@@ -31,18 +32,18 @@ const priceOf = (f, g) => GOODS[g].price + (f.built.stand ? Math.max(1, Math.rou
 // About 1 in 30 eggs a hen lays is a rainbow egg, worth 100.
 const RAINBOW_CHANCE = 0.03;
 
+// What a child gets for selling a grown animal. They choose which one, say goodbye, and can bring it back
+// within 10 seconds (see "selling an animal" below).
+export const SELL = { chicken: 40, duck: 50, lizard: 75, snake: 75, croc: 120, sheep: 120, cow: 280, dino: 400 };
+// "hen" reads better than "chicken" when saying goodbye.
+const animalWord = (type) => (type === 'chicken' ? 'hen' : KINDS[type].name.toLowerCase());
+
+// The shop words below take their prices straight from GOODS (above), so they always match what things really sell for.
 // stars: ⭐ job stars needed too (about 1 for every 10 coins on big things). Stars only come from doing jobs,
 // so however much the farm sells, the next big thing still takes real chores.
 export const SHOP = [
-  // Selling a grown animal (price is what the child gets). Only shows when they have one to sell.
-  { id: 'sellhen', sell: 'chicken', icon: '🐔', name: 'Sell a hen', price: -40, level: 1, does: 'A grown hen goes to a happy new farm for 40 coins. Makes room in the coop too.' },
-  { id: 'selllizard', sell: 'lizard', icon: '🦎', name: 'Sell a lizard', price: -75, level: 1, does: 'A grown lizard goes to a happy new farm for 75 coins.' },
-  { id: 'sellsnake', sell: 'snake', icon: '🐍', name: 'Sell a snake', price: -75, level: 1, does: 'A grown snake slithers off to a happy new farm for 75 coins.' },
-  { id: 'sellduck', sell: 'duck', icon: '🦆', name: 'Sell a duck', price: -50, level: 1, does: 'A grown duck waddles off to a happy new farm for 50 coins.' },
-  { id: 'sellcroc', sell: 'croc', icon: '🐊', name: 'Sell a crocodile', price: -120, level: 1, does: 'A grown crocodile snaps its way to a happy new farm for 120 coins.' },
-  { id: 'sellsheep', sell: 'sheep', icon: '🐑', name: 'Sell a sheep', price: -120, level: 1, does: 'A grown sheep goes to a happy new farm for 120 coins.' },
-  { id: 'sellcow', sell: 'cow', icon: '🐄', name: 'Sell a cow', price: -280, level: 1, does: 'A grown cow goes to a happy new farm for 280 coins.' },
-  { id: 'selldino', sell: 'dino', icon: '🦕', name: 'Sell a dinosaur', price: -400, level: 1, does: 'A grown dinosaur stomps off to a happy new farm for 400 coins!' },
+  // Selling a grown animal: the child picks which one next. Only shows when they have a grown animal.
+  { id: 'sell', sell: true, icon: '👋', name: 'Sell an animal', price: 0, level: 1, does: 'Choose a grown animal to go to a happy new farm, and get coins for it.' },
   { id: 'egg', icon: '🥚', name: 'Mystery egg', price: 30, level: 1, does: "Hatch it to see what's inside! Usually a chicken… sometimes a duck, a lizard, a cheeky snake, a crocodile… or, very rarely, a dinosaur!" },
   { id: 'repair', icon: '🪵', name: 'Fix the fence', price: 10, level: 1, does: 'Keeps the fox out for another week.' },
   { id: 'veg', icon: '🥕', name: 'Vegetable patch', price: 60, stars: 5, level: 1, building: true, does: 'Grows carrots and greens: 2 free feeds every day you feed your animals.' },
@@ -50,15 +51,15 @@ export const SHOP = [
   { id: 'rareegg', icon: '💎', name: 'Rare egg', price: 90, stars: 5, level: 2, does: 'A sparkly egg with rarer animals: ducks, lizards, snakes, crocodiles… and a 1 in 20 chance of a dinosaur!' },
   { id: 'box', icon: '🎁', name: 'Mystery box', price: 45, level: 2, does: 'Food, an egg, golden corn, a lamb, a decoration… or even a calf!' },
   { id: 'lamb', icon: '🐑', name: 'Lamb', price: 150, stars: 15, level: 2, does: 'Feed it and it grows wool to shear and sell.' },
-  { id: 'shears', icon: '✂️', name: 'Sheep shears', price: 25, level: 2, building: true, tool: true, does: 'You need these to shear your sheep. Every bag of wool sells for 10 coins!' },
+  { id: 'shears', icon: '✂️', name: 'Sheep shears', price: 25, level: 2, building: true, tool: true, does: `You need these to shear your sheep. Every bag of wool sells for ${GOODS.wool.price} coins!` },
   { id: 'strong', icon: '🧱', name: 'Strong fence', price: 80, stars: 8, level: 2, building: true, does: 'Fence repairs last two weeks instead of one.' },
-  { id: 'hive', icon: '🐝', name: 'Beehive', price: 120, stars: 10, level: 2, building: true, does: 'Busy bees make a jar of honey every 3 days you feed your animals. Honey sells for 8!' },
+  { id: 'hive', icon: '🐝', name: 'Beehive', price: 120, stars: 10, level: 2, building: true, does: `Busy bees make a jar of honey every 3 days you feed your animals. Honey sells for ${GOODS.honey.price}!` },
   { id: 'dog', icon: '🐕', name: 'Farm dog', price: 200, stars: 20, level: 2, building: true, does: 'A loyal farm dog. The fox never comes near your farm again, even if the fence breaks.' },
   { id: 'pond', icon: '💧', name: 'Duck pond', price: 160, stars: 15, level: 2, building: true, needsDuck: true, does: 'Happy ducks lay 2 eggs a day.' },
   { id: 'calf', icon: '🐮', name: 'Calf', price: 350, stars: 30, level: 3, does: 'Grows into a cow that gives milk, and one day has a calf of her own.' },
-  { id: 'orchard', icon: '🍎', name: 'Apple orchard', price: 250, stars: 25, level: 3, building: true, does: 'Three apple trees: 2 apples every day you feed your animals. Apples sell for 3.' },
+  { id: 'orchard', icon: '🍎', name: 'Apple orchard', price: 250, stars: 25, level: 3, building: true, does: `Three apple trees: 2 apples every day you feed your animals. Apples sell for ${GOODS.apple.price} each.` },
   { id: 'stand', icon: '🏪', name: 'Farm stand', price: 300, stars: 30, level: 3, building: true, does: 'Sell from your own stand: everything you sell is worth more (1 extra coin for every 5).' },
-  { id: 'bottles', icon: '🍼', name: 'Milk bottles', price: 20, level: 3, building: true, tool: true, does: 'You need these to milk your cow. Every bottle of milk sells for 5 coins.' },
+  { id: 'bottles', icon: '🍼', name: 'Milk bottles', price: 20, level: 3, building: true, tool: true, does: `You need these to milk your cow. Every bottle of milk sells for ${GOODS.milk.price} coins.` },
   { id: 'barn', icon: '🛖', name: 'Big barn', price: 500, stars: 50, level: 4, building: true, does: 'Room for 14 small animals, 4 sheep, 3 cows and 2 dinosaurs.' },
   { id: 'pony', icon: '🐴', name: 'Pony', price: 600, stars: 50, level: 4, building: true, does: 'Your very own pony! Tap it to go for a gallop around the farm.' },
   { id: 'mill', icon: '⚙️', name: 'Windmill', price: 700, stars: 70, level: 4, needs: 'barn', building: true, does: 'Grinds feed: small animals eat free, and everyone else costs 1 coin less.' },
@@ -98,7 +99,9 @@ const hasGrown = (f, type) => f.animals.some((a) => a.type === type && grown(a))
 
 // Days since the farm was last opened: eggs in the nest hatch, the fence wears out, and the fox may visit.
 // The fox takes at most one animal per absence, so a few missed days never wipe out a farm.
-export function catchUp(f, today) {
+// gentle (children under 8): the fox only gives the animals a fright, so hens and ducks lay no eggs today.
+// It never takes an animal, because little ones grieve.
+export function catchUp(f, today, { gentle = false } = {}) {
   const gap = Math.min(14, dayNum(today) - dayNum(f.lastDay || today));
   if (gap <= 0) return false;
   let foxCame = false;
@@ -121,6 +124,11 @@ export function catchUp(f, today) {
     const prey = f.animals.filter((a) => ((a.type === 'chicken' && !f.built.coop) || a.type === 'duck') && grown(a)); // hens in the coop are safe
     if (!foxCame && brokenAlready && prey.length > 3 && !f.built.dog && !hasGrown(f, 'croc') && !hasGrown(f, 'dino') && Math.random() < FOX_CHANCE) {
       foxCame = true;
+      if (gentle) {
+        f.scaredDay = today; // feedAll checks this: no eggs today
+        f.events.push({ icon: '🦊', fox: true, gentle: true, text: "A fox sniffed at the broken fence and gave your animals a fright! They're all safe, but too scared to lay eggs today. Fix the fence to keep the fox away." });
+        continue;
+      }
       const gone = prey[rnd(prey.length)];
       f.animals = f.animals.filter((a) => a !== gone);
       f.events.push({ icon: '🦊', fox: true, text: `A fox sneaked through the broken fence and took a ${KINDS[gone.type].name.toLowerCase()}. Fix the fence to keep your animals safe.` });
@@ -213,7 +221,10 @@ export function createFarm(ctx) {
     coins: () => voice('triangle', [1046, 1318, 1568, 2093], 0.12, 0.07, 0.12),
     crack: () => voice('square', [[300, 120]], 0.06, 0, 0.12),
     fox: () => voice('sawtooth', [[600, 900], [900, 500]], 0.2, 0.2, 0.06),
+    foxSoft: () => voice('sine', [[520, 640], [600, 480]], 0.22, 0.24, 0.05), // a quiet "yip yip" for little ones
   };
+  // Children under 8 get the gentle fox: it scares the animals but never takes one, with a softer sound.
+  const isGentle = (id) => (ctx.kid(id)?.age ?? 99) < 8;
 
   // ---------- zoom and pan (state survives re-draws) ----------
   const zoom = { ws: 1, u: 1, x: 0, y: 0 };
@@ -609,9 +620,10 @@ export function createFarm(ctx) {
     const news = f.events.splice(0);
     save();
     const fox = news.some((n) => n.fox);
-    if (fox) SOUNDS.fox();
+    const gentleFox = fox && news.every((n) => !n.fox || n.gentle);
+    if (fox) (gentleFox ? SOUNDS.foxSoft : SOUNDS.fox)();
     return new Promise((resolve) => {
-      const el = overlay(`<h2>${fox ? 'Oh no!' : 'While you were away…'}</h2>
+      const el = overlay(`<h2>${gentleFox ? 'Uh-oh!' : fox ? 'Oh no!' : 'While you were away…'}</h2>
         ${news.map((n) => `<div class="news"><span>${n.icon}</span>${esc(n.text)}</div>`).join('')}
         <button class="farm-btn" data-done>OK</button>`, (e) => { if (e.target.closest('[data-done]')) { el.remove(); resolve(); } });
       ctx.speak(news.map((n) => n.text).join(' '));
@@ -636,6 +648,9 @@ export function createFarm(ctx) {
     // Your animals work as hard as you do: on a day without jobs done, they eat and grow but make nothing.
     const worked = ctx.worked(k.id);
     if (!worked && hungry.length) msgs.push('😴 Your animals are resting today. They work on days you do your jobs!');
+    // After a fox fright (gentle fox), hens and ducks are too scared to lay today.
+    const scared = f.scaredDay === today();
+    if (scared && worked && hungry.some((a) => grown(a) && (a.type === 'chicken' || a.type === 'duck'))) msgs.push('🦊 Your hens and ducks are still a bit scared, so no eggs today. Fix the fence!');
     // Gardens, orchard and bees: once a day, when the animals are fed.
     if (worked && hungry.length && f.prodDay !== today()) {
       f.prodDay = today();
@@ -661,6 +676,7 @@ export function createFarm(ctx) {
         continue;
       }
       if (!worked) continue;
+      if (scared && (a.type === 'chicken' || a.type === 'duck')) continue;
       if (a.type === 'chicken') {
         const r = Math.random();
         if (r < RAINBOW_CHANCE) { f.basket.rainbow = (f.basket.rainbow || 0) + 1; msgs.push('A RAINBOW egg! 🌈 It sells for 100!'); }
@@ -705,6 +721,107 @@ export function createFarm(ctx) {
     ctx.speak(`Sold for ${value} coins!`);
   }
 
+  // ---------- selling an animal: choose which one, say goodbye, then 10 seconds to bring it back ----------
+  // A quick tap (or a double-tap) can never sell an animal: the child picks the animal, sees its picture,
+  // and has to HOLD the sell button. Even then, "Bring it back" undoes it for 10 seconds.
+  const HOLD_MS = 1500;   // how long to hold the sell button
+  const UNDO_MS = 10000;  // how long "Bring it back" stays on screen
+  const sellableOf = (f) => f.animals.filter((a) => grown(a) && SELL[a.type]);
+
+  // Step 1: which animal?
+  function sellPicker(k) {
+    const f = farmOf(k.id);
+    const list = sellableOf(f);
+    if (!list.length) return;
+    ctx.speak('Which animal will go to a happy new farm? Tap one.', true);
+    const el = overlay(`<h2>Which animal?</h2><p>Tap the one that will go to a happy new farm.</p>
+      <div class="pals" style="flex-wrap:wrap;justify-content:center;overflow:visible">${list.map((a) => `
+        <button class="pal" data-pick="${a.id}">${animalArt(a.type, true, a.wool || 0)}<b>${KINDS[a.type].name}</b><small>+ 🪙 ${SELL[a.type]}</small></button>`).join('')}</div>
+      <button class="farm-btn" data-close>Keep them all 💛</button>`, (e) => {
+      if (e.target.closest('[data-close]') || e.target === el) return el.remove();
+      const b = e.target.closest('[data-pick]');
+      const a = b && farmOf(k.id).animals.find((x) => x.id === Number(b.dataset.pick));
+      if (!a) return;
+      el.remove();
+      sayGoodbye(k, a);
+    });
+  }
+
+  // Step 2: "Say goodbye to your snake?" with its picture. Hold the button to sell, or keep it.
+  function sayGoodbye(k, a) {
+    const word = animalWord(a.type), price = SELL[a.type];
+    SOUNDS[KINDS[a.type].sound]();
+    ctx.speak(`Say goodbye to your ${word}? It goes to a happy new farm, and you get ${price} coins. Hold the button to sell.`, true);
+    const el = overlay(`<div class="reveal-animal">${animalArt(a.type, true, a.wool || 0)}</div>
+      <h2>Say goodbye to your ${word}?</h2>
+      <p>It goes to a happy new farm. You get 🪙 ${price}.</p>
+      <button class="farm-btn sell" data-hold style="position:relative;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none">
+        <i style="position:absolute;inset:0 auto 0 0;width:0;background:#4ade80"></i><span style="position:relative">Hold to sell 👋</span></button>
+      <button class="farm-btn" data-keep>Keep my ${word} 💛</button>`, (e) => {
+      if (e.target.closest('[data-keep]') || e.target === el) { el.remove(); ctx.speak(`Your ${word} is staying!`, true); }
+    });
+    // The green fills up while the finger stays down; lifting early empties it and nothing is sold.
+    const btn = el.querySelector('[data-hold]'), fill = btn.querySelector('i');
+    let timer = null;
+    const start = (e) => {
+      e.preventDefault();
+      if (timer) return;
+      fill.style.transition = `width ${HOLD_MS}ms linear`;
+      fill.style.width = '100%';
+      timer = setTimeout(() => { timer = null; el.remove(); sellAnimal(k, a); }, HOLD_MS);
+    };
+    const stop = () => {
+      if (!timer) return;
+      clearTimeout(timer); timer = null;
+      fill.style.transition = 'width .2s';
+      fill.style.width = '0';
+    };
+    btn.addEventListener('pointerdown', start);
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => btn.addEventListener(ev, stop));
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
+  // Step 3: sold, with a 10-second "Bring it back" (the coins go back too).
+  function sellAnimal(k, a) {
+    const f = farmOf(k.id);
+    const at = f.animals.indexOf(a);
+    if (at < 0) return;
+    const word = animalWord(a.type), price = SELL[a.type];
+    f.animals.splice(at, 1);
+    f.sold += price;
+    save(); // saved straight away: closing the app now keeps the sale
+    SOUNDS.coins();
+    ctx.renderKid();
+    ctx.speak(`Goodbye, ${word}! ${price} coins. Changed your mind? Tap bring it back.`, true);
+    let left = UNDO_MS / 1000;
+    const label = () => `↩️ Bring it back <small>${left}</small>`;
+    const el = overlay(`<div class="reveal-animal">👋</div>
+      <h2>Your ${word} went to a happy new farm.</h2><p>+ 🪙 ${price}</p>
+      <button class="farm-btn" data-undo>${label()}</button>
+      <button class="farm-btn sell" data-done>OK</button>`, (e) => {
+      if (e.target.closest('[data-undo]')) { finish(); bringBack(); }
+      else if (e.target.closest('[data-done]') || e.target === el) finish();
+    });
+    const tick = setInterval(() => {
+      left--;
+      if (left <= 0) return finish();
+      const b = el.querySelector('[data-undo]');
+      if (b) b.innerHTML = label();
+    }, 1000);
+    function finish() { clearInterval(tick); el.remove(); }
+    function bringBack() {
+      const g = farmOf(k.id);
+      if (g.animals.some((x) => x.id === a.id)) return;
+      g.animals.splice(Math.min(at, g.animals.length), 0, a); // back in the same spot on the field
+      g.sold -= price;
+      save();
+      SOUNDS[KINDS[a.type].sound]();
+      ctx.renderKid();
+      ctx.speak(`Your ${word} came back home!`, true);
+      ctx.toast(`${KINDS[a.type].icon} Your ${word} came back home!`);
+    }
+  }
+
   function hatchEgg(k) {
     const f = farmOf(k.id);
     if (!(f.basket.egg > 0) || f.nest.length >= 2 || !roomFor(f, 'chicken')) return;
@@ -725,7 +842,7 @@ export function createFarm(ctx) {
     document.querySelectorAll(`[data-id="${a.id}"]`).forEach((x) => { x.classList.remove('hop'); void x.offsetWidth; x.classList.add('hop'); });
     if (a.type === 'sheep' && (a.wool || 0) >= 3 && !f.built.shears) {
       ctx.speak('Your sheep is fluffy and ready! You need sheep shears from the shop.', true);
-      return ctx.toast('✂️ Ready to shear! Buy <b>sheep shears</b> in the shop (🪙 25).');
+      return ctx.toast(`✂️ Ready to shear! Buy <b>sheep shears</b> in the shop (🪙 ${SHOP.find((x) => x.id === 'shears').price}).`);
     }
     if (a.type === 'sheep' && (a.wool || 0) >= 3) {
       a.wool = 0;
@@ -762,9 +879,9 @@ export function createFarm(ctx) {
           const full = ((it.id === 'egg' || it.id === 'rareegg') && !roomFor(f, 'chicken')) || (it.id === 'dinoegg' && !roomFor(f, 'dino')) || (it.id === 'lamb' && !roomFor(f, 'sheep')) || (it.id === 'calf' && !roomFor(f, 'cow'));
           const noDuck = it.needsDuck && !f.animals.some((a) => a.type === 'duck');
           if (it.sell) {
-            if (!hasGrown(f, it.sell)) return '';
+            if (!sellableOf(f).length) return '';
             return `<div class="shop-item"><span class="shop-icon">${it.icon}</span><div><b>${it.name}</b><small>${it.does}</small></div>
-              <button class="farm-btn small sellhen" data-buy="${it.id}">+ 🪙 ${-it.price}</button></div>`;
+              <button class="farm-btn small sellhen" data-buy="${it.id}">Choose one</button></div>`;
           }
           const reason = locked ? `🔒 ${LEVELS[it.level].name}` : owned ? (it.tool ? 'Got it ✓' : 'Built ✓') : needs ? `Build the ${SHOP.find((x) => x.id === it.needs).name.toLowerCase()} first` : noDuck ? 'Get a duck first' : full ? (f.built.barn ? 'No room' : 'No room: build the big barn') : '';
           return `<div class="shop-item ${locked ? 'locked' : ''}">
@@ -795,7 +912,7 @@ export function createFarm(ctx) {
         const btn = el.querySelector(`[data-buy="${id}"]`);
         const cost = `${it.price} coins${it.stars ? ` and ${it.stars} job stars` : ''}`;
         const short = it.stars && starsLeft(k.id) < it.stars ? ` You need ${it.stars - starsLeft(k.id)} more job stars: do some jobs!` : '';
-        ctx.speak(`${it.name}. ${it.does} ${btn.disabled ? `It costs ${cost}.${short}` : it.price > 0 ? `It costs ${cost}. Tap again to buy.` : 'Tap again to sell.'}`, true);
+        ctx.speak(`${it.name}. ${it.does} ${btn.disabled ? `It costs ${cost}.${short}` : it.sell ? 'Tap again to choose which one.' : `It costs ${cost}. Tap again to buy.`}`, true);
         if (!btn.disabled) { btn.classList.add('armed'); btn.dataset.label = btn.innerHTML; btn.innerHTML = 'Tap again ✓'; }
         return;
       }
@@ -810,17 +927,7 @@ export function createFarm(ctx) {
     const f = farmOf(k.id);
     const it = SHOP.find((x) => x.id === id);
     if (!it || f.level < it.level) return;
-    if (it.sell) {
-      const pet = f.animals.find((a) => a.type === it.sell && grown(a));
-      if (!pet) return;
-      f.animals = f.animals.filter((a) => a !== pet);
-      f.sold += -it.price;
-      save();
-      SOUNDS.coins();
-      ctx.speak(`Your ${KINDS[it.sell].name.toLowerCase()} went to a happy new farm. ${-it.price} coins!`);
-      ctx.toast(`${it.icon} Sold to a happy new farm: +🪙 ${-it.price}`);
-      return ctx.renderKid();
-    }
+    if (it.sell) return sellPicker(k);
     if (balance(k.id) < it.price) {
       ctx.speak(`You need ${it.price - balance(k.id)} more coins. Do some jobs to earn them!`, true);
       return ctx.toast(`🪙 You need ${it.price - balance(k.id)} more coins for the ${esc(it.name.toLowerCase())}.`);
@@ -854,20 +961,19 @@ export function createFarm(ctx) {
     ctx.renderKid();
     if (id === 'house') ctx.burst(null, 40);
     if (id === 'manor') { ctx.burst(null, 80); setTimeout(() => ctx.burst(null, 80), 700); }
-    if (id !== 'repair') ctx.purchased?.(it); // buying something ends the farm visit
   }
 
   // Called when a child opens the Farm tab: catch up on missed days, then show news and the starter gift.
   async function opened(k, { gift = true } = {}) {
     const f = farmOf(k.id);
-    if (catchUp(f, today())) { save(); ctx.renderKid(); }
+    if (catchUp(f, today(), { gentle: isGentle(k.id) })) { save(); ctx.renderKid(); }
     await showNews(f);
     if (f.gift && gift) {
       f.gift = false; // saved together with the new animal inside hatchMystery
       await hatchMystery(f, 'A gift to start your farm!', { gift: true });
       ctx.renderKid();
     } else if (f.fenceDays <= 2 && f.animals.length) {
-      SOUNDS.fox();
+      (isGentle(k.id) ? SOUNDS.foxSoft : SOUNDS.fox)();
       ctx.speak(f.fenceDays ? 'Your fence is wobbly. Fix your fence!' : 'Your fence is broken! Fix it before the fox comes.', true);
     }
   }
@@ -900,5 +1006,5 @@ export function createFarm(ctx) {
     }
   }
 
-  return { starsLeft, bodyHTML, miniHTML, tallyHTML, goalText, previewIcons, hungryCount, balance, action, opened, farmOf, catchUp: (id) => catchUp(farmOf(id), today()) };
+  return { starsLeft, bodyHTML, miniHTML, tallyHTML, goalText, previewIcons, hungryCount, balance, action, opened, farmOf, catchUp: (id) => catchUp(farmOf(id), today(), { gentle: isGentle(id) }) };
 }

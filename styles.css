@@ -984,3 +984,27 @@ svg.bld.stand { width: 74px; height: 66px; }
 .voice-speeds { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0 10px; }
 .portal-time { margin-left: auto; margin-right: 12px; font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--muted); }
 .portal-time.soon { color: #b91c1c; }
+
+/* ----- morning rules, "Going up!", "Last night", breath prayer (review round 3) ----- */
+.reminders-ov .remind-row { grid-template-columns: 52px 1fr 130px minmax(190px, 2fr) 64px; }
+.remind-count { font-size: 18px; }
+.remind-jobs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.remind-jobs small { width: 100%; font-size: 14px; font-weight: 800; color: var(--muted); }
+.remind-jobs .farm-btn.remind { font-size: 26px; min-height: 52px; padding: 0 10px; }
+.remind-who { display: flex; gap: 8px; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; margin: 6px 0; }
+.remind-row.bed-row { grid-template-columns: 52px 1fr minmax(320px, 3fr); }
+.remind-row.bed-row .farm-btn small { display: block; font-size: 13px; }
+.asked-note { text-align: center; font-size: 17px; font-weight: 900; color: #92400e; background: #fef3c7; border-radius: 14px; padding: 6px 10px; }
+.asked-note small { display: block; font-size: 14px; font-weight: 800; color: #78716c; }
+.last-night { min-height: 52px; border: 0; border-radius: 16px; background: #e0e7ff; color: #3730a3; box-shadow: var(--shadow); font: inherit; font-size: 20px; font-weight: 900; }
+.last-night small { font-size: 14px; font-weight: 800; color: var(--muted); }
+.going-up { flex: 1; min-height: 140px; border: 0; border-radius: 22px; background: linear-gradient(160deg, #312e81, #4f46e5 60%, var(--kid)); color: #fff; box-shadow: var(--shadow);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font: inherit; animation: nudge 2.4s ease-in-out infinite; }
+.going-up .gu-moon { font-size: 70px; line-height: 1; }
+.going-up b { font-size: 40px; }
+.going-up small { font-size: 17px; opacity: 0.9; }
+/* The 🙏 button swells for one slow breath: in, hold, out. */
+.breath-btn.breathing { overflow: visible; z-index: 5; background: #c7d2fe; animation: breath-swell var(--breath-ms, 5s) ease-in-out forwards; }
+.breath-btn.breathing small { white-space: nowrap; font-size: 13px; }
+.breath-btn.amen { background: #fde68a; }
+@keyframes breath-swell { 0% { transform: scale(1); } 40% { transform: scale(1.4); } 70% { transform: scale(1.4); } 100% { transform: scale(1); } }

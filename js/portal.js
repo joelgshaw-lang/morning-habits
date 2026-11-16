@@ -1,5 +1,6 @@
 import { GROWN_MINUTES } from './config.js';
 import { voiceSettings, saveVoiceSettings, englishVoices, utterance, onVoicesReady } from './voice.js';
+import { fruitPortalHTML } from './fruit.js';
 
 // The Grown-ups portal (grown-up PIN): check jobs children have claimed, allocate after-dinner jobs,
 // change morning jobs, choose the read-aloud voice, add extra jobs with your own prices, add or take away coins, and open a child's farm or mine any time.
@@ -9,7 +10,7 @@ const MORNING_IDEAS = [
   { name: 'Get dressed', icon: '👕' }, { name: 'Brush teeth', icon: '🪥' }, { name: 'Eat breakfast', icon: '🥣' },
   { name: 'Feed the pet', icon: '🐶' }, { name: 'Read', icon: '📚' }, { name: 'Pack lunch', icon: '🍎' },
 ];
-const TABS = [['check', '✅ Check jobs'], ['coins', '🪙 Coins'], ['night', '🌙 Night jobs'], ['morning', '☀️ Morning jobs'], ['extras', '⭐ Extra jobs'], ['open', '🔓 Farm & mine'], ['voice', '🔊 Voice']];
+const TABS = [['check', '✅ Check jobs'], ['coins', '🪙 Coins'], ['night', '🌙 Night jobs'], ['morning', '☀️ Morning jobs'], ['extras', '⭐ Extra jobs'], ['fruit', '🍓 Fruit'], ['open', '🔓 Farm & mine'], ['voice', '🔊 Voice']];
 
 export function createPortal(ctx) {
   const { state, esc } = ctx;
@@ -23,7 +24,8 @@ export function createPortal(ctx) {
   const uid = (p) => `${p}${Date.now().toString(36)}`;
 
   async function open(startTab, startKid) {
-    if (!(await ctx.grownUp('Grown-ups portal', true))) return;
+    // Always asks for the PIN (never lets a recent PIN carry over from 🔔 or another grown-up screen).
+    if (!(await ctx.grownUp('Grown-ups portal'))) return;
     tab = startTab || 'check';
     // Open on the first child with jobs waiting to be checked.
     const waiting = kids().find((k) => Object.keys(state.days[k.id]?.claims || {}).length);
@@ -98,7 +100,15 @@ export function createPortal(ctx) {
         <div class="ca-why">${WHY.map((w) => `<button class="${w === why ? 'on' : ''}" data-why="${esc(w)}">${w}</button>`).join('')}</div>
         <div class="ca-btns">${[-10, -5, -1].map((n) => `<button class="ca minus" data-adj="${n}">− ${-n}</button>`).join('')}${[1, 5, 10].map((n) => `<button class="ca plus" data-adj="${n}">+ ${n}</button>`).join('')}</div>
       </div>
+      ${askedHTML(k)}
       ${mine.length ? `<h3>Recent changes for ${esc(k.name)}</h3>${mine.map((a) => `<div class="claim-row"><span>${a.n > 0 ? '➕' : '➖'}</span><b>${a.n > 0 ? '+' : '−'}🪙 ${Math.abs(a.n)}</b><small>${esc(a.why)} · ${new Date(a.t).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}</small></div>`).join('')}` : ''}`;
+  }
+  // 🔔 Today's asks for this child (only shown here, never on the family board).
+  function askedHTML(k) {
+    const list = state.days[k.id]?.reminders || [];
+    if (!list.length) return `<p>🔔 Nobody had to ask ${esc(k.name)} today.</p>`;
+    return `<h3>🔔 Had to ask ${esc(k.name)} today: ${list.length}</h3>${list.map((x) => `<div class="claim-row"><span>${x.icon || '🔔'}</span><b>${esc(x.who || 'A grown-up')} asked${x.name ? ` about ${esc(x.name)}` : ''}</b><small>${x.routine} · ${new Date(x.t).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' })}</small></div>`).join('')}
+      <p class="pf-note">The first ask in the morning and the first at night are −🪙 20 each. A day never goes below zero.</p>`;
   }
   async function adjustCoins(n, fromRect) {
     const k = ctx.kid(kidId);
@@ -129,6 +139,8 @@ export function createPortal(ctx) {
   function morningTab() {
     const k = ctx.kid(kidId);
     return `${kidChips()}
+      <div class="job-row-edit"><span class="ji">⏰</span><b>Everyone starts by <span class="start-by">${state.settings.startBy || '07:15'}</span><small> or that morning's job coins are lost (stars still count)</small></b>
+        <span class="stepper"><button data-start-by="-5">−5 min</button><button data-start-by="5">+5 min</button></span></div>
       <p>${esc(k.name)}'s morning jobs, in order.</p>
       ${k.habits.map((h, i) => `<div class="job-row-edit"><span class="ji">${h.icon}</span><b>${esc(h.name)}${h.type === 'timer' ? ' ⏱' : ''}</b>
         <button class="del" data-up="${i}" ${i ? '' : 'disabled'} aria-label="Move up">⬆️</button>
@@ -144,6 +156,12 @@ export function createPortal(ctx) {
         ${coinStepper('extra', c.id, c.coins || 2)}
         <button class="del" data-del-extra="${c.id}" aria-label="Remove">🗑</button></div>`).join('')}
       <h3>Add a helpful job</h3>${addForm('extra')}`;
+  }
+
+  // 🍓 Fruit: one child at a time (never side by side): their fruit, hand action, recent stars and two questions to ask.
+  function fruitTab() {
+    const k = ctx.kid(kidId);
+    return `${kidChips()}${fruitPortalHTML(k, esc)}`;
   }
 
   function openTab() {
@@ -182,9 +200,9 @@ export function createPortal(ctx) {
   }
 
   function draw() {
-    const body = { check: checkTab, coins: coinsTab, night: nightTab, morning: morningTab, extras: extrasTab, open: openTab, voice: voiceTab }[tab]();
+    const body = { check: checkTab, coins: coinsTab, night: nightTab, morning: morningTab, extras: extrasTab, fruit: fruitTab, open: openTab, voice: voiceTab }[tab]();
     const html = `<div class="farm-sheet portal">
-      <div class="portal-head"><h2>👨‍👩‍👧 Grown-ups</h2><span class="portal-time" title="Grown-up time left">🔒 ${GROWN_MINUTES}:00</span><button class="farm-btn small" data-close>Done</button></div>
+      <div class="portal-head"><h2>👨‍👩‍👧 Grown-ups</h2><span class="portal-time" title="Grown-up time left">🔒 ${GROWN_MINUTES}:00</span><button class="farm-btn small" data-lock>🔒 Lock now</button><button class="farm-btn small" data-close>Done</button></div>
       <nav class="portal-tabs">${TABS.map(([id, name]) => `<button class="${id === tab ? 'on' : ''}" data-tab="${id}">${name}</button>`).join('')}</nav>
       <div class="portal-body">${body}</div></div>`;
     if (!el) {
@@ -215,7 +233,8 @@ export function createPortal(ctx) {
     const gained = ctx.coinsOf(id) - before;
     if (el) draw(); else ctx.render();
     await new Promise((r) => setTimeout(r, 60));
-    const target = el ? el.querySelector(`.who[data-kid="${id}"] .coin-num`) : document.querySelector(`[data-col="${id}"] .coin-num`);
+    // In the portal: the child's chip. On the board: the child's coins show for a few seconds while they fly in.
+    const target = el ? el.querySelector(`.who[data-kid="${id}"] .coin-num`) : ctx.coinTarget(id);
     if (gained > 0) ctx.flyCoins(gained, fromRect, target, before);
     ctx.speak(`${h.name}! ${gained} coins for ${k.name}. Thank you for helping!`, true);
   }
@@ -248,7 +267,16 @@ export function createPortal(ctx) {
     if (!t) return;
     const ds = t.dataset;
     if ('close' in ds) return close();
+    if ('lock' in ds) { close(); return ctx.toast('🔒 Locked. The PIN is needed to come back in.'); }
     if (ds.tab) { tab = ds.tab; return draw(); }
+    if (ds.startBy) {
+      // Move the start-by time (default 7:15) by 5 minutes, between 6:00 and 9:00.
+      const [h, m] = (state.settings.startBy || '07:15').split(':').map(Number);
+      const mins = Math.max(360, Math.min(540, h * 60 + m + Number(ds.startBy)));
+      state.settings.startBy = `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+      saveSettings();
+      return draw();
+    }
     if ('tryVoice' in ds) return sayWith(ds.tryVoice);
     if ('useVoice' in ds) { saveVoiceSettings({ ...voiceSettings(), uri: ds.useVoice }); draw(); return sayWith(ds.useVoice); }
     if (ds.voiceRate) { saveVoiceSettings({ ...voiceSettings(), rate: Number(ds.voiceRate) }); draw(); return sayWith(voiceSettings().uri); }
