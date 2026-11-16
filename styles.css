@@ -1008,3 +1008,57 @@ svg.bld.stand { width: 74px; height: 66px; }
 .breath-btn.breathing small { white-space: nowrap; font-size: 13px; }
 .breath-btn.amen { background: #fde68a; }
 @keyframes breath-swell { 0% { transform: scale(1); } 40% { transform: scale(1.4); } 70% { transform: scale(1.4); } 100% { transform: scale(1); } }
+
+/* ---------- the painted farm (js/farm-world.js): a tilted grid of squares on a painted paddock ---------- */
+.field.w2 { border: 0; background: #7fa35a url(farm-art/ground.jpg) center / cover; container-type: size; }
+/* --tw is one square's width: as big as fits the field both ways. The first line is a fallback for old iPads without container units. */
+.w2-stage { position: absolute; inset: 0; --cy: 61%; --tw: calc((100vw - 430px) * 0.9 / var(--n)); user-select: none; -webkit-user-select: none; }
+@supports (width: 1cqw) { .w2-stage { --tw: min(calc(94cqw / var(--n)), calc(70cqh / (0.55 * var(--n)))); } }
+.w2-it { position: absolute; transform: translate(-50%, -100%); padding: 0; border: 0; background: none; pointer-events: none; -webkit-tap-highlight-color: transparent; }
+button.w2-it { pointer-events: auto; cursor: pointer; }
+.w2-it img { display: block; width: 100%; height: auto; transform-origin: 50% 100%; -webkit-user-drag: none; }
+.w2-it::before { content: ""; position: absolute; left: 10%; right: 10%; bottom: -3%; height: 14%; border-radius: 50%; background: rgba(29, 58, 18, 0.32); filter: blur(calc(var(--tw) * 0.08)); z-index: -1; }
+.w2.building .w2-it.pick img { animation: w2-wiggle 1.8s ease-in-out infinite; }
+.w2.building .w2-it.sel img { animation: none; transform: translateY(-9%); filter: drop-shadow(0 0 8px #fff7c2) drop-shadow(0 0 4px #facc15); }
+.w2-it.ripe img { animation: w2-bounce 1.1s ease-in-out infinite; }
+.w2-pony.gallop img { animation: hop 0.5s ease 3; }
+.w2-tag { position: absolute; left: 50%; top: -8%; transform: translateX(-50%); font-style: normal; font-weight: 900; font-size: clamp(10px, calc(var(--tw) * 0.17), 15px); line-height: 1.3;
+  background: rgba(255, 253, 242, 0.94); color: #26321f; border-radius: 999px; padding: 1px 8px; white-space: nowrap; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15); }
+.w2-tag.ready { background: #fde047; }
+.w2 .animal { position: absolute; animation: none; transform: translate(-50%, -100%); height: auto; -webkit-tap-highlight-color: transparent; }
+.w2 .animal .body, .w2 .animal.baby .body, .w2 .animal.big .body { display: block; width: 100%; height: auto; }
+.w2 .animal:not(.hop):not(.eat) .body { animation: w2-bob 3.2s ease-in-out infinite; animation-delay: var(--delay, 0s); transform-origin: 50% 100%; }
+.w2 .animal .pa, .w2 .animal .pa img { height: auto; }
+.w2 .animal .pa img { transform: scaleX(var(--flip, 1)); }
+.w2 .animal::before { content: ""; position: absolute; left: 16%; right: 16%; bottom: -2%; height: 12%; border-radius: 50%; background: rgba(29, 58, 18, 0.3); filter: blur(calc(var(--tw) * 0.06)); }
+.w2 .animal .mood.eat { display: none; }
+.w2 .animal.hungry .body { animation: none !important; }
+.w2 .animal .mood { top: -20%; right: -16%; font-size: clamp(11px, calc(var(--tw) * 0.2), 20px); width: 1.7em; height: 1.7em; line-height: 1.7em; z-index: 2; }
+.w2.building .animal { pointer-events: none; }
+.w2-badge { position: absolute; z-index: 8000; transform: translate(-50%, -50%); font-weight: 900; font-size: clamp(10px, calc(var(--tw) * 0.17), 15px); color: #2a1c05; background: #fff6d8;
+  border: 2px solid #2d1f17; border-radius: 999px; padding: 0 8px; white-space: nowrap; pointer-events: none; }
+.w2-tile { position: absolute; z-index: 9000; width: var(--tw); height: calc(var(--tw) * 0.55); transform: translate(-50%, -50%); cursor: pointer;
+  clip-path: polygon(50% 3%, 97% 50%, 50% 97%, 3% 50%); background: rgba(255, 249, 205, 0.62); animation: w2-glow 1.2s ease-in-out infinite; }
+.w2-fox { position: absolute; right: 2%; top: 26%; width: calc(var(--tw) * 0.8); z-index: 60; animation: peek 3s ease-in-out infinite; }
+.w2-hud { position: absolute; left: 12px; top: 12px; z-index: 10; display: flex; flex-wrap: wrap; gap: 8px; }
+.w2-btn { border: 0; border-radius: 999px; padding: 10px 16px; font: inherit; font-weight: 900; font-size: 18px; background: rgba(255, 253, 242, 0.95); color: #26321f; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.2); cursor: pointer; }
+.w2-btn small { font-weight: 800; opacity: 0.75; margin-left: 4px; }
+.w2-btn.ready { background: #fde047; animation: w2-bounce 1.1s ease-in-out infinite; }
+.w2-tray { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 12px;
+  background: rgba(255, 253, 242, 0.96); color: #26321f; border-radius: 18px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12); }
+.w2-tray-top { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; font-size: 16px; }
+.w2-tray-top b { font-size: 19px; }
+.w2-tray-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.w2-empty { z-index: 5; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); pointer-events: none; }
+@keyframes w2-bob { 50% { transform: scale(1.03, 0.96); } }
+@keyframes w2-wiggle { 0%, 100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.2deg); } }
+@keyframes w2-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6%); } }
+@keyframes w2-glow { 50% { background: rgba(255, 249, 205, 0.3); } }
+/* painted animal pictures (used everywhere an animal is shown while the painted farm is on) */
+.pa { display: block; position: relative; }
+.pa img { display: block; width: 100%; height: 100%; object-fit: contain; -webkit-user-drag: none; }
+.pa.pa-small img { width: 76%; height: 76%; margin: 24% auto 0; }
+.pa-b { position: absolute; right: -6%; top: -8%; font-style: normal; font-size: 18px; line-height: 1; }
+.animal .pa-hungry .pa-b { display: none; }
+.w2 .animal .pa.pa-small img { width: 100%; height: auto; margin: 0; }
+@media (prefers-reduced-motion: reduce) { .w2 .animal .body, .w2-it img, .w2-tile, .w2-btn.ready { animation: none !important; } }

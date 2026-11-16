@@ -168,7 +168,9 @@ export function createPortal(ctx) {
     return `<p>Open a farm or the mine for a child. No code, no time limit, and it doesn't use up their farm visits.</p>
       ${kids().map((k) => `<div class="job-row-edit" style="--kid:${k.color}"><span class="ji">${k.avatar}</span><b>${esc(k.name)}</b>
         <button class="farm-btn small" data-open-farm="${k.id}">🐔 Open farm</button>
-        <button class="farm-btn small" data-open-mine="${k.id}">⛏ Open mine</button></div>`).join('')}`;
+        <button class="farm-btn small" data-open-mine="${k.id}">⛏ Open mine</button></div>`).join('')}
+      <div class="job-row-edit"><span class="ji">🎨</span><b>New painted farm<small> Build-your-own farm with painted animals and garden beds. Switch it off any time: nothing is lost.</small></b>
+        <button class="farm-btn small ${state.settings.newFarm ? 'sellhen' : ''}" data-new-farm="1">${state.settings.newFarm ? '✓ On' : 'Off'}</button></div>`;
   }
 
   const SPEEDS = [[0.8, 'Slow'], [0.9, 'Calm'], [0.95, 'Normal'], [1.05, 'Quick']];
@@ -278,6 +280,7 @@ export function createPortal(ctx) {
       return draw();
     }
     if ('tryVoice' in ds) return sayWith(ds.tryVoice);
+    if (ds.newFarm) { state.settings.newFarm = !state.settings.newFarm; saveSettings(); return draw(); }
     if ('useVoice' in ds) { saveVoiceSettings({ ...voiceSettings(), uri: ds.useVoice }); draw(); return sayWith(ds.useVoice); }
     if (ds.voiceRate) { saveVoiceSettings({ ...voiceSettings(), rate: Number(ds.voiceRate) }); draw(); return sayWith(voiceSettings().uri); }
     if (ds.kid) { kidId = ds.kid; return draw(); }

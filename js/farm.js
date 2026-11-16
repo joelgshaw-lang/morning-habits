@@ -1,4 +1,5 @@
-import { animalArt, snakeArt } from './farm-art.js';
+import { animalArt as stickerArt, snakeArt as stickerSnake } from './farm-art.js';
+import * as W from './farm-world.js';
 import * as clock from './clock.js';
 
 // The farm: coins from chores buy mystery eggs, feed, a fence, sheep, cows and buildings.
@@ -62,6 +63,7 @@ export const GOODS = {
   apple: { icon: '🍎', name: 'Apple', price: 5 },
   honey: { icon: '🍯', name: 'Honey', price: 20 },
 };
+Object.assign(GOODS, W.CROP_GOODS); // carrots, wheat and sunflowers from the painted farm's garden beds
 // The farm stand adds 1 coin for every 5 to everything sold.
 const priceOf = (f, g) => GOODS[g].price + (f.built.stand ? Math.max(1, Math.round(GOODS[g].price / 5)) : 0);
 // About 1 in 30 eggs a hen lays is a rainbow egg, worth 100.
@@ -250,6 +252,93 @@ export function createFarm(ctx) {
   const save = () => ctx.kvSet('farms', state.farms);
   const today = () => ctx.todayKey();
 
+  // ---------- the painted farm (Grown-ups → Open → New painted farm) ----------
+  // When it's on, the field is the painted, build-your-own farm (js/farm-world.js) and every animal picture is painted.
+  // When it's off, everything is exactly the old farm. The saved farm is the same either way.
+  const painted = () => !!state.settings?.newFarm;
+  const animalArt = (...a) => (painted() ? W.paintArt(...a) : stickerArt(...a));
+  const snakeArt = () => (painted() ? W.paintArt('snake', true) : stickerSnake());
+  const mode = { on: false, sel: null };          // build mode, and what's picked up
+  // Moves: placing, moving or planting one thing. 3 on a day the jobs are done, 1 otherwise, 8 on Saturday (Build Day).
+  const movesMax = (k) => (clock.now().getDay() === 6 ? 8 : ctx.worked(k.id) ? 3 : 1);
+  const movesLeft = (k) => { const w = farmOf(k.id).world; return movesMax(k) - (w && w.movesDay === today() ? w.movesUsed || 0 : 0); };
+  function useMove(f) { const w = f.world; if (w.movesDay !== today()) { w.movesDay = today(); w.movesUsed = 0; } w.movesUsed++; }
+  // Crops grow one step on each day the jobs are done (like the animals, they work when you work).
+  function growCrops(k, f) {
+    const w = f.world;
+    if (!w || !ctx.worked(k.id) || w.cropDay === today()) return 0;
+    w.cropDay = today();
+    let ready = 0;
+    for (const b of w.beds) if (b.crop && b.growth < W.CROPS[b.crop].grow && ++b.growth >= W.CROPS[b.crop].grow) ready++;
+    return ready;
+  }
+  function worldField(k, f) {
+    return W.worldHTML({ f, KINDS, grown, level: f.level, mode, movesLeft: movesLeft(k), coins: balance(k.id), stars: starsLeft(k.id), broken: f.fenceDays === 0,
+      animalBtn: (a, style) => animalHTML(f, a, style), needs: (a) => (a.type === 'sheep' && (a.wool || 0) >= 3 ? 2 : a.fedDay !== today() ? 1 : 0) });
+  }
+  function toggleBuild(k) {
+    mode.on = !mode.on; mode.sel = null;
+    ctx.renderKid();
+    if (mode.on) ctx.speak(movesLeft(k) > 0 ? `Build time! You have ${movesLeft(k)} move${movesLeft(k) === 1 ? '' : 's'} today. Tap something to move it, or pick seeds to plant.` : 'No moves left today. More tomorrow, when your jobs are done!', true);
+  }
+  function pick(k, el) {
+    const d = el.dataset;
+    const sel = d.seed ? { seed: d.seed } : d.newbed ? { newbed: true } : { piece: d.piece };
+    const same = mode.sel && (mode.sel.seed === sel.seed && mode.sel.piece === sel.piece && !!mode.sel.newbed === !!sel.newbed);
+    mode.sel = same ? null : sel;
+    ctx.renderKid();
+    if (mode.sel) ctx.speak(sel.seed ? 'Now tap a glowing garden bed.' : 'Now tap a glowing square.', true);
+  }
+  function placeAt(k, i, j) {
+    const f = farmOf(k.id), sel = mode.sel;
+    if (!mode.on || !sel || movesLeft(k) <= 0) return;
+    const { w, pieces } = W.layout(f, KINDS);
+    let said;
+    if (sel.seed) {
+      const c = W.CROPS[sel.seed], p = pieces.find((x) => x.kind === 'bed' && x.i === i && x.j === j);
+      if (!c || !p || p.bed.crop || f.level < c.level || balance(k.id) < c.seed) return;
+      p.bed.crop = sel.seed; p.bed.growth = 0;
+      f.spent += c.seed;
+      said = `${c.name} planted! They grow on days your jobs are done.`;
+    } else if (sel.newbed) {
+      if (w.beds.length >= W.maxBeds(f.level) || balance(k.id) < W.BED.price || starsLeft(k.id) < W.BED.stars || !W.spotFor(f, KINDS, null, i, j)) return;
+      const b = { id: w.nextBed++, crop: null, growth: 0 };
+      w.beds.push(b); w.at[`bed:${b.id}`] = [i, j];
+      f.spent += W.BED.price; f.starsSpent = (f.starsSpent || 0) + W.BED.stars;
+      said = 'A new garden bed! Pick some seeds to plant in it.';
+    } else {
+      const at = W.spotFor(f, KINDS, sel.piece, i, j);
+      if (!at) return;
+      w.at[sel.piece] = at;
+    }
+    useMove(f);
+    mode.sel = null;
+    if (movesLeft(k) <= 0) { mode.on = false; said = `${said ? `${said} ` : ''}That was your last move today. See you tomorrow!`; }
+    save();
+    ctx.pop();
+    ctx.renderKid();
+    if (said) ctx.speak(said, true);
+  }
+  // Picking ripe crops: one bed, or all of them. They go in the basket to sell with everything else.
+  function harvest(k, which) {
+    const f = farmOf(k.id);
+    const beds = W.ripeBeds(f).filter((b) => which === 'all' || b.id === Number(which));
+    if (!beds.length) return;
+    const got = {};
+    for (const b of beds) {
+      const c = W.CROPS[b.crop];
+      f.basket[c.good] = (f.basket[c.good] || 0) + c.yield;
+      got[c.good] = (got[c.good] || 0) + c.yield;
+      b.crop = null; b.growth = 0;
+    }
+    save();
+    SOUNDS.coins();
+    ctx.renderKid();
+    const words = Object.entries(got).map(([g, n]) => `${n} ${GOODS[g].name.toLowerCase()}${n === 1 ? '' : 's'}`).join(' and ');
+    ctx.speak(`You picked ${words}! Sell them from your basket.`, true);
+    ctx.toast(`🧺 You picked ${Object.entries(got).map(([g, n]) => `${GOODS[g].icon}×${n}`).join(' ')}! Sell them from your basket.`);
+  }
+
   // ---------- sounds (made with the Web Audio API, no files) ----------
   function voice(type, freqs, len = 0.12, gap = 0.1, vol = 0.12) {
     ctx.tone((ac) => freqs.forEach((f, i) => {
@@ -387,7 +476,7 @@ export function createFarm(ctx) {
     if (a.type === 'sheep' && (a.wool || 0) >= 3) mood = '✂️';
     else if (hungry) mood = '🍽️';
     return `<button class="animal ${big ? '' : 'baby'} ${a.type === 'cow' ? 'big' : ''} ${hungry ? 'hungry' : ''}" data-action="farm-tap" data-id="${a.id}" style="${where}" aria-label="${nameOf(a)}">
-      <span class="body">${animalArt(a.type, big, a.wool || 0, moodOf(a))}</span>${mood ? `<span class="mood">${mood}</span>` : ''}</button>`;
+      <span class="body">${animalArt(a.type, big, a.wool || 0, moodOf(a))}</span>${mood ? `<span class="mood ${mood === '✂️' ? 'shear' : 'eat'}">${mood}</span>` : ''}</button>`;
   }
 
   // Close-ups along the bottom: one card per animal with how it's growing and what it needs.
@@ -561,7 +650,7 @@ export function createFarm(ctx) {
 
   function bodyHTML(k) {
     const f = farmOf(k.id);
-    return `<div class="farm"><div class="farm-left">${fieldHTML(f)}${stripHTML(f)}</div><aside class="farm-panel">${panelHTML(k, f)}</aside></div>`;
+    return `<div class="farm"><div class="farm-left">${painted() ? worldField(k, f) : fieldHTML(f)}${painted() && mode.on ? '' : stripHTML(f)}</div><aside class="farm-panel">${panelHTML(k, f)}</aside></div>`;
   }
 
   // The farm on the one-screen view: the animals, and just Feed, Sell, the next thing to buy and the fence.
@@ -864,6 +953,7 @@ export function createFarm(ctx) {
     }
     if (laid) msgs.unshift(`${laid} egg${laid === 1 ? '' : 's'} laid!`);
     if (f.animals.some((a) => a.type === 'sheep' && a.wool >= 3)) msgs.push(f.built.shears ? 'A sheep is ready to shear. Tap it! ✂️' : 'A sheep is ready to shear! Buy sheep shears in the shop. ✂️');
+    if (painted() && growCrops(k, f)) msgs.push('🧺 Your crops are ready to pick!');
     const up = levelUp(f);
     save();
     ctx.renderKid();
@@ -1156,6 +1246,8 @@ export function createFarm(ctx) {
   async function opened(k, { gift = true } = {}) {
     const f = farmOf(k.id);
     if (catchUp(f, today(), { gentle: isGentle(k.id) })) { save(); ctx.renderKid(); }
+    mode.on = false; mode.sel = null;
+    if (painted() && growCrops(k, f)) { save(); ctx.renderKid(); ctx.toast('🧺 Your crops are ready to pick!'); }
     await showNews(f);
     if (f.gift && gift) {
       f.gift = false; // saved together with the new animal inside hatchMystery
@@ -1184,6 +1276,10 @@ export function createFarm(ctx) {
         return;
       }
       case 'farm-shop': return openShop(k);
+      case 'farm-build': return toggleBuild(k);
+      case 'farm-pick': return pick(k, el);
+      case 'farm-tile': return placeAt(k, Number(el.dataset.i), Number(el.dataset.j));
+      case 'farm-bed': return harvest(k, el.dataset.bed);
       case 'farm-buy': return buy(k, el.dataset.item);
       case 'farm-gift': {
         const f = farmOf(k.id);
