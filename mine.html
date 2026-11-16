@@ -850,11 +850,21 @@ function thud() {
     src.buffer = buf; src.connect(f).connect(g).connect(audio.destination); src.start();
   } catch {}
 }
+// The read-aloud voice a grown-up chose in Grown-ups → 🔊 Voice (same setting as js/voice.js).
+function voiceUtterance(text, scale = 1) {
+  let set = { uri: '', rate: 0.95 };
+  try { set = Object.assign(set, JSON.parse(localStorage.getItem('app.voice') || '{}')); } catch {}
+  const u = new SpeechSynthesisUtterance(text);
+  let v = null; try { v = set.uri && speechSynthesis.getVoices().find((x) => x.voiceURI === set.uri); } catch {}
+  if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-AU';
+  u.rate = (set.rate || 0.95) * scale;
+  return u;
+}
 function speak(text, force = false) {
   if (!(S.readAloud || force) || !('speechSynthesis' in window)) return;
   const clean = text.replace(/<[^>]+>/g, ' ').replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}⭐]/gu, '').replace(/\s+/g, ' ').trim();
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(clean); u.lang = 'en-AU'; u.rate = 0.95;
+  const u = voiceUtterance(clean, 1);
   speechSynthesis.speak(u);
 }
 const capEl = document.getElementById('caption');
@@ -1471,8 +1481,7 @@ function maybeDayEnd() {
   const mem = el.querySelector('.memories'), dl = el.querySelector('.dl');
   const say = (text) => {
     if (!('speechSynthesis' in window) || !el.classList.contains('show')) return;
-    const u = new SpeechSynthesisUtterance(text.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '').replace('…', '.'));
-    u.lang = 'en-AU'; u.rate = 0.9; speechSynthesis.speak(u);
+    const u = voiceUtterance(text.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '').replace('…', '.'), 0.95); speechSynthesis.speak(u);
   };
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   let at = 0;

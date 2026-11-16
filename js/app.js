@@ -5,6 +5,7 @@ import { summarize, startOffer, startCoins, fmtMinutes, nightFinishedAt, morning
 import { createPortal } from './portal.js';
 import { createFarm } from './farm.js';
 import { askPin } from './pinpad.js';
+import { utterance } from './voice.js';
 
 const app = document.getElementById('app');
 const overlay = document.getElementById('overlay');
@@ -565,10 +566,7 @@ function readAloudOn(id = state.kidId) {
 function speak(text, force = false) {
   if (!(force || readAloudOn()) || !('speechSynthesis' in window)) return;
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'en-AU';
-  u.rate = 0.95;
-  speechSynthesis.speak(u);
+  speechSynthesis.speak(utterance(text));
 }
 
 let audioCtx;

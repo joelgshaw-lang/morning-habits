@@ -1,12 +1,14 @@
+import { voiceSettings, saveVoiceSettings, englishVoices, utterance, onVoicesReady } from './voice.js';
+
 // The Grown-ups portal (grown-up PIN): check jobs children have claimed, allocate after-dinner jobs,
-// change morning jobs, add extra jobs with your own prices, add or take away coins, and open a child's farm or mine any time.
+// change morning jobs, choose the read-aloud voice, add extra jobs with your own prices, add or take away coins, and open a child's farm or mine any time.
 
 const ICONS = ['⭐', '🧹', '🧽', '🧺', '🗑️', '🍽️', '🫧', '🪴', '🐶', '🚗', '📚', '🛏️', '👟', '🧸', '🪟', '🧼', '🍳', '👕', '🪥', '🎒'];
 const MORNING_IDEAS = [
   { name: 'Get dressed', icon: '👕' }, { name: 'Brush teeth', icon: '🪥' }, { name: 'Eat breakfast', icon: '🥣' },
   { name: 'Feed the pet', icon: '🐶' }, { name: 'Read', icon: '📚' }, { name: 'Pack lunch', icon: '🍎' },
 ];
-const TABS = [['check', '✅ Check jobs'], ['coins', '🪙 Coins'], ['night', '🌙 Night jobs'], ['morning', '☀️ Morning jobs'], ['extras', '⭐ Extra jobs'], ['open', '🔓 Farm & mine']];
+const TABS = [['check', '✅ Check jobs'], ['coins', '🪙 Coins'], ['night', '🌙 Night jobs'], ['morning', '☀️ Morning jobs'], ['extras', '⭐ Extra jobs'], ['open', '🔓 Farm & mine'], ['voice', '🔊 Voice']];
 
 export function createPortal(ctx) {
   const { state, esc } = ctx;
@@ -138,8 +140,36 @@ export function createPortal(ctx) {
         <button class="farm-btn small" data-open-mine="${k.id}">⛏ Open mine</button></div>`).join('')}`;
   }
 
+  const SPEEDS = [[0.8, 'Slow'], [0.9, 'Calm'], [0.95, 'Normal'], [1.05, 'Quick']];
+  const SAMPLE = 'Hi Judah! Make your bed next. Hold the picture to tick it. Well done, 5 coins!';
+  function voiceTab() {
+    const set = voiceSettings();
+    const list = englishVoices();
+    const row = (v) => `<div class="job-row-edit voice-row ${set.uri === v.voiceURI ? 'on' : ''}"><span class="ji">${/premium|enhanced/i.test(v.name) ? '⭐' : '🗣️'}</span>
+      <b>${esc(v.name)}<small> ${esc(v.lang)}${v.localService ? '' : ' · needs internet'}</small></b>
+      <button class="farm-btn small" data-try-voice="${esc(v.voiceURI)}">▶ Try</button>
+      <button class="farm-btn small ${set.uri === v.voiceURI ? 'sellhen' : ''}" data-use-voice="${esc(v.voiceURI)}">${set.uri === v.voiceURI ? '✓ Using' : 'Use'}</button></div>`;
+    return `<p>Choose the voice that reads the app aloud. ⭐ voices (Enhanced or Premium) sound much more natural.</p>
+      <p><b>To get more voices on the iPad:</b> Settings → Accessibility → Spoken Content → Voices → English. Download an Enhanced or Premium voice, then come back here.</p>
+      <div class="voice-speeds"><b>Speed</b> ${SPEEDS.map(([r, n]) => `<button class="farm-btn small ${Math.abs(set.rate - r) < 0.001 ? 'sellhen' : ''}" data-voice-rate="${r}">${n}</button>`).join('')}</div>
+      <div class="job-row-edit voice-row ${set.uri ? '' : 'on'}"><span class="ji">📱</span><b>iPad default<small> Australian</small></b>
+        <button class="farm-btn small" data-try-voice="">▶ Try</button>
+        <button class="farm-btn small ${set.uri ? '' : 'sellhen'}" data-use-voice="">${set.uri ? 'Use' : '✓ Using'}</button></div>
+      ${list.length ? list.map(row).join('') : '<p>No voices found yet. Close this and open it again in a moment.</p>'}`;
+  }
+  onVoicesReady(() => { if (el && tab === 'voice') draw(); });
+  function sayWith(uri) {
+    try {
+      const set = voiceSettings();
+      saveVoiceSettings({ ...set, uri });
+      const u = utterance(SAMPLE);
+      saveVoiceSettings(set);
+      speechSynthesis.cancel(); speechSynthesis.speak(u);
+    } catch {}
+  }
+
   function draw() {
-    const body = { check: checkTab, coins: coinsTab, night: nightTab, morning: morningTab, extras: extrasTab, open: openTab }[tab]();
+    const body = { check: checkTab, coins: coinsTab, night: nightTab, morning: morningTab, extras: extrasTab, open: openTab, voice: voiceTab }[tab]();
     const html = `<div class="farm-sheet portal">
       <div class="portal-head"><h2>👨‍👩‍👧 Grown-ups</h2><button class="farm-btn small" data-close>Done</button></div>
       <nav class="portal-tabs">${TABS.map(([id, name]) => `<button class="${id === tab ? 'on' : ''}" data-tab="${id}">${name}</button>`).join('')}</nav>
@@ -206,6 +236,9 @@ export function createPortal(ctx) {
     const ds = t.dataset;
     if ('close' in ds) return close();
     if (ds.tab) { tab = ds.tab; return draw(); }
+    if ('tryVoice' in ds) return sayWith(ds.tryVoice);
+    if ('useVoice' in ds) { saveVoiceSettings({ ...voiceSettings(), uri: ds.useVoice }); draw(); return sayWith(ds.useVoice); }
+    if (ds.voiceRate) { saveVoiceSettings({ ...voiceSettings(), rate: Number(ds.voiceRate) }); draw(); return sayWith(voiceSettings().uri); }
     if (ds.kid) { kidId = ds.kid; return draw(); }
     if (ds.icon && t.closest('.icon-pick')) { t.parentElement.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b === t)); return; }
     if (ds.confirm) return confirmClaim(kidId, ds.confirm, t.getBoundingClientRect());

@@ -1,6 +1,6 @@
 // Offline support: serve from cache first, refresh the cache in the background.
 // Bump VERSION when you deploy a change so old files are cleared.
-const VERSION = 'v40';
+const VERSION = 'v41';
 const CACHE = `morning-${VERSION}`;
 const ASSETS = [
   './',
@@ -16,6 +16,7 @@ const ASSETS = [
   './js/farm.js',
   './js/farm-art.js',
   './js/portal.js',
+  './js/voice.js',
   './mine.html',
   './icons/icon-192.png',
   './icons/icon-512.png',
