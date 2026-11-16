@@ -69,6 +69,8 @@ These win over anything older further down.
 
 - **🎨 New painted farm (16 Nov 2026, off until a grown-up switches it on):** Grown-ups → 🔓 Farm & mine → **New painted farm**. The farm becomes a painted paddock of squares with painted animals. All the old rules (coins, stars, shop, feeding, selling, fox, fence) are the same, and switching it off brings the old farm back with nothing lost.
   - **🔨 Build:** tap Build, tap a thing, tap a glowing square to move it. Each move, new garden bed or planting uses one **move**: 3 on a day the jobs are done, 1 on other days, 8 on Saturday (Build Day).
+  - **One-time set-up:** the first time, the button says **Set up my farm** and moves are free and unlimited until the child taps Done and then "Yes, I'm finished". If farm time runs out first, they carry on next visit. Grown-ups → 🔓 Farm & mine → Farm set-up → **Give again** gives every child another one.
+  - **Animals stroll** a little way and back. Hungry or sleeping animals stand still.
   - **Garden beds:** one free bed to start; more cost 🪙 40 + ⭐ 4, up to 2 / 3 / 4 / 5 beds by farm stage. Seeds: carrots 🪙 5 (2 job days, 3 carrots at 🪙 5), wheat 🪙 6 (3 job days, 4 at 🪙 6), sunflowers 🪙 10 (4 job days, 4 at 🪙 10, from Barnyard). Crops only grow on days the jobs are done. Tap a ripe bed (or 🧺 Pick everything) and sell from the basket.
   - **Lots of animals:** each kind stands in a group of up to 4 with a number ("9 sheep"), and the land grows from 6 to 10 squares a side as the farm fills.
   - Code: `js/farm-world.js` (drawing and layout), the "painted farm" block near the top of `createFarm` in `js/farm.js`, pictures in `farm-art/`.

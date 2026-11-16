@@ -7,6 +7,7 @@
 //   at       { pieceId: [i, j] } where each piece sits (its back corner square)
 //   beds     [{ id, crop, growth }] garden beds; crop is null (bare soil) or a key of CROPS
 //   movesDay / movesUsed   build moves used today
+//   setupDone  true once the child has finished their one-time free set-up (until then, moves are unlimited)
 //   cropDay  the last day the crops grew (they grow once on each day the jobs are done)
 
 const ART = 'farm-art/';
@@ -197,7 +198,9 @@ function groupHTML(list, type, oi, oj, spots, g, env, baseZ = 0) {
     const [du, dv] = spots[k], u = oi + du, v = oj + dv;
     const wide = (WIDE[type] || 0.5) * (grown(a) ? 1 : BABY[type] ? 0.72 : 0.7);
     const z = Math.max(Math.round((u + v) * 100) + 40, baseZ ? baseZ + 1 + k : 0);
-    return env.animalBtn(a, `${g.at(u, v)};${g.wide(wide)};z-index:${z};--flip:${k % 2 ? -1 : 1};--delay:-${(a.id % 5) * 0.6}s`);
+    // Each animal strolls a little way along the squares and back, at its own pace (less room inside a paddock or pool).
+    const reach = baseZ ? 0.08 : 0.26, dur = 11 + (a.id % 7) * 1.3;
+    return env.animalBtn(a, `${g.at(u, v)};${g.wide(wide)};z-index:${z};--delay:-${(a.id % 5) * 0.6}s;--wx:calc(var(--tw) * ${reach});--wy:calc(var(--tw) * ${(a.id % 2 ? reach : -reach) * 0.55});--dur:${dur.toFixed(1)}s;--wd:-${((a.id * 3.7) % dur).toFixed(1)}s`);
   }).join('');
   if (list.length > shown.length) {
     const far = spots[spots.length - 1];
@@ -229,12 +232,15 @@ function trayHTML(env, w) {
   const hint = movesLeft <= 0 ? 'No moves left today. More tomorrow, when your jobs are done!'
     : sel.seed ? (emptyBed ? 'Now tap a glowing garden bed.' : 'Your garden beds are all full.')
       : sel.piece || sel.newbed ? 'Now tap a glowing square.' : 'Tap something to move it, or pick seeds to plant.';
+  const setup = !w.setupDone;   // the one-time set-up: as many moves as they like, until they say they're finished
+  if (setup && mode.asking) return `<div class="w2-tray"><div class="w2-tray-top"><b>All finished setting up?</b><span>You get this big set-up once. After this it's a few moves a day.</span></div>
+    <div class="w2-tray-btns"><button class="farm-btn small" data-action="farm-build" data-finish="no">Keep going</button><button class="farm-btn small feed" data-action="farm-build" data-finish="yes">✓ Yes, I'm finished</button></div></div>`;
   const seeds = Object.entries(CROPS).filter(([, c]) => level >= c.level).map(([id, c]) =>
     `<button class="farm-btn small${sel.seed === id ? ' sellhen' : ''}" data-action="farm-pick" data-seed="${id}" ${movesLeft <= 0 || coins < c.seed || !emptyBed ? 'disabled' : ''}>${c.icon} ${c.name} <small>🪙 ${c.seed}</small></button>`).join('');
   const more = w.beds.length < maxBeds(level)
     ? `<button class="farm-btn small${sel.newbed ? ' sellhen' : ''}" data-action="farm-pick" data-newbed="1" ${movesLeft <= 0 || coins < BED.price || stars < BED.stars ? 'disabled' : ''}>➕ Garden bed <small>🪙 ${BED.price} + ⭐ ${BED.stars}</small></button>` : '';
-  return `<div class="w2-tray"><div class="w2-tray-top"><b>🔨 ${Math.max(0, movesLeft)} move${movesLeft === 1 ? '' : 's'} left today</b><span>${hint}</span></div>
-    <div class="w2-tray-btns">${seeds}${more}<button class="farm-btn small feed" data-action="farm-build">✓ Done</button></div></div>`;
+  return `<div class="w2-tray"><div class="w2-tray-top"><b>🔨 ${setup ? 'Set-up time! Move as many things as you like' : `${Math.max(0, movesLeft)} move${movesLeft === 1 ? '' : 's'} left today`}</b><span>${hint}</span></div>
+    <div class="w2-tray-btns">${seeds}${more}<button class="farm-btn small feed" data-action="farm-build" data-finish="${setup ? 'ask' : ''}">✓ Done</button></div></div>`;
 }
 
 /**
@@ -273,7 +279,7 @@ export function worldHTML(env) {
       </div>
       ${!f.animals.length ? '<div class="field-empty w2-empty">Your farm is waiting!<br>Get a 🥚 mystery egg from the 🛒 shop.</div>' : ''}
       ${mode.on ? '' : `<div class="w2-hud">
-        <button class="w2-btn" data-action="farm-build">🔨 Build <small>${Math.max(0, env.movesLeft)} move${env.movesLeft === 1 ? '' : 's'}</small></button>
+        <button class="w2-btn${w.setupDone ? '' : ' ready'}" data-action="farm-build">🔨 ${w.setupDone ? `Build <small>${Math.max(0, env.movesLeft)} move${env.movesLeft === 1 ? '' : 's'}</small>` : 'Set up my farm'}</button>
         ${ready ? `<button class="w2-btn ready" data-action="farm-bed" data-bed="all">🧺 Pick ${ready > 1 ? 'everything' : 'it'}</button>` : ''}</div>`}
     </div>${mode.on ? trayHTML(env, w) : ''}`;
 }

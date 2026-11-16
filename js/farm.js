@@ -261,8 +261,10 @@ export function createFarm(ctx) {
   const mode = { on: false, sel: null };          // build mode, and what's picked up
   // Moves: placing, moving or planting one thing. 3 on a day the jobs are done, 1 otherwise, 8 on Saturday (Build Day).
   const movesMax = (k) => (clock.now().getDay() === 6 ? 8 : ctx.worked(k.id) ? 3 : 1);
-  const movesLeft = (k) => { const w = farmOf(k.id).world; return movesMax(k) - (w && w.movesDay === today() ? w.movesUsed || 0 : 0); };
-  function useMove(f) { const w = f.world; if (w.movesDay !== today()) { w.movesDay = today(); w.movesUsed = 0; } w.movesUsed++; }
+  // Until a child has finished their one-time set-up (f.world.setupDone), moves are free and unlimited.
+  const settingUp = (f) => !f.world?.setupDone;
+  const movesLeft = (k) => { const f = farmOf(k.id), w = f.world; return settingUp(f) ? 99 : movesMax(k) - (w && w.movesDay === today() ? w.movesUsed || 0 : 0); };
+  function useMove(f) { const w = f.world; if (settingUp(f)) return; if (w.movesDay !== today()) { w.movesDay = today(); w.movesUsed = 0; } w.movesUsed++; }
   // Crops grow one step on each day the jobs are done (like the animals, they work when you work).
   function growCrops(k, f) {
     const w = f.world;
@@ -276,9 +278,16 @@ export function createFarm(ctx) {
     return W.worldHTML({ f, KINDS, grown, level: f.level, mode, movesLeft: movesLeft(k), coins: balance(k.id), stars: starsLeft(k.id), broken: f.fenceDays === 0,
       animalBtn: (a, style) => animalHTML(f, a, style), needs: (a) => (a.type === 'sheep' && (a.wool || 0) >= 3 ? 2 : a.fedDay !== today() ? 1 : 0) });
   }
-  function toggleBuild(k) {
-    mode.on = !mode.on; mode.sel = null;
+  function toggleBuild(k, el) {
+    const f = farmOf(k.id), fin = el?.dataset.finish;
+    if (mode.on && f.world && settingUp(f)) { // leaving the one-time set-up takes a second tap, so a slip doesn't end it
+      if (fin === 'ask') { mode.asking = true; mode.sel = null; ctx.renderKid(); return ctx.speak('All finished setting up? You get this big set-up once. After this it is a few moves a day.', true); }
+      if (fin === 'no') { mode.asking = false; return ctx.renderKid(); }
+      if (fin === 'yes') { f.world.setupDone = true; save(); ctx.chime(); }
+    }
+    mode.on = !mode.on; mode.sel = null; mode.asking = false;
     ctx.renderKid();
+    if (mode.on && settingUp(f)) return ctx.speak('Set-up time! Tap something, then tap a glowing square to move it. Move as many things as you like. Tap Done when your farm is just how you want it.', true);
     if (mode.on) ctx.speak(movesLeft(k) > 0 ? `Build time! You have ${movesLeft(k)} move${movesLeft(k) === 1 ? '' : 's'} today. Tap something to move it, or pick seeds to plant.` : 'No moves left today. More tomorrow, when your jobs are done!', true);
   }
   function pick(k, el) {
@@ -475,7 +484,7 @@ export function createFarm(ctx) {
     let mood = '';
     if (a.type === 'sheep' && (a.wool || 0) >= 3) mood = '✂️';
     else if (hungry) mood = '🍽️';
-    return `<button class="animal ${big ? '' : 'baby'} ${a.type === 'cow' ? 'big' : ''} ${hungry ? 'hungry' : ''}" data-action="farm-tap" data-id="${a.id}" style="${where}" aria-label="${nameOf(a)}">
+    return `<button class="animal ${big ? '' : 'baby'} ${a.type === 'cow' ? 'big' : ''} ${hungry ? 'hungry' : ''} ${!hungry && isNight() ? 'sleepy' : ''}" data-action="farm-tap" data-id="${a.id}" style="${where}" aria-label="${nameOf(a)}">
       <span class="body">${animalArt(a.type, big, a.wool || 0, moodOf(a))}</span>${mood ? `<span class="mood ${mood === '✂️' ? 'shear' : 'eat'}">${mood}</span>` : ''}</button>`;
   }
 
@@ -1246,7 +1255,7 @@ export function createFarm(ctx) {
   async function opened(k, { gift = true } = {}) {
     const f = farmOf(k.id);
     if (catchUp(f, today(), { gentle: isGentle(k.id) })) { save(); ctx.renderKid(); }
-    mode.on = false; mode.sel = null;
+    mode.on = false; mode.sel = null; mode.asking = false;
     if (painted() && growCrops(k, f)) { save(); ctx.renderKid(); ctx.toast('🧺 Your crops are ready to pick!'); }
     await showNews(f);
     if (f.gift && gift) {
@@ -1276,7 +1285,7 @@ export function createFarm(ctx) {
         return;
       }
       case 'farm-shop': return openShop(k);
-      case 'farm-build': return toggleBuild(k);
+      case 'farm-build': return toggleBuild(k, el);
       case 'farm-pick': return pick(k, el);
       case 'farm-tile': return placeAt(k, Number(el.dataset.i), Number(el.dataset.j));
       case 'farm-bed': return harvest(k, el.dataset.bed);

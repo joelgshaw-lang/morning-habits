@@ -171,6 +171,8 @@ export function createPortal(ctx) {
         <button class="farm-btn small" data-open-mine="${k.id}">⛏ Open mine</button></div>`).join('')}
       <div class="job-row-edit"><span class="ji">🔄</span><b>App version ${esc(ctx.version() || '?')}<small> Gets the newest version from the internet. Jobs, coins and farms are kept.</small></b>
         <button class="farm-btn small" data-update-now="1">Update now</button></div>
+      <div class="job-row-edit"><span class="ji">🔨</span><b>Farm set-up<small> Each child gets one free set-up of their painted farm (move anything, as often as they like). Give everyone another one here.</small></b>
+        <button class="farm-btn small" data-farm-setup="1">Give again</button></div>
       <div class="job-row-edit"><span class="ji">🎨</span><b>New painted farm<small> Build-your-own farm with painted animals and garden beds. Switch it off any time: nothing is lost.</small></b>
         <button class="farm-btn small ${state.settings.newFarm ? 'sellhen' : ''}" data-new-farm="1">${state.settings.newFarm ? '✓ On' : 'Off'}</button></div>`;
   }
@@ -283,6 +285,11 @@ export function createPortal(ctx) {
     }
     if ('tryVoice' in ds) return sayWith(ds.tryVoice);
     if (ds.updateNow) return ctx.updateNow();
+    if (ds.farmSetup) {
+      for (const f of Object.values(state.farms || {})) if (f.world) f.world.setupDone = false;
+      ctx.kvSet('farms', state.farms);
+      return ctx.toast('🔨 Done! Every child can set up their whole farm once more.');
+    }
     if (ds.newFarm) { state.settings.newFarm = !state.settings.newFarm; saveSettings(); return draw(); }
     if ('useVoice' in ds) { saveVoiceSettings({ ...voiceSettings(), uri: ds.useVoice }); draw(); return sayWith(ds.useVoice); }
     if (ds.voiceRate) { saveVoiceSettings({ ...voiceSettings(), rate: Number(ds.voiceRate) }); draw(); return sayWith(voiceSettings().uri); }
