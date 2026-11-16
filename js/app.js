@@ -1,6 +1,6 @@
 import { openDB, kvGet, kvSet, dayGet, dayPut, dayDelete, dayAll } from './db.js';
 import * as clock from './clock.js';
-import { DEFAULT_SETTINGS, BREATHS_PER_SWING, BREATHS_PER_DAY } from './config.js';
+import { DEFAULT_SETTINGS, GROWN_PIN, BREATHS_PER_SWING, BREATHS_PER_DAY } from './config.js';
 import { summarize, startOffer, startCoins, fmtMinutes, nightFinishedAt, morningStart, houseJobsFor, planFor, COINS, EXTRAS_DAY_CAP } from './family.js';
 import { createPortal } from './portal.js';
 import { createFarm } from './farm.js';
@@ -271,17 +271,10 @@ let grownUntil = 0; // after the grown-up PIN, a few minutes without asking agai
 
 async function grownUp(note, grace = false) {
   if (grace && Date.now() < grownUntil) return true;
-  // Same grown-up PIN as the mine uses.
-  let saved = null;
-  try { saved = localStorage.getItem('mine3.pin'); } catch {}
-  if (saved) {
-    const ok = !!(await askPin({ title: 'Enter the grown-up PIN', note: `👨‍👩‍👧 Grown-ups only · ${note}`, expect: String(saved) }));
-    if (ok && grace) grownUntil = Date.now() + 60000;
-    return ok;
-  }
-  const code = await askPin({ title: 'Choose a 4-digit grown-up PIN', note: `👨‍👩‍👧 Grown-ups only · ${note}`, create: true });
-  if (code) { try { localStorage.setItem('mine3.pin', code); } catch {} }
-  return !!code;
+  // Same grown-up PIN as the mine uses (GROWN_PIN in config.js).
+  const ok = !!(await askPin({ title: 'Enter the grown-up PIN', note: `👨‍👩‍👧 Grown-ups only · ${note}`, expect: GROWN_PIN, length: GROWN_PIN.length }));
+  if (ok && grace) grownUntil = Date.now() + 60000;
+  return ok;
 }
 
 // The child's own code (made the first time). Returns true if they got it right.

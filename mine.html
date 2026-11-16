@@ -910,28 +910,29 @@ function bigReveal(artHref, scale, labelHTML, from, { soft = false, ms = 2800, h
   });
 }
 
-// ---------- grown-up PIN (set the first time; stays unlocked for 2 minutes) ----------
+// ---------- grown-up PIN (same as the main app: GROWN_PIN in js/config.js) ----------
+const GROWN_PIN = '040910';
 let pinUntil = 0;
 // grace: entering the PIN keeps the grown-up controls open for 15 minutes. The mine gate passes grace=false,
 // so opening the mine for a child never unlocks the grown-up controls too.
 function needPin(grace = true, note = '') {
   if (grace && Date.now() < pinUntil) return Promise.resolve(true);
   document.getElementById('pinNote').textContent = note ? `👨‍👩‍👧 Grown-ups only · ${note}` : '👨‍👩‍👧 Grown-ups only';
-  let saved = null; try { saved = localStorage.getItem('mine3.pin'); } catch {}
+  const saved = GROWN_PIN, LEN = GROWN_PIN.length;
   return new Promise((res) => {
     let entry = '', first = null;
     const title = document.getElementById('pinTitle'), dots = document.getElementById('pinDots');
     title.textContent = saved ? 'Enter the grown-up PIN' : 'Choose a 4-digit grown-up PIN';
-    const show = () => { dots.textContent = '●'.repeat(entry.length) + '○'.repeat(4 - entry.length); };
+    const show = () => { dots.textContent = '●'.repeat(entry.length) + '○'.repeat(LEN - entry.length); };
     show();
     document.getElementById('pinPad').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map((d) => d === '' ? '<span></span>' : `<button class="btn no" data-d="${d}">${d}</button>`).join('');
     const done = (ok) => { ov('pinOv', false); document.getElementById('pinPad').onclick = null; if (ok && grace) pinUntil = Date.now() + 15 * 60e3; /* grown-up controls stay open for 15 minutes */ res(ok); };
     document.getElementById('pinPad').onclick = (e) => {
       const b = e.target.closest('[data-d]'); if (!b) return;
       const d = b.dataset.d;
-      if (d === '⌫') entry = entry.slice(0, -1); else if (entry.length < 4) entry += d;
+      if (d === '⌫') entry = entry.slice(0, -1); else if (entry.length < LEN) entry += d;
       show();
-      if (entry.length < 4) return;
+      if (entry.length < LEN) return;
       if (saved) { if (entry === saved) done(true); else { title.textContent = 'Not quite. Try again.'; entry = ''; setTimeout(show, 300); } }
       else if (!first) { first = entry; entry = ''; title.textContent = 'Type it once more'; setTimeout(show, 200); }
       else if (entry === first) { try { localStorage.setItem('mine3.pin', entry); } catch {} done(true); }

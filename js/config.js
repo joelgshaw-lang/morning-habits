@@ -1,3 +1,6 @@
+// The grown-up PIN (6 digits) for the portal, reminders, confirming jobs and opening the mine.
+export const GROWN_PIN = '040910';
+
 // Default family setup. Saved to IndexedDB on first run; grown-ups change it in the Grown-ups portal.
 
 const baseHabits = (chore) => [

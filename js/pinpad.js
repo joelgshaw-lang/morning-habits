@@ -1,7 +1,7 @@
-// A big 4-digit PIN pad. Resolves with the code, 'forgot', or null (cancelled).
+// A big PIN pad (4 digits for kids' codes, 6 for the grown-up PIN). Resolves with the code, 'forgot', or null (cancelled).
 // Digits are never read aloud, so siblings can't overhear a secret code.
 
-export function askPin({ title, note = '', color = '#1f2430', expect = null, create = false, forgot = false }) {
+export function askPin({ title, note = '', color = '#1f2430', expect = null, create = false, forgot = false, length = 4 }) {
   return new Promise((resolve) => {
     let code = '';
     let first = null;
@@ -16,7 +16,7 @@ export function askPin({ title, note = '', color = '#1f2430', expect = null, cre
         <div class="pin-sheet ${shake ? 'shake' : ''}">
           ${note ? `<div class="pin-note">${note}</div>` : ''}
           <h2>${msg}</h2>
-          <div class="pin-dots">${[0, 1, 2, 3].map((i) => `<span class="${i < code.length ? 'on' : ''}"></span>`).join('')}</div>
+          <div class="pin-dots">${Array.from({ length }, (_, i) => `<span class="${i < code.length ? 'on' : ''}"></span>`).join('')}</div>
           <div class="pin-pad">
             ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => `<button data-pin="${d}">${d}</button>`).join('')}
             <button data-pin="cancel" class="pin-soft">✕</button>
@@ -46,9 +46,9 @@ export function askPin({ title, note = '', color = '#1f2430', expect = null, cre
       if (p === 'cancel') return done(null);
       if (p === 'forgot') return done('forgot');
       if (p === 'back') { code = code.slice(0, -1); return draw(); }
-      if (code.length < 4) code += p;
+      if (code.length < length) code += p;
       draw();
-      if (code.length === 4) setTimeout(check, 150);
+      if (code.length === length) setTimeout(check, 150);
     });
     draw();
   });
