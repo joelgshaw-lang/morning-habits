@@ -1,4 +1,5 @@
 import { animalArt, snakeArt } from './farm-art.js';
+import * as clock from './clock.js';
 
 // The farm: coins from chores buy mystery eggs, feed, a fence, sheep, cows and buildings.
 // Prices and growth times come from a 90-day simulation (docs/farm-economy.md): a new stage every one to
@@ -15,7 +16,41 @@ export const KINDS = {
   cow: { name: 'Cow', baby: 'Calf', babyIcon: '🐮', icon: '🐄', feed: 3, grow: 16, sound: 'moo' },
   snake: { name: 'Snake', baby: 'Baby snake', babyIcon: '🐍', icon: '🐍', feed: 1, grow: 5, sound: 'hiss', small: true, rare: 'Rare!', perk: 'Snakes chase the mice out of the feed shed: 1 free feed every day you work.' },
   dino: { name: 'Dinosaur', baby: 'Baby dinosaur', babyIcon: '🦕', icon: '🦕', feed: 3, grow: 20, sound: 'roar', rare: 'Ultra rare!', perk: 'Foxes run away from your dinosaur, and your hens feel brave: more golden eggs!' },
+
+  // New friends (Nov 2026): the Aussie Island Mates and the Rock Pool Crew. Each one is a named character,
+  // one of each per farm. They make nothing to sell (so they add no coins), eat free with the "Feed everyone"
+  // tap, and egg-layers really hatch from eggs. Sea creatures only live in the rock pool.
+  // who/full: their name; about: personality; fact: a true fact read aloud; pal: the line on their card.
+  koala: { name: 'Koala', baby: 'Baby koala', who: 'Kip', full: 'Kip the koala', group: 'mate', babyIcon: '🐨', icon: '🐨', feed: 0, grow: 6, sound: 'grunt', pal: '😴 Napper',
+    about: 'Kip is a sleepy hugger. He naps anywhere, but always wakes up for gum leaves.', fact: 'Koalas sleep up to 20 hours a day!', arrive: 'You planted a gum tree, and Kip the koala climbed right in!' },
+  roo: { name: 'Kangaroo', baby: 'Joey', who: 'Skip and Joey', full: 'Skip and Joey the kangaroos', plural: true, group: 'mate', babyIcon: '🦘', icon: '🦘', feed: 0, grow: 6, sound: 'boing', pal: '🦘 Bouncers',
+    about: 'Skip is bouncy and fast. Joey peeks out of the pouch so he never misses a thing.', fact: 'A baby kangaroo is called a joey, and it lives in its mum\'s pouch!', arrive: 'You built a bush paddock, and Skip and Joey came bouncing in!' },
+  wombat: { name: 'Wombat', baby: 'Baby wombat', who: 'Digby', full: 'Digby the wombat', group: 'mate', babyIcon: '🦡', icon: '🦡', feed: 0, grow: 6, sound: 'snuffle', pal: '⛏️ Digger',
+    about: 'Digby is a strong little digger in a hard hat.', fact: 'Wombat poo is cube-shaped!', arrive: 'You built a burrow, and Digby the wombat dug his way in!',
+    perk: 'Digby sometimes digs up something pretty for your farm.' },
+  platypus: { name: 'Platypus', baby: 'Puggle', who: 'Paddles', full: 'Paddles the platypus', group: 'mate', babyIcon: '🦫', icon: '🦫', feed: 0, grow: 6, sound: 'bloop', pal: '🌟 One of a kind',
+    about: 'Paddles has a duck bill, a beaver tail and otter feet, and is proud to be one of a kind.', fact: 'Platypuses lay eggs! A baby platypus is called a puggle.' },
+  kookaburra: { name: 'Kookaburra', baby: 'Kookaburra chick', who: 'Kooky', full: 'Kooky the kookaburra', group: 'mate', babyIcon: '🐦', icon: '🐦', feed: 0, grow: 5, sound: 'laugh', pal: '😂 Laugher',
+    about: 'Kooky laughs at everything, loudest at sunrise, and wakes the whole farm.', fact: 'Kookaburras hatch from eggs, high up in a hollow tree!' },
+  echidna: { name: 'Echidna', baby: 'Puggle', who: 'Spike', full: 'Spike the echidna', group: 'mate', babyIcon: '🦔', icon: '🦔', feed: 0, grow: 6, sound: 'snuffle', pal: '🦔 Shy and kind',
+    about: 'Spike is shy and spiky outside, soft and friendly inside, and curls up when surprised.', fact: 'Echidnas lay eggs too! A baby echidna is also called a puggle.' },
+  crab: { name: 'Hermit crab', baby: 'Baby crab', who: 'Clawdia', full: 'Clawdia the hermit crab', group: 'sea', babyIcon: '🦀', icon: '🦀', feed: 0, grow: 5, sound: 'click', pal: '🏠 Builder',
+    about: 'Her shell is a tiny house, and she is always making it better: a door, a window, a chimney.', fact: 'Hermit crabs move into a bigger shell as they grow!', arrive: 'You built a rock pool, and Clawdia the hermit crab scuttled in!' },
+  squid: { name: 'Squid', baby: 'Baby squid', who: 'Rocket', full: 'Rocket the squid', group: 'sea', babyIcon: '🦑', icon: '🦑', feed: 0, grow: 5, sound: 'whoosh', pal: '🚀 Rocket',
+    about: 'Rocket blasts off backwards like a real rocket.', fact: 'Squids really do jet through the water, and they hatch from eggs!' },
+  turtle: { name: 'Sea turtle', baby: 'Hatchling', who: 'Myrtle', full: 'Myrtle the sea turtle', group: 'sea', babyIcon: '🐢', icon: '🐢', feed: 0, grow: 7, sound: 'bloop', pal: '🐢 Wise',
+    about: 'Myrtle is slow, wise and kind. She has swum all the way around the island, twice!', fact: 'Sea turtles hatch from eggs buried in the sand!' },
+  puffer: { name: 'Pufferfish', baby: 'Baby puffer', who: 'Puff', full: 'Puff the pufferfish', group: 'sea', babyIcon: '🐡', icon: '🐡', feed: 0, grow: 5, sound: 'puff', pal: '🎈 Puffer',
+    about: 'Puff is small and a bit jumpy, puffs up big when surprised, then giggles.', fact: 'Pufferfish hatch from tiny eggs!' },
+  octopus: { name: 'Octopus', baby: 'Baby octopus', who: 'Inky', full: 'Inky the octopus', group: 'sea', babyIcon: '🐙', icon: '🐙', feed: 0, grow: 6, sound: 'bloop', pal: '🐚 Gardener',
+    about: 'Inky has eight arms and eight ideas, and builds a garden of shells round her den.', fact: 'Real octopuses make shell gardens, and octopus mums guard their eggs!' },
+  manta: { name: 'Manta ray', baby: 'Baby manta', who: 'Zoom', full: 'Zoom the manta ray', group: 'sea', babyIcon: '🌊', icon: '🌊', feed: 0, grow: 6, sound: 'whoosh', pal: '🌀 Glider',
+    about: 'Zoom glides like a spaceship and does barrel rolls just for fun.', fact: 'Manta ray babies don\'t hatch from a nest. They are born rolled up like a burrito, then unroll and swim!', arrive: 'You built a jetty out to deep water, and Zoom the manta ray glided in!' },
 };
+// Which new friends hatch from which egg (always one you don't have yet).
+const BUSH_EGG = ['platypus', 'echidna', 'kookaburra'];
+const POOL_EGG = ['turtle', 'squid', 'puffer', 'octopus'];
+const GROUP_NAME = { mate: '🦘 Aussie Island Mates', sea: '🌊 Rock Pool Crew' };
 
 export const GOODS = {
   egg: { icon: '🥚', name: 'Egg', price: 15 },
@@ -34,9 +69,19 @@ const RAINBOW_CHANCE = 0.03;
 
 // What a child gets for selling a grown animal. They choose which one, say goodbye, and can bring it back
 // within 10 seconds (see "selling an animal" below).
-export const SELL = { chicken: 40, duck: 50, lizard: 75, snake: 75, croc: 120, sheep: 120, cow: 280, dino: 400 };
+// The new friends sell for well under what they cost, so buying and selling them never makes coins.
+export const SELL = { chicken: 40, duck: 50, lizard: 75, snake: 75, croc: 120, sheep: 120, cow: 280, dino: 400,
+  platypus: 60, echidna: 60, kookaburra: 60, wombat: 80, koala: 100, roo: 120,
+  crab: 80, turtle: 70, squid: 70, puffer: 70, octopus: 70, manta: 150 };
 // "hen" reads better than "chicken" when saying goodbye.
 const animalWord = (type) => (type === 'chicken' ? 'hen' : KINDS[type].name.toLowerCase());
+// The words for saying goodbye: "your hen" for farm animals, "Kip the koala" for the named friends.
+function byeWords(type) {
+  const k = KINDS[type];
+  if (k.who) return { yours: k.full, Yours: k.full, short: k.who, keep: k.who, It: k.who, goes: k.plural ? 'go' : 'goes', is: k.plural ? 'are' : 'is', place: 'home' };
+  const w = animalWord(type);
+  return { yours: `your ${w}`, Yours: `Your ${w}`, short: w, keep: `my ${w}`, It: 'It', goes: 'goes', is: 'is', place: 'farm' };
+}
 
 // The shop words below take their prices straight from GOODS (above), so they always match what things really sell for.
 // stars: ⭐ job stars needed too (about 1 for every 10 coins on big things). Stars only come from doing jobs,
@@ -60,6 +105,14 @@ export const SHOP = [
   { id: 'orchard', icon: '🍎', name: 'Apple orchard', price: 250, stars: 25, level: 3, building: true, does: `Three apple trees: 2 apples every day you feed your animals. Apples sell for ${GOODS.apple.price} each.` },
   { id: 'stand', icon: '🏪', name: 'Farm stand', price: 300, stars: 30, level: 3, building: true, does: 'Sell from your own stand: everything you sell is worth more (1 extra coin for every 5).' },
   { id: 'bottles', icon: '🍼', name: 'Milk bottles', price: 20, level: 3, building: true, tool: true, does: `You need these to milk your cow. Every bottle of milk sells for ${GOODS.milk.price} coins.` },
+  // New friends: homes bring a visitor (home: who moves in); eggs hatch one you don't have yet.
+  { id: 'bushegg', icon: '🪺', name: 'Bush egg', price: 150, stars: 15, level: 3, egg: BUSH_EGG, does: 'Platypuses, echidnas and kookaburras all lay eggs! Hatch Paddles the platypus, Spike the echidna or Kooky the kookaburra: always one you don\'t have yet.' },
+  { id: 'burrow', icon: '🕳️', name: 'Wombat burrow', price: 200, stars: 20, level: 3, building: true, home: 'wombat', does: 'Dig a cosy burrow and Digby the wombat moves in. He sometimes digs up something pretty for your farm.' },
+  { id: 'gumtree', icon: '🌳', name: 'Gum tree', price: 250, stars: 25, level: 4, building: true, home: 'koala', does: 'Plant a big gum tree and Kip the sleepy koala comes to live in it.' },
+  { id: 'paddock', icon: '🌾', name: 'Bush paddock', price: 350, stars: 35, level: 4, building: true, home: 'roo', does: 'A wide grassy paddock, and Skip the kangaroo bounces in with Joey in the pouch.' },
+  { id: 'rockpool', icon: '🌊', name: 'Rock pool', price: 400, stars: 40, level: 4, building: true, home: 'crab', does: 'A sparkly rock pool for sea friends (up to 6). Clawdia the hermit crab moves in straight away!' },
+  { id: 'poolegg', icon: '🫧', name: 'Rock pool egg', price: 150, stars: 15, level: 4, needs: 'rockpool', egg: POOL_EGG, does: 'Sea turtles, squid, pufferfish and octopuses hatch from eggs! Hatch Myrtle, Rocket, Puff or Inky: always one you don\'t have yet.' },
+  { id: 'jetty', icon: '🛶', name: 'Jetty', price: 450, stars: 45, level: 4, needs: 'rockpool', building: true, home: 'manta', does: 'A wooden jetty out to deep water, and Zoom the manta ray glides in to live in your rock pool.' },
   { id: 'barn', icon: '🛖', name: 'Big barn', price: 500, stars: 50, level: 4, building: true, does: 'Room for 14 small animals, 4 sheep, 3 cows and 2 dinosaurs.' },
   { id: 'pony', icon: '🐴', name: 'Pony', price: 600, stars: 50, level: 4, building: true, does: 'Your very own pony! Tap it to go for a gallop around the farm.' },
   { id: 'mill', icon: '⚙️', name: 'Windmill', price: 700, stars: 70, level: 4, needs: 'barn', building: true, does: 'Grinds feed: small animals eat free, and everyone else costs 1 coin less.' },
@@ -93,7 +146,15 @@ export function freshFarm(today) {
 export const grown = (a) => a.growth >= KINDS[a.type].grow;
 const capOf = (f) => { const c = f.built.barn ? { small: 14, sheep: 4, cow: 3, dino: 2 } : { small: 8, sheep: 2, cow: 1, dino: 1 }; if (f.built.coop) c.small += 4; return c; };
 const countOf = (f, group) => f.animals.filter((a) => (group === 'small' ? KINDS[a.type].small : a.type === group)).length;
-const roomFor = (f, type) => { const g = KINDS[type].small ? 'small' : type; return countOf(f, g) < capOf(f)[g]; };
+const roomFor = (f, type) => {
+  const k = KINDS[type];
+  // New friends: one of each, and sea creatures only live in the rock pool.
+  if (k.group) return !f.animals.some((a) => a.type === type) && (k.group !== 'sea' || !!f.built.rockpool);
+  const g = k.small ? 'small' : type;
+  return countOf(f, g) < capOf(f)[g];
+};
+// Which friends from an egg's list could still hatch (ones you don't have yet, with somewhere to live).
+const missingOf = (f, list) => list.filter((t) => roomFor(f, t));
 const feedCost = (f, a) => Math.max(0, KINDS[a.type].feed - (f.built.mill ? 1 : 0));
 const hasGrown = (f, type) => f.animals.some((a) => a.type === type && grown(a));
 
@@ -186,7 +247,6 @@ export function createFarm(ctx) {
   };
   const balance = (id) => ctx.earned(id) + farmOf(id).sold - farmOf(id).spent;
   const starsLeft = (id) => Math.max(0, ctx.stars(id) - (farmOf(id).starsSpent || 0));
-  const starText = (it) => (it.stars ? ` + ⭐ ${it.stars}` : '');
   const save = () => ctx.kvSet('farms', state.farms);
   const today = () => ctx.todayKey();
 
@@ -215,6 +275,13 @@ export function createFarm(ctx) {
     roar: () => voice('sawtooth', [[140, 90], [180, 110], [120, 70]], 0.25, 0.22, 0.12),
     boing: () => voice('sine', [[220, 880], [880, 330]], 0.18, 0.18, 0.15),
     hiss: () => voice('sawtooth', [[3000, 2600], [3200, 2400], [2900, 2500]], 0.12, 0.13, 0.03),
+    laugh: () => voice('square', [[700, 1000], [800, 1100], [900, 1250], [1100, 700], [1000, 640], [900, 560]], 0.07, 0.1, 0.045), // kookaburra "koo-koo-ka-ka"
+    grunt: () => voice('sawtooth', [[120, 80], [110, 70]], 0.22, 0.26, 0.09),
+    snuffle: () => voice('triangle', [[320, 200], [340, 220], [300, 190]], 0.06, 0.09, 0.08),
+    click: () => voice('square', [[2000, 1700], [2200, 1900], [2000, 1700]], 0.025, 0.08, 0.05),
+    bloop: () => voice('sine', [[300, 700], [360, 820]], 0.12, 0.16, 0.12),
+    whoosh: () => voice('triangle', [[200, 1200]], 0.35, 0, 0.08),
+    puff: () => voice('sine', [[200, 520], [620, 260]], 0.15, 0.15, 0.12),
     baa: () => voice('sawtooth', [[520, 480], [500, 460], [480, 420]], 0.13, 0.12, 0.07),
     moo: () => voice('sawtooth', [[190, 120]], 0.9, 0, 0.1),
     neigh: () => voice('sawtooth', [[620, 900], [880, 520], [600, 380]], 0.16, 0.1, 0.08),
@@ -283,25 +350,44 @@ export function createFarm(ctx) {
 
   // ---------- drawing ----------
   // Spread animals evenly over the field (below the buildings), with a little jitter so it looks natural.
-  function spot(a, i, n) {
-    const cols = Math.max(2, Math.ceil(Math.sqrt(n * 1.8)));
+  // width: how much of the field (in %) the land animals spread over (less once the rock pool takes the right side).
+  function spot(a, i, n, width = 80) {
+    const cols = Math.max(2, Math.ceil(Math.sqrt(n * 1.8 * (width / 80))));
     const rows = Math.ceil(n / cols);
     const col = i % cols;
     const row = Math.floor(i / cols);
-    const x = 4 + ((col + 0.5) / cols) * 80 + ((a.id * 7) % 7) - 3;
+    const x = 4 + ((col + 0.5) / cols) * width + ((a.id * 7) % 7) - 3;
     const y = 26 + ((row + 0.5) / Math.max(rows, 2)) * 56 + ((a.id * 5) % 6) - 3;
     return `left:${x.toFixed(1)}%;top:${y.toFixed(1)}%;--dur:${5 + (a.id % 5)}s;--delay:-${a.id % 4}s`;
   }
+  // Sea friends swim in the rock pool (right side of the field), up to 6 spots.
+  const POOL_SPOTS = [[66, 25], [80, 28], [63, 41], [78, 44], [66, 57], [81, 60]];
+  function poolSpot(a, i) {
+    const [x, y] = POOL_SPOTS[i % POOL_SPOTS.length];
+    return `left:${x}%;top:${y}%;--dur:${5 + (a.id % 5)}s;--delay:-${a.id % 4}s`;
+  }
 
-  function animalHTML(f, a, i) {
+  // Night: from when the night window opens until the new day starts (3am).
+  function isNight() {
+    const s = state.settings || {};
+    const startH = s.dayStartHour ?? 3;
+    const now = clock.now();
+    if (now.getHours() < startH) return true;
+    return s.nightOpen ? now >= clock.atTime(s.nightOpen, startH) : now.getHours() >= 18;
+  }
+  // The face each animal's picture shows: hungry until fed today, sleepy at night, otherwise happy.
+  const moodOf = (a) => (a.fedDay !== today() ? 'hungry' : isNight() ? 'sleepy' : 'happy');
+  const nameOf = (a) => { const k = KINDS[a.type]; return k.full || (grown(a) ? k.name : k.baby); };
+
+  function animalHTML(f, a, where) {
     const k = KINDS[a.type];
     const big = grown(a);
     const hungry = a.fedDay !== today();
     let mood = '';
     if (a.type === 'sheep' && (a.wool || 0) >= 3) mood = '✂️';
     else if (hungry) mood = '🍽️';
-    return `<button class="animal ${big ? '' : 'baby'} ${a.type === 'cow' ? 'big' : ''} ${hungry ? 'hungry' : ''}" data-action="farm-tap" data-id="${a.id}" style="${spot(a, i, f.animals.length)}" aria-label="${big ? k.name : k.baby}">
-      <span class="body">${animalArt(a.type, big, a.wool || 0)}</span>${mood ? `<span class="mood">${mood}</span>` : ''}</button>`;
+    return `<button class="animal ${big ? '' : 'baby'} ${a.type === 'cow' ? 'big' : ''} ${hungry ? 'hungry' : ''}" data-action="farm-tap" data-id="${a.id}" style="${where}" aria-label="${nameOf(a)}">
+      <span class="body">${animalArt(a.type, big, a.wool || 0, moodOf(a))}</span>${mood ? `<span class="mood">${mood}</span>` : ''}</button>`;
   }
 
   // Close-ups along the bottom: one card per animal with how it's growing and what it needs.
@@ -317,10 +403,11 @@ export function createFarm(ctx) {
       else if (a.type === 'sheep') { bar = (a.wool || 0) / 3; note = (a.wool || 0) >= 3 ? (f.built.shears ? '✂️ Shear me!' : '✂️ Needs shears') : `🧶 ${a.wool || 0}/3`; }
       else if (a.type === 'cow') { bar = ((a.milks || 0) % CALF_EVERY) / CALF_EVERY; note = f.built.bottles ? '🥛 Milk' : '🍼 Needs bottles'; }
       else if (a.type === 'chicken' || a.type === 'duck') note = '🥚 Eggs';
+      else if (k.pal) note = k.pal;
       else note = a.type === 'croc' ? '🛡️ Guard' : a.type === 'snake' ? '🐭 Mouse catcher' : '🐛 Bug hunter';
       return `<button class="pal ${hungry ? 'hungry' : ''}" data-action="farm-tap" data-id="${a.id}">
-        ${animalArt(a.type, big, a.wool || 0)}
-        <b>${big ? k.name : k.baby}</b>
+        ${animalArt(a.type, big, a.wool || 0, moodOf(a))}
+        <b>${k.who || (big ? k.name : k.baby)}</b>
         <span class="pal-bar"><i style="width:${Math.round(bar * 100)}%"></i></span>
         <small>${hungry ? '🍽️ Hungry' : note}</small></button>`;
     }).join('')}</div>`;
@@ -340,22 +427,39 @@ export function createFarm(ctx) {
       f.built.orchard ? `<svg class="bld orchard" viewBox="0 0 100 60" aria-label="Apple orchard">${[18, 50, 82].map((x) => `<rect x="${x - 3}" y="36" width="6" height="22" fill="#78350f"/><circle cx="${x}" cy="26" r="16" fill="#16a34a"/>${[[-7, 20], [5, 18], [-2, 31], [8, 29]].map(([dx, y]) => `<circle cx="${x + dx}" cy="${y}" r="3" fill="#dc2626"/>`).join('')}`).join('')}</svg>` : '',
       f.built.stand ? `<svg class="bld stand" viewBox="0 0 70 62" aria-label="Farm stand"><rect x="8" y="30" width="54" height="22" fill="#d97706" stroke="#78350f" stroke-width="2"/><path d="M4 30 L12 12 H58 L66 30 Z" fill="#fff" stroke="#dc2626" stroke-width="2"/>${[12, 26, 40, 54].map((x) => `<path d="M${x} 12 L${x + 7} 12 L${x + 9} 30 L${x - 1} 30 Z" fill="#ef4444"/>`).join('')}<text x="35" y="46" text-anchor="middle" font-size="12">🥚🍎🍯</text><rect x="10" y="52" width="4" height="10" fill="#78350f"/><rect x="56" y="52" width="4" height="10" fill="#78350f"/></svg>` : '',
       f.built.house && !f.built.manor ? '<span class="bld house" title="Farmhouse">🏡</span>' : '',
+      f.built.burrow ? `<svg class="bld burrow" viewBox="0 0 70 40" style="width:70px;height:40px" aria-label="Wombat burrow"><path d="M2 40 Q10 6 35 6 Q60 6 68 40 Z" fill="#a16207" stroke="#713f12" stroke-width="2"/><path d="M22 40 Q22 20 35 20 Q48 20 48 40 Z" fill="#3f2a14"/><path d="M8 32 l4 -6 M60 30 l-3 -6 M30 10 l2 -4" stroke="#65a30d" stroke-width="3" stroke-linecap="round"/></svg>` : '',
+      f.built.gumtree ? `<svg class="bld gumtree" viewBox="0 0 64 84" style="width:64px;height:84px" aria-label="Gum tree"><path d="M28 84 Q30 56 24 40 M32 84 Q34 52 44 36 M30 60 Q36 48 30 34" stroke="#e7e5e4" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M28 84 Q30 56 24 40 M32 84 Q34 52 44 36" stroke="#a8a29e" stroke-width="2" fill="none" stroke-dasharray="3 6"/>${[[20, 30, 15], [44, 26, 16], [32, 16, 15], [12, 44, 10], [52, 42, 10]].map(([x, y, r]) => `<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r * 0.75}" fill="#6b9080" stroke="#4a6b5d" stroke-width="1.5"/>`).join('')}</svg>` : '',
+      f.built.paddock ? `<svg class="bld paddock" viewBox="0 0 96 50" style="width:96px;height:50px" aria-label="Bush paddock"><rect x="0" y="24" width="96" height="26" rx="8" fill="#eab308" opacity=".75"/>${[8, 20, 34, 48, 62, 76, 88].map((x) => `<path d="M${x} 46 l-3 -12 M${x} 46 l0 -14 M${x} 46 l3 -12" stroke="#a16207" stroke-width="2" stroke-linecap="round"/>`).join('')}<path d="M2 22 H94 M2 32 H94" stroke="#78350f" stroke-width="3"/>${[4, 34, 64, 92].map((x) => `<rect x="${x - 2}" y="16" width="5" height="24" fill="#78350f"/>`).join('')}</svg>` : '',
       f.built.manor ? `<svg class="bld manor" viewBox="0 0 120 80" aria-label="Big beautiful farmhouse"><rect x="14" y="34" width="92" height="42" fill="#fff7ed" stroke="#9a3412" stroke-width="2"/><path d="M6 36 L60 6 L114 36 Z" fill="#dc2626" stroke="#7f1d1d" stroke-width="2"/><rect x="84" y="10" width="10" height="18" fill="#9a3412"/>${[24, 44, 70, 90].map((x) => `<rect x="${x}" y="42" width="10" height="10" fill="#fde047" stroke="#9a3412"/>`).join('')}<path d="M52 76 V58 a8 8 0 0 1 16 0 V76" fill="#7c2d12"/><rect x="10" y="62" width="100" height="4" fill="#9a3412"/>${[16, 30, 92, 104].map((x) => `<circle cx="${x}" cy="76" r="3" fill="#f472b6"/>`).join('')}</svg>` : '',
     ].join('');
     // The farm grows bigger as it's built: the world gets wider and starts zoomed out to fit, and
     // children can zoom in (➕ / pinch) and drag around to see their animals up close.
-    const shown = bld.split('class="bld ').length - 1 + (f.built.pony ? 1 : 0) + (f.built.dog ? 1 : 0);
+    const shown = bld.split('class="bld ').length - 1 + (f.built.pony ? 1 : 0) + (f.built.dog ? 1 : 0) + (f.built.rockpool ? 2 : 0);
+    // The rock pool sits on the right of the field; land animals spread over the rest, sea friends swim in it.
+    const pool = !!f.built.rockpool;
+    const land = f.animals.filter((a) => !pool || KINDS[a.type].group !== 'sea');
+    const sea = pool ? f.animals.filter((a) => KINDS[a.type].group === 'sea') : [];
+    const poolHTML = pool ? `<svg class="rockpool" viewBox="0 0 120 100" preserveAspectRatio="none" aria-label="Rock pool" style="position:absolute;left:60%;top:22%;width:38%;height:58%;pointer-events:none">
+        <ellipse cx="58" cy="52" rx="56" ry="46" fill="#a8a29e" stroke="#78716c" stroke-width="2"/>
+        ${[[10, 30], [22, 10], [60, 6], [98, 14], [112, 50], [96, 88], [56, 96], [16, 80]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="11" ry="8" fill="#d6d3d1" stroke="#78716c" stroke-width="1.5"/>`).join('')}
+        <ellipse cx="58" cy="52" rx="46" ry="37" fill="#38bdf8"/><ellipse cx="58" cy="56" rx="38" ry="28" fill="#0ea5e9" opacity=".6"/>
+        <path d="M30 40 q6 -4 12 0 M64 70 q6 -4 12 0 M74 34 q6 -4 12 0" stroke="#e0f2fe" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <circle cx="20" cy="56" r="3" fill="#fda4af"/><circle cx="96" cy="66" r="3" fill="#fde68a"/>
+        ${f.built.jetty ? '<path d="M120 22 L84 40 L88 46 L120 30 Z" fill="#b45309" stroke="#78350f" stroke-width="1.5"/><path d="M94 35 l3 5 M104 30 l3 5 M114 25 l3 5" stroke="#78350f" stroke-width="1.5"/>' : ''}
+      </svg>` : '';
     const ws = Math.min(2.4, 1 + Math.max(0, shown - 3) * 0.12 + Math.max(0, f.animals.length - 8) * 0.04);
     if (zoom.ws !== ws) { zoom.ws = ws; zoom.u = 1; zoom.x = 0; zoom.y = 0; }
     return `
       <div class="field ${broken ? 'broken' : wobbly ? 'wobbly' : ''} ${f.built.strong ? 'strong' : ''}">
         <div class="farm-world" style="width:${ws * 100}%;height:${ws * 100}%;transform:translate(${zoom.x}px,${zoom.y}px) scale(${zoom.u / ws})">
           <div class="buildings">${bld}</div>
+          ${poolHTML}
           ${f.decor.map((d, i) => `<span class="decor" style="left:${8 + ((i * 29) % 80)}%">${d}</span>`).join('')}
           ${f.nest.length ? `<span class="nest" title="Eggs in the nest">🪺<small>${f.nest.length}</small></span>` : ''}
           ${f.built.dog ? '<span class="farm-dog" title="Farm dog">🐕</span>' : ''}
           ${f.built.pony ? '<button class="pony" data-action="farm-pony" aria-label="Pony">🐴</button>' : ''}
-          ${f.animals.map((a, i) => animalHTML(f, a, i)).join('')}
+          ${land.map((a, i) => animalHTML(f, a, spot(a, i, land.length, pool ? 50 : 80))).join('')}
+          ${sea.map((a, i) => animalHTML(f, a, poolSpot(a, i))).join('')}
         </div>
         ${!f.animals.length ? '<div class="field-empty">Your farm is waiting!<br>Get a 🥚 mystery egg from the 🛒 shop.</div>' : ''}
         ${broken ? '<span class="fox">🦊</span>' : ''}
@@ -418,10 +522,28 @@ export function createFarm(ctx) {
     else if (has('cow') && !f.built.bottles) id = 'bottles';
     else if (f.level >= 2 && !has('sheep')) id = 'lamb';
     else if (f.level >= 3 && !has('cow')) id = 'calf';
-    else if (f.level >= 4) id = ['barn', 'mill', 'house', 'manor'].find((b) => !f.built[b]) || (roomFor(f, 'dino') ? 'dinoegg' : null);
+    // Dream Farm: the barn, windmill and farmhouse first (the stage goal), then the rock pool for something fresh,
+    // the big farmhouse, the other new friends, and last the dinosaur egg.
+    else if (f.level >= 4) id = ['barn', 'mill', 'house'].find((b) => !f.built[b]) || (canGet(f, 'rockpool') ? 'rockpool' : null)
+      || (!f.built.manor ? 'manor' : null) || nextFriend(f) || (roomFor(f, 'dino') ? 'dinoegg' : null);
     else if (f.level >= 2 && has('duck') && !f.built.pond) id = 'pond';
+    else if (f.level >= 3 && nextFriend(f)) id = nextFriend(f); // while the calf grows
     else if (!roomFor(f, 'chicken')) id = f.level >= 2 ? 'box' : null;
     return id && SHOP.find((x) => x.id === id);
+  }
+  // Can this new-friend item be bought now (unlocked, its "needs" built, not built yet, someone left to hatch)?
+  function canGet(f, id) {
+    const it = SHOP.find((x) => x.id === id);
+    if (!it || f.level < it.level || (it.needs && !f.built[it.needs])) return false;
+    if (it.egg) return missingOf(f, it.egg).length > 0;
+    return !f.built[id];
+  }
+  const nextFriend = (f) => ['bushegg', 'burrow', 'gumtree', 'rockpool', 'poolegg', 'paddock', 'jetty'].find((id) => canGet(f, id)) || null;
+  // What an item costs right now. A friend's home that is built but empty (the friend was sold) can invite
+  // them back for what they sold for, with no stars, so selling and inviting back never makes coins.
+  function costOf(f, it) {
+    if (it.home && f.built[it.id] && !f.animals.some((a) => a.type === it.home)) return { price: SELL[it.home], stars: 0, invite: true };
+    return { price: it.price, stars: it.stars || 0, invite: false };
   }
 
   function goalPct(k, it, coins) { return Math.min(1, Math.max(0, coins) / it.price, it.stars ? starsLeft(k.id) / it.stars : 1); }
@@ -458,7 +580,7 @@ export function createFarm(ctx) {
         <div class="mini-head"><b>🐔 My farm</b><span>${LEVELS[f.level].icon} ${LEVELS[f.level].name}</span></div>
         <div class="mini-field ${f.fenceDays === 0 ? 'broken' : ''}">
           ${shown.map((a, i) => `<button class="animal mini ${grown(a) ? '' : 'baby'} ${a.fedDay !== today() ? 'hungry' : ''}" data-action="farm-tap" data-id="${a.id}" style="${spot(a, i, shown.length)}">
-            <span class="body">${animalArt(a.type, grown(a), a.wool || 0)}</span>${a.type === 'sheep' && (a.wool || 0) >= 3 ? '<span class="mood">✂️</span>' : ''}</button>`).join('')}
+            <span class="body">${animalArt(a.type, grown(a), a.wool || 0, moodOf(a))}</span>${a.type === 'sheep' && (a.wool || 0) >= 3 ? '<span class="mood">✂️</span>' : ''}</button>`).join('')}
           ${!f.animals.length && !f.gift ? '<div class="field-empty">Save up for a 🥚</div>' : ''}
           ${f.fenceDays === 0 ? '<span class="fox">🦊</span>' : ''}
         </div>
@@ -511,8 +633,12 @@ export function createFarm(ctx) {
   }
 
   // Mystery eggs are mostly chickens; rare eggs lean to rare animals (1 in 20 is a dinosaur); dinosaur eggs always are.
-  function rollEgg(kind = 'mystery') {
+  function rollEgg(kind = 'mystery', f = null) {
     if (kind === 'dino') return 'dino';
+    if (kind === 'bush' || kind === 'pool') { // a new friend you don't have yet
+      const left = missingOf(f, kind === 'bush' ? BUSH_EGG : POOL_EGG);
+      return left[rnd(left.length)];
+    }
     if (kind === 'rare') {
       const r = Math.random();
       return r < 0.3 ? 'duck' : r < 0.55 ? 'lizard' : r < 0.75 ? 'croc' : r < 0.85 ? 'snake' : r < 0.95 ? 'chicken' : 'dino';
@@ -529,7 +655,8 @@ export function createFarm(ctx) {
   function hatchMystery(f, title = 'A mystery egg!', { gift = false, kind = 'mystery' } = {}) {
     return new Promise((resolve) => {
       let taps = 0;
-      let type = rollEgg(kind);
+      let type = rollEgg(kind, f);
+      if (!type) return resolve(null); // nobody left to hatch (the shop stops this before paying)
       if (gift) while (type === 'dino') type = rollMystery(); // a starter egg is never a dinosaur
       if (type === 'dino' && !roomFor(f, 'dino')) type = 'croc';
       // Saved before the animation, so closing the app mid-hatch never loses the animal or the coins.
@@ -563,6 +690,21 @@ export function createFarm(ctx) {
           return;
         }
         const k = KINDS[type];
+        if (k.who) { // a new friend: their name, a true fact about eggs, and who they are
+          setTimeout(() => {
+            el.querySelector('.farm-sheet').innerHTML = `
+              <div class="rare">${GROUP_NAME[k.group]}</div>
+              <div class="reveal-animal">${animalArt(type, false, 0, 'happy')}</div>
+              <h2>${k.full} hatched!</h2>
+              <p>${k.fact} ${k.about}</p>
+              <button class="farm-btn" data-done>Hello, ${k.who}! 💛</button>`;
+            SOUNDS[k.sound]();
+            ctx.burst(el.querySelector('.reveal-animal'), 24);
+            ctx.speak(`It's ${k.full}! ${k.fact} ${k.about} Feed ${k.who} every day and watch ${k.who} grow.`);
+            el.addEventListener('click', (ev) => { if (ev.target.closest('[data-done]')) { el.remove(); resolve(a); } });
+          }, 350);
+          return;
+        }
         setTimeout(() => {
           el.querySelector('.farm-sheet').innerHTML = `
             ${k.rare ? `<div class="rare">${k.rare}</div>` : ''}
@@ -630,10 +772,29 @@ export function createFarm(ctx) {
     });
   }
 
+  // A new friend moves into the home you built (or comes back after being sold, when invited).
+  function arrive(f, type, title) {
+    const k = KINDS[type];
+    const a = { id: f.nextId++, type, growth: k.grow };
+    f.animals.push(a);
+    save(); // saved before the animation, like hatching
+    ctx.renderKid();
+    return new Promise((resolve) => {
+      const el = overlay(`<div class="rare">${GROUP_NAME[k.group]}</div>
+        <div class="reveal-animal">${animalArt(type, true, 0, 'happy')}</div>
+        <h2>${esc(title)}</h2><p>${k.about} ${k.fact}</p>
+        <button class="farm-btn" data-done>Welcome, ${k.who}! 💛</button>`, (e) => { if (e.target.closest('[data-done]')) { el.remove(); resolve(a); } });
+      SOUNDS[k.sound]();
+      ctx.chime();
+      ctx.burst(el.querySelector('.reveal-animal'), 24);
+      ctx.speak(`${title} ${k.about} ${k.fact}`);
+    });
+  }
+
   function levelMoment(n) {
     const lv = LEVELS[n];
     const el = overlay(`<div class="reveal-animal">${lv.icon}</div><h2>New farm stage: ${lv.name}!</h2>
-      <p>${n === 2 ? 'The mystery box, lambs, the duck pond and a strong fence are in the shop now.' : n === 3 ? 'You can buy a calf now!' : 'The big barn, windmill and farmhouse are in the shop now.'}</p>
+      <p>${n === 2 ? 'The mystery box, lambs, the duck pond and a strong fence are in the shop now.' : n === 3 ? 'You can buy a calf now! And new Aussie friends are coming: a bush egg and a wombat burrow are in the shop.' : 'The big barn, windmill and farmhouse are in the shop now, and new friends too: a gum tree, a bush paddock and a rock pool!'}</p>
       <button class="farm-btn" data-done>Woohoo! 🎉</button>`, (e) => { if (e.target.closest('[data-done]')) el.remove(); });
     ctx.chime();
     ctx.burst(el.querySelector('.reveal-animal'), 30);
@@ -658,6 +819,11 @@ export function createFarm(ctx) {
       if (f.built.orchard) { f.basket.apple = (f.basket.apple || 0) + 2; msgs.push('🍎 You picked 2 apples!'); }
       if (f.built.hive && (f.hiveDays = (f.hiveDays || 0) + 1) % 3 === 0) { f.basket.honey = (f.basket.honey || 0) + 1; msgs.push('🍯 A jar of honey!'); }
       if (hasGrown(f, 'snake')) { f.feedPacks += 1; msgs.push('🐍 Your snake chased the mice away: 1 free feed!'); }
+      // Digby's perk is just for fun: now and then he digs up a decoration (worth no coins).
+      if (hasGrown(f, 'wombat') && Math.random() < 0.2) {
+        const d = DECOR.filter((x) => !f.decor.includes(x));
+        if (d.length) { f.decor.push(d[rnd(d.length)]); msgs.push('⛏️ Digby dug up something pretty for your farm!'); }
+      }
     }
     let fed = 0;
     let laid = 0;
@@ -672,7 +838,7 @@ export function createFarm(ctx) {
       const kind = KINDS[a.type];
       if (!grown(a)) {
         a.growth++;
-        if (grown(a)) msgs.push(`Your ${kind.baby.toLowerCase()} grew into a ${kind.name.toLowerCase()}!`);
+        if (grown(a)) msgs.push(kind.who ? `${kind.who} is all grown up!` : `Your ${kind.baby.toLowerCase()} grew into a ${kind.name.toLowerCase()}!`);
         continue;
       }
       if (!worked) continue;
@@ -736,7 +902,7 @@ export function createFarm(ctx) {
     ctx.speak('Which animal will go to a happy new farm? Tap one.', true);
     const el = overlay(`<h2>Which animal?</h2><p>Tap the one that will go to a happy new farm.</p>
       <div class="pals" style="flex-wrap:wrap;justify-content:center;overflow:visible">${list.map((a) => `
-        <button class="pal" data-pick="${a.id}">${animalArt(a.type, true, a.wool || 0)}<b>${KINDS[a.type].name}</b><small>+ 🪙 ${SELL[a.type]}</small></button>`).join('')}</div>
+        <button class="pal" data-pick="${a.id}">${animalArt(a.type, true, a.wool || 0, 'happy')}<b>${KINDS[a.type].who || KINDS[a.type].name}</b><small>+ 🪙 ${SELL[a.type]}</small></button>`).join('')}</div>
       <button class="farm-btn" data-close>Keep them all 💛</button>`, (e) => {
       if (e.target.closest('[data-close]') || e.target === el) return el.remove();
       const b = e.target.closest('[data-pick]');
@@ -749,16 +915,16 @@ export function createFarm(ctx) {
 
   // Step 2: "Say goodbye to your snake?" with its picture. Hold the button to sell, or keep it.
   function sayGoodbye(k, a) {
-    const word = animalWord(a.type), price = SELL[a.type];
+    const b = byeWords(a.type), price = SELL[a.type];
     SOUNDS[KINDS[a.type].sound]();
-    ctx.speak(`Say goodbye to your ${word}? It goes to a happy new farm, and you get ${price} coins. Hold the button to sell.`, true);
-    const el = overlay(`<div class="reveal-animal">${animalArt(a.type, true, a.wool || 0)}</div>
-      <h2>Say goodbye to your ${word}?</h2>
-      <p>It goes to a happy new farm. You get 🪙 ${price}.</p>
+    ctx.speak(`Say goodbye to ${b.yours}? ${b.It} ${b.goes} to a happy new ${b.place}, and you get ${price} coins. Hold the button to sell.`, true);
+    const el = overlay(`<div class="reveal-animal">${animalArt(a.type, true, a.wool || 0, 'happy')}</div>
+      <h2>Say goodbye to ${b.yours}?</h2>
+      <p>${b.It} ${b.goes} to a happy new ${b.place}. You get 🪙 ${price}.</p>
       <button class="farm-btn sell" data-hold style="position:relative;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none">
         <i style="position:absolute;inset:0 auto 0 0;width:0;background:#4ade80"></i><span style="position:relative">Hold to sell 👋</span></button>
-      <button class="farm-btn" data-keep>Keep my ${word} 💛</button>`, (e) => {
-      if (e.target.closest('[data-keep]') || e.target === el) { el.remove(); ctx.speak(`Your ${word} is staying!`, true); }
+      <button class="farm-btn" data-keep>Keep ${b.keep} 💛</button>`, (e) => {
+      if (e.target.closest('[data-keep]') || e.target === el) { el.remove(); ctx.speak(`${b.Yours} ${b.is} staying!`, true); }
     });
     // The green fills up while the finger stays down; lifting early empties it and nothing is sold.
     const btn = el.querySelector('[data-hold]'), fill = btn.querySelector('i');
@@ -786,17 +952,17 @@ export function createFarm(ctx) {
     const f = farmOf(k.id);
     const at = f.animals.indexOf(a);
     if (at < 0) return;
-    const word = animalWord(a.type), price = SELL[a.type];
+    const b = byeWords(a.type), price = SELL[a.type];
     f.animals.splice(at, 1);
     f.sold += price;
     save(); // saved straight away: closing the app now keeps the sale
     SOUNDS.coins();
     ctx.renderKid();
-    ctx.speak(`Goodbye, ${word}! ${price} coins. Changed your mind? Tap bring it back.`, true);
+    ctx.speak(`Goodbye, ${b.short}! ${price} coins. Changed your mind? Tap bring it back.`, true);
     let left = UNDO_MS / 1000;
     const label = () => `↩️ Bring it back <small>${left}</small>`;
     const el = overlay(`<div class="reveal-animal">👋</div>
-      <h2>Your ${word} went to a happy new farm.</h2><p>+ 🪙 ${price}</p>
+      <h2>${b.Yours} went to a happy new ${b.place}.</h2><p>+ 🪙 ${price}</p>
       <button class="farm-btn" data-undo>${label()}</button>
       <button class="farm-btn sell" data-done>OK</button>`, (e) => {
       if (e.target.closest('[data-undo]')) { finish(); bringBack(); }
@@ -817,8 +983,8 @@ export function createFarm(ctx) {
       save();
       SOUNDS[KINDS[a.type].sound]();
       ctx.renderKid();
-      ctx.speak(`Your ${word} came back home!`, true);
-      ctx.toast(`${KINDS[a.type].icon} Your ${word} came back home!`);
+      ctx.speak(`${b.Yours} came back home!`, true);
+      ctx.toast(`${KINDS[a.type].icon} ${b.Yours} came back home!`);
     }
   }
 
@@ -856,6 +1022,13 @@ export function createFarm(ctx) {
       if (up) setTimeout(() => levelMoment(up), 700);
       return;
     }
+    if (kind.who) { // new friends: their name, how they're doing, and one thing about them
+      let status = a.fedDay === today() ? (isNight() ? 'Sleepy and happy.' : 'Fed and happy!') : 'Hungry!';
+      if (!grown(a)) status += ` Growing: ${a.growth} of ${kind.grow}.`;
+      const extra = [kind.about, kind.fact, kind.perk].filter(Boolean);
+      ctx.speak(`${kind.full}. ${status} ${extra[rnd(extra.length)]}`);
+      return ctx.toast(`${kind.icon} <b>${kind.who}</b>: ${esc(status)}`);
+    }
     const name = grown(a) ? kind.name : kind.baby;
     let status = a.fedDay === today() ? 'Fed and happy!' : 'Hungry!';
     if (!grown(a)) status += ` Growing: ${a.growth} of ${kind.grow}.`;
@@ -874,20 +1047,24 @@ export function createFarm(ctx) {
       <div class="shop-list">
         ${SHOP.map((it) => {
           const locked = f.level < it.level;
-          const owned = it.building && f.built[it.id];
+          const cost = costOf(f, it);
+          const owned = it.building && f.built[it.id] && !cost.invite;
           const needs = it.needs && !f.built[it.needs];
           const full = ((it.id === 'egg' || it.id === 'rareegg') && !roomFor(f, 'chicken')) || (it.id === 'dinoegg' && !roomFor(f, 'dino')) || (it.id === 'lamb' && !roomFor(f, 'sheep')) || (it.id === 'calf' && !roomFor(f, 'cow'));
+          const allHatched = it.egg && !needs && !missingOf(f, it.egg).length;
           const noDuck = it.needsDuck && !f.animals.some((a) => a.type === 'duck');
           if (it.sell) {
             if (!sellableOf(f).length) return '';
             return `<div class="shop-item"><span class="shop-icon">${it.icon}</span><div><b>${it.name}</b><small>${it.does}</small></div>
               <button class="farm-btn small sellhen" data-buy="${it.id}">Choose one</button></div>`;
           }
-          const reason = locked ? `🔒 ${LEVELS[it.level].name}` : owned ? (it.tool ? 'Got it ✓' : 'Built ✓') : needs ? `Build the ${SHOP.find((x) => x.id === it.needs).name.toLowerCase()} first` : noDuck ? 'Get a duck first' : full ? (f.built.barn ? 'No room' : 'No room: build the big barn') : '';
+          const reason = locked ? `🔒 ${LEVELS[it.level].name}` : owned ? (it.tool ? 'Got it ✓' : 'Built ✓') : needs ? `Build the ${SHOP.find((x) => x.id === it.needs).name.toLowerCase()} first` : noDuck ? 'Get a duck first' : full ? (f.built.barn ? 'No room' : 'No room: build the big barn') : allHatched ? 'All hatched ✓' : '';
+          const name = cost.invite ? `Invite ${KINDS[it.home].who} back` : it.name;
+          const does = cost.invite ? `${KINDS[it.home].full} misses the ${it.name.toLowerCase()}. Invite ${KINDS[it.home].plural ? 'them' : KINDS[it.home].who} back home.` : it.does;
           return `<div class="shop-item ${locked ? 'locked' : ''}">
             <span class="shop-icon">${it.icon}</span>
-            <div><b>${it.name}</b><small>${it.does}</small></div>
-            <button class="farm-btn small" data-buy="${it.id}" ${reason || coins < it.price || starsLeft(k.id) < (it.stars || 0) ? 'disabled' : ''}>${reason || `🪙 ${it.price}${starText(it)}`}</button>
+            <div><b>${name}</b><small>${does}</small></div>
+            <button class="farm-btn small" data-buy="${it.id}" ${reason || coins < cost.price || starsLeft(k.id) < cost.stars ? 'disabled' : ''}>${reason || `🪙 ${cost.price}${cost.stars ? ` + ⭐ ${cost.stars}` : ''}`}</button>
           </div>`;
         }).join('')}
       </div>`;
@@ -910,9 +1087,11 @@ export function createFarm(ctx) {
           x.classList.remove('armed');
         });
         const btn = el.querySelector(`[data-buy="${id}"]`);
-        const cost = `${it.price} coins${it.stars ? ` and ${it.stars} job stars` : ''}`;
-        const short = it.stars && starsLeft(k.id) < it.stars ? ` You need ${it.stars - starsLeft(k.id)} more job stars: do some jobs!` : '';
-        ctx.speak(`${it.name}. ${it.does} ${btn.disabled ? `It costs ${cost}.${short}` : it.sell ? 'Tap again to choose which one.' : `It costs ${cost}. Tap again to buy.`}`, true);
+        const c = costOf(farmOf(k.id), it);
+        const cost = `${c.price} coins${c.stars ? ` and ${c.stars} job stars` : ''}`;
+        const short = c.stars && starsLeft(k.id) < c.stars ? ` You need ${c.stars - starsLeft(k.id)} more job stars: do some jobs!` : '';
+        const words = c.invite ? `Invite ${KINDS[it.home].full} back to the ${it.name.toLowerCase()}.` : `${it.name}. ${it.does}`;
+        ctx.speak(`${words} ${btn.disabled ? `It costs ${cost}.${short}` : it.sell ? 'Tap again to choose which one.' : `It costs ${cost}. Tap again to buy.`}`, true);
         if (!btn.disabled) { btn.classList.add('armed'); btn.dataset.label = btn.innerHTML; btn.innerHTML = 'Tap again ✓'; }
         return;
       }
@@ -928,20 +1107,30 @@ export function createFarm(ctx) {
     const it = SHOP.find((x) => x.id === id);
     if (!it || f.level < it.level) return;
     if (it.sell) return sellPicker(k);
-    if (balance(k.id) < it.price) {
-      ctx.speak(`You need ${it.price - balance(k.id)} more coins. Do some jobs to earn them!`, true);
-      return ctx.toast(`🪙 You need ${it.price - balance(k.id)} more coins for the ${esc(it.name.toLowerCase())}.`);
+    if (it.needs && !f.built[it.needs]) return;
+    const cost = costOf(f, it);
+    if (balance(k.id) < cost.price) {
+      ctx.speak(`You need ${cost.price - balance(k.id)} more coins. Do some jobs to earn them!`, true);
+      return ctx.toast(`🪙 You need ${cost.price - balance(k.id)} more coins for the ${esc(it.name.toLowerCase())}.`);
     }
-    if (it.stars && starsLeft(k.id) < it.stars) {
-      ctx.speak(`You need ${it.stars - starsLeft(k.id)} more job stars. Every job you do gives you a star!`, true);
-      return ctx.toast(`⭐ You need ${it.stars - starsLeft(k.id)} more job stars for the ${esc(it.name.toLowerCase())}. Every job = 1 star.`);
+    if (cost.stars && starsLeft(k.id) < cost.stars) {
+      ctx.speak(`You need ${cost.stars - starsLeft(k.id)} more job stars. Every job you do gives you a star!`, true);
+      return ctx.toast(`⭐ You need ${cost.stars - starsLeft(k.id)} more job stars for the ${esc(it.name.toLowerCase())}. Every job = 1 star.`);
     }
-    if (it.building && f.built[id]) return;
-    f.spent += it.price;
-    f.starsSpent = (f.starsSpent || 0) + (it.stars || 0);
+    if (it.building && f.built[id] && !cost.invite) return;
+    if (it.egg && !missingOf(f, it.egg).length) return; // everyone from this egg already hatched
+    f.spent += cost.price;
+    f.starsSpent = (f.starsSpent || 0) + cost.stars;
     save();
     SOUNDS.coins();
-    if (id === 'egg') await hatchMystery(f);
+    if (it.home) { // a new friend's home: they move in (or come back, when invited)
+      f.built[id] = true;
+      const kh = KINDS[it.home];
+      await arrive(f, it.home, cost.invite ? `${kh.full} came back to the ${it.name.toLowerCase()}!` : kh.arrive);
+    }
+    else if (id === 'bushegg') await hatchMystery(f, 'A bush egg! 🪺', { kind: 'bush' });
+    else if (id === 'poolegg') await hatchMystery(f, 'A rock pool egg! 🫧', { kind: 'pool' });
+    else if (id === 'egg') await hatchMystery(f);
     else if (id === 'rareegg') await hatchMystery(f, 'A rare egg! ✨', { kind: 'rare' });
     else if (id === 'dinoegg') await hatchMystery(f, 'A dinosaur egg! 🦕', { kind: 'dino' });
     else if (id === 'box') await openBox(f);

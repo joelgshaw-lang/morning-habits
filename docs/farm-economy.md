@@ -78,6 +78,29 @@ Mystery eggs, mystery boxes, fence repairs, feed, shears and milk bottles need n
 
 **Mystery box (45):** 35% a feed bag (5 free feeds) · 25% a mystery egg · 15% golden corn (a baby grows up instantly) · 12% a lamb · 10% a decoration · 3% a calf.
 
+## New friends: Aussie Island Mates and Rock Pool Crew (Nov 2026)
+
+Twelve named sticker characters keep the farm fresh from Big Farm (about week 4) through months 2–6. They are a **coin and star sink, never a source**: they make nothing to sell, eat free with the one "Feed everyone" tap, and sell back for well under what they cost.
+
+| How you get them | Cost | Who | Unlocks at |
+|---|---|---|---|
+| 🪺 Bush egg (hatches one you don't have yet) | 150 + ⭐15 each | Paddles the platypus, Spike the echidna, Kooky the kookaburra | 🐑 Big Farm |
+| 🕳️ Wombat burrow (he moves in) | 200 + ⭐20 | Digby the wombat | 🐑 Big Farm |
+| 🌳 Gum tree | 250 + ⭐25 | Kip the koala | 🐄 Dream Farm |
+| 🌾 Bush paddock | 350 + ⭐35 | Skip and Joey the kangaroos | 🐄 Dream Farm |
+| 🌊 Rock pool (room for 6 sea friends) | 400 + ⭐40 | Clawdia the hermit crab | 🐄 Dream Farm |
+| 🫧 Rock pool egg (needs the rock pool) | 150 + ⭐15 each | Myrtle the sea turtle, Rocket the squid, Puff the pufferfish, Inky the octopus | 🐄 Dream Farm |
+| 🛶 Jetty (needs the rock pool) | 450 + ⭐45 | Zoom the manta ray | 🐄 Dream Farm |
+
+All twelve cost **2,700 coins and 270 stars**, about a month of stars on top of the farmhouse and big farmhouse, so they fill months 2–6 without speeding anything up.
+
+- **Kid-true:** the egg-layers really hatch from eggs and the app reads the fact aloud ("Platypuses lay eggs! A baby platypus is called a puggle."). Zoom comes by the jetty because manta ray babies are born, not hatched.
+- **One of each.** Sea friends only live in the rock pool and swim there on the field. Eggs always hatch someone new; once all have hatched the egg shows "All hatched ✓".
+- **No income.** Only perk: Digby sometimes digs up a decoration (no coin value). Tapping any friend plays their sound and reads their personality or fact.
+- **Selling:** same pick → goodbye → hold → "Bring it back" steps. Prices: platypus, echidna, kookaburra 60 · squid, turtle, puffer, octopus 70 · wombat 80 · crab 80 · koala 100 · kangaroos 120 · manta 150. If a home's friend is sold, the shop offers "Invite back" for the same price they sold for (no stars), so selling and inviting back never makes coins.
+- **Moods:** each picture looks hungry until fed today, sleepy once the night window opens (after 6pm), and happy otherwise.
+- **Goal bar:** at Big Farm, once the calf is bought, it suggests the next friend. At Dream Farm it suggests the barn, windmill and farmhouse first, then the rock pool, the big farmhouse, the other friends, then the dinosaur egg.
+
 ## Farm visits
 
 Each child can open their farm **twice a day for 3 minutes**, with their own code, once their current routine is done. A grown-up can open any farm (or the mine) from the Grown-ups portal any time, with no time limit.
