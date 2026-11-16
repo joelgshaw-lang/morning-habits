@@ -214,7 +214,37 @@ const portal = createPortal({
   grownUp: (...a) => grownUp(...a), render: () => render(), listFor: (...a) => listFor(...a), doneCount: (...a) => doneCount(...a),
   sendToMine: (...a) => sendToMine(...a), openFarm: (id) => openFarm(id, { grown: true }), openMine: (id) => openMineFor(id),
   endGrace: () => { grownUntil = 0; }, coinTarget: (id) => coinTarget(id),
+  version: () => state.appVersion || '', updateNow: () => updateNow(),
 });
+
+// ---------- app version and updates ----------
+// The version is the name of the offline copy the iPad is using (sw.js VERSION). It shows small in the corner of
+// every screen and in Grown-ups, so "has the update arrived?" is never a guess.
+async function showVersion() {
+  try {
+    const keys = (await caches.keys()).filter((k) => k.startsWith('morning-')).sort();
+    state.appVersion = keys.length ? keys[keys.length - 1].replace('morning-', '') : '';
+  } catch { state.appVersion = ''; }
+  const el = document.getElementById('ver');
+  if (el) el.textContent = state.appVersion;
+}
+// Quietly ask the website whether there's a newer version (when the app comes back to the front, and every half hour).
+function checkForUpdate() { navigator.serviceWorker?.getRegistration().then((r) => r?.update()).catch(() => {}); }
+// Grown-ups → Update now: throw away the saved copy of the app and load it fresh from the website.
+// Only the app's files are replaced. Jobs, coins and farms are stored separately and are not touched.
+async function updateNow() {
+  try {
+    const res = await fetch(`./sw.js?now=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error('offline');
+  } catch { return toast('📶 No internet right now, so the app can\'t update. Check the Wi-Fi and try again.'); }
+  toast('🔄 Getting the newest version…');
+  try {
+    const r = await navigator.serviceWorker?.getRegistration();
+    await r?.unregister();
+    for (const k of await caches.keys()) await caches.delete(k);
+  } catch {}
+  location.reload();
+}
 // Spendable coins: earned from jobs, plus farm sales, minus farm spending.
 const coinsOf = (id) => (state.sum ? farm.balance(id) : 0);
 const streakOf = (id) => state.sum?.streak[id] || 0;
@@ -1734,6 +1764,9 @@ async function init() {
   if ('serviceWorker' in navigator) {
     const hadController = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.register('./sw.js').catch(() => {});
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) checkForUpdate(); });
+    setInterval(checkForUpdate, 30 * 60 * 1000);
+    showVersion(); setTimeout(showVersion, 4000); setTimeout(showVersion, 15000);
     // New version deployed: reload now if nobody is mid-morning, otherwise on the next trip home.
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!hadController) return;
