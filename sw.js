@@ -1,7 +1,8 @@
 // Offline support: serve from cache first, refresh the cache in the background.
 // Bump VERSION when you deploy a change so old files are cleared.
-const VERSION = 'v47';
+const VERSION = 'v48';
 const CACHE = `morning-${VERSION}`;
+// The app itself. An update only installs if every one of these downloads, so keep this list short.
 const ASSETS = [
   './',
   './index.html',
@@ -23,6 +24,14 @@ const ASSETS = [
   './js/fruit-art.js',
   './fruit.css',
   './mine.html',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/apple-touch-icon.png',
+];
+// The painted farm's pictures. These are fetched after the update is in, one small batch at a time, and a failed
+// picture never blocks an update (it is simply fetched when it's first shown). On an iPad, one big all-or-nothing
+// download (v46, v47) could stop the whole update from arriving.
+const ART = [
   './farm-art/a-calf.webp',
   './farm-art/a-chick.webp',
   './farm-art/a-cow.webp',
@@ -92,26 +101,38 @@ const ASSETS = [
   './farm-art/wheat.webp',
   './farm-art/wheelbarrow.webp',
   './farm-art/windmill.webp',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/apple-touch-icon.png',
 ];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
+async function warmArt() {
+  const cache = await caches.open(CACHE);
+  for (let i = 0; i < ART.length; i += 6) {
+    await Promise.all(ART.slice(i, i + 6).map(async (u) => {
+      try {
+        if (await cache.match(u)) return;
+        const res = await fetch(u, { cache: 'no-cache' });
+        if (res.ok) await cache.put(u, res);
+      } catch {}
+    }));
+  }
+}
+
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim()),
+      .then(() => self.clients.claim())
+      .then(() => warmArt()),
   );
 });
 
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  let refresh;
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
       const cached = await cache.match(req, { ignoreSearch: true });
@@ -119,7 +140,10 @@ self.addEventListener('fetch', (e) => {
       const network = fetch(req.url, { cache: 'no-cache' })
         .then((res) => { if (res.ok) cache.put(req, res.clone()); return res; })
         .catch(() => cached);
+      refresh?.(network);
       return cached || network;
     }),
   );
+  // Keep the worker alive until the background refresh has finished (Safari may stop it as soon as the page has its answer).
+  e.waitUntil(new Promise((done) => { refresh = (p) => p.then(done, done); setTimeout(done, 20000); }));
 });
