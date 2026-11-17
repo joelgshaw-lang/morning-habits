@@ -1,4 +1,4 @@
-// The grown-up PIN (6 digits) for the portal, reminders, confirming jobs and opening the mine.
+// The grown-up PIN (6 digits) for the portal, reminders and confirming jobs.
 export const GROWN_PIN = '040910';
 // After the PIN, grown-up screens stay open this long, then ask for the PIN again.
 export const GROWN_MINUTES = 3;
@@ -89,6 +89,6 @@ export const DEFAULT_SETTINGS = {
 };
 
 // Breath prayers: a child holds 🙏 on the board for one guided breath (about 5 seconds).
-// Up to 3 a day. They are time with God, so they give no coins and no pickaxe swings.
+// Up to 3 a day. They are time with God, so they give no coins.
 export const BREATHS_PER_DAY = 3;
 export const BREATH_MS = 5000;

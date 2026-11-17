@@ -61,15 +61,14 @@ These win over anything older further down.
 - **🍓 Fruit time:** after Ready, set, go, each child meets the next 3 fruits of the Spirit (✓ this is / ✗ this is not pictures, read aloud), gives stars (under-8s get 3 face stars, 8+ get 5), then a 2-question "which fruit is which" quiz. After all 9 they pick their own fruit for the week. "Not today" is always allowed. Their Fruit Friend badge shows on their column.
 - **Night:** house jobs only (bath, teeth and bed are off the iPad). Then **🌙 Going up!**: one night fruit question and "How did your fruit go today?", then goodnight. The iPad stays downstairs. No farm at night.
 - **Next morning:** a grown-up taps **Last night 🛏️** (PIN): stayed in bed 🪙 15, got up once 🪙 5, otherwise nothing.
-- **🙏 Breath prayer:** hold for one guided 5-second breath, up to 3 a day. No coins or swings for prayer.
+- **🙏 Breath prayer:** hold for one guided 5-second breath, up to 3 a day. No coins for prayer.
 - **Fair board:** coins, streaks and 🔔 counts are not shown side by side. A child's coins show briefly when earned and on their farm. Two children can hold jobs at the same time.
 - **Grown-ups:** the PIN is needed every time; the area closes after 3 minutes (🔒 Lock now closes it sooner). Tabs include 🍓 Fruit (one child at a time) and 🔊 Voice. `?dev=1` also asks for the PIN.
 - **Farm:** shop words show real prices. To sell, pick the animal, say goodbye, hold to sell, and "Bring it back" works for 10 seconds. For under-8s the fox only scares the animals.
-- **Mine:** each child's mine unlock lasts 20 minutes. Good-deed gems need the grown-up PIN. Stop & Pray gives no reward.
 
-- **🎨 New painted farm (16 Nov 2026, off until a grown-up switches it on):** Grown-ups → 🔓 Farm & mine → **New painted farm**. The farm becomes a painted paddock of squares with painted animals. All the old rules (coins, stars, shop, feeding, selling, fox, fence) are the same, and switching it off brings the old farm back with nothing lost.
+- **🎨 Painted farm (the only farm since 18 Nov 2026):** The farm becomes a painted paddock of squares with painted animals. All the old rules (coins, stars, shop, feeding, selling, fox, fence) are the same, and switching it off brings the old farm back with nothing lost.
   - **🔨 Build:** tap Build, tap a thing, tap a glowing square to move it. Each move, new garden bed or planting uses one **move**: 3 on a day the jobs are done, 1 on other days, 8 on Saturday (Build Day).
-  - **One-time set-up:** the first time, the button says **Set up my farm** and moves are free and unlimited until the child taps Done and then "Yes, I'm finished". If farm time runs out first, they carry on next visit. Grown-ups → 🔓 Farm & mine → Farm set-up → **Give again** gives every child another one.
+  - **One-time set-up:** the first time, the button says **Set up my farm** and moves are free and unlimited until the child taps Done and then "Yes, I'm finished". If farm time runs out first, they carry on next visit. Grown-ups → ⚙️ Settings → 🔄 App → Farm set-up → **Give again** gives every child another one.
   - **Animals stroll** a little way and back. Hungry or sleeping animals stand still.
   - **Garden beds:** one free bed to start; more cost 🪙 40 + ⭐ 4, up to 2 / 3 / 4 / 5 beds by farm stage. Seeds: carrots 🪙 5 (2 job days, 3 carrots at 🪙 5), wheat 🪙 6 (3 job days, 4 at 🪙 6), sunflowers 🪙 10 (4 job days, 4 at 🪙 10, from Barnyard). Crops only grow on days the jobs are done. Tap a ripe bed (or 🧺 Pick everything) and sell from the basket.
   - **Lots of animals:** each kind stands in a group of up to 4 with a number ("9 sheep"), and the land grows from 6 to 10 squares a side as the farm fills.
@@ -89,16 +88,15 @@ Plans and reviews: `docs/review-round3.md` (latest review and what's next), `doc
 - **Family board (the home screen):** all three children side by side, no sign-in. Each column shows that child's **next job** big and the rest of their routine small; hold it to tick it, then go and do the next one. Mornings start with **Ready, set, go** (start before 7:00 for 🪙 5; every morning job done within 45 minutes of starting, with no reminders, for 🪙 20); nights with **Start night chores**. During the day the columns show ideas for extra jobs. Every time coins are earned, a big "+5 🪙" pops up and coins fly into the child's counter.
 - **⭐ Extra jobs:** a child taps ⭐ (or a job icon during the day), picks the job they did and claims it. A grown-up confirms it with the PIN, straight away or later in the portal, and the coins fly in. Up to 🪙 20 a day each.
 - **🌙 Nights have two parts:** after-dinner house jobs (allocated per child in the portal, timed by **Start night chores**), then bedtime (tidy room, pack bag, bath, pyjamas, teeth, toilet, in bed).
-- **🙏 Breath prayers:** hold 🙏 in a child's column to log one. Every 10 = 1 pickaxe swing in their mine (up to 20 a day).
+- **🙏 Breath prayers:** hold 🙏 in a child's column for one guided breath, up to 3 a day. No reward.
 - **🐔 Farm:** opens from a child's column with **their own 4-digit code**, **twice a day for 3 minutes**, once their routine is done (during the day: once the morning or an extra job is done). **At night**, finishing the after-dinner chores shows a big **🎉 Night chores done! Open my farm · 3 min** button: one extra visit before bedtime that doesn't use up the daytime visits. Each column also shows a tally of their animals and "🎯 N more → next thing to buy".
-- **👨‍👩‍👧 Grown-ups portal (PIN):** check claimed jobs; allocate after-dinner jobs to each child; add, remove and reorder morning jobs; add your own helpful jobs and set coin prices; open any child's farm or mine (no code, no time limit). Changing jobs never changes coins already earned on past days.
+- **👨‍👩‍👧 Grown-ups (PIN, 18 Nov 2026):** opens on a big card for each child (coins, jobs waiting to check, times asked today). Tap a child for their page: 🐔 Open farm (no time limit, doesn't use their visits), jobs they say they did, give or take coins, tick a job, and their fruit. **⚙️ Settings** holds the rest: night jobs, morning jobs, extra jobs, voice, and App (update now, give farm set-up again, Build on the Rock try-out).
 - **🔔 Reminders (grown-ups):** tap 🔔 on the board, enter the grown-up PIN, and tap **Remind** when you had to remind a child: −🪙 1 each. A morning or night routine done with no reminders earns +🪙 2.
-- Tap your card on **Who are you?** It's the home screen all day. Each card shows the egg and how many ⛏ swings are waiting in the mine.
+- Tap your card on **Who are you?** It's the home screen all day. Each card shows the egg.
 - Each child's screen has four tabs and opens on the right routine for the time of day:
   - **☀️ Morning** (6:30–7:30am window)
   - **⭐ Extra chores**: any time of day, once each per day. 20 jobs: clean the floor, take out the trash, wipe the table, fold washing, water the plants, help with dinner, pack away toys, do the dishes, set the table, put clothes away, line up the shoes, unpack the shopping, wipe the bathroom sink, help in the yard, help a brother or sister, vacuum, and four "Another helpful job" tiles for jobs that aren't on the list. A chore that's already in a child's own routine is left out of their list.
   - **🌙 Night** (6–8pm window): shower or bath, pyjamas, brush teeth, tidy my room, pack my bag.
-  - **⛏ Mine**: opens The Mine and the Temple (see below). Locked 🔒 in the morning until the morning jobs are done, and 🔑 a grown-up opens it with the PIN for 20 minutes at a time.
 - Tap the big **Ready, set, go!** button: a traffic-light countdown starts the morning and saves the start time. Then the habit tiles appear.
 - **Your egg grows with every job.** Each finished habit or chore warms it 🔥, and extra chores warm it twice as much. It grows: egg → wobbly egg → cracking egg → hatching 🐣 → baby chick 🐥 → hen 🐔 (at 10, 25, 45, 70 and 100 warmth), with a celebration at each stage. The hen will lay eggs on the farm in Stage 2.
 - **Hold** a habit tile for about a second to tick it (a quick tap only says the habit name and shows "Keep your finger down"). This stops exploring taps from ticking things.
@@ -107,27 +105,6 @@ Plans and reviews: `docs/review-round3.md` (latest review and what's next), `doc
 - **🔊** top right turns read-aloud on or off. It is on by default for kids under 8.
 - 🐦 on a tile means it was done before 6:30am.
 - The app goes back to **Who are you?** after 1 minute of no touches, or 12 seconds after finishing everything.
-
-## The Mine and the Temple (1 Corinthians 3)
-
-Each child has a gem mine under a temple built on Jesus, the foundation (`mine.html`, opened from the **⛏ Mine** tab; concept and evaluation in `docs/`).
-
-**Habits feed the mine:**
-- Each habit ticked = 1 ⛏ swing.
-- A finished morning or night routine = gold hidden by the mole.
-- The prayer timer = 1 swing and gold.
-- Each extra chore = 1 swing and a 🙌 helping hand (helping hands clear boulders after a fall).
-- **↩️ Undo** takes the swing back.
-
-**In the mine:**
-- **⭐ I did something good**: picture cards for the fruits of the Spirit. A grown-up rates it 1–5, then a gem is hidden by the mole to dig out.
-- **🙏 Stop & Pray** (moved here from the old Fruit Tree): pick a feeling, then breathe and pray a Scripture breath prayer. Gold is hidden by the mole.
-- **🤗 I helped my brother or sister** gives you both a helping hand. **👀 I saw God's fruit in someone** sends them a 💌. Both add a brick to the shared 🧱 family wall; every 10 bricks is a family feast.
-- **💛 I need to say sorry** puts wobbly hay or wood props in the tunnels. Owning up adds fewer than being caught. A grown-up uses **Make it right** to turn them to stone.
-- Gems go in the treasure chest, into the temple (Altar → Chapel → Temple → Great Temple → City), or into recipes (buildings, pillars, braces, workshop upgrades) that unlock as the temple grows.
-- **🔥 The fire**: a grown-up holds the button in 👨‍👩‍👧 (the Sunday family moment). Wobbly props burn, tunnels cave in, and things built above can fall into the mine and need rescuing. A fireside talk and prayer follows.
-- When a child uses their last swing of the day, a short read-aloud moment reminds them it's a game, but they will stand before God (2 Cor 5:10), and that they're safe on Jesus (1 Cor 3:11–14).
-- **The grown-up PIN** (set in `js/config.js`) opens the mine for 20 minutes (then "⏰ Mine time is over" and back to the jobs), and guards the 👨‍👩‍👧 controls (unlocked for 3 minutes, then the PIN is needed again; the Grown-ups portal also closes after 3 minutes). Opening the mine doesn't unlock the grown-up controls.
 
 ## Farm: jobs stay essential
 

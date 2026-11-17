@@ -2,20 +2,21 @@ import { GROWN_MINUTES } from './config.js';
 import { voiceSettings, saveVoiceSettings, englishVoices, utterance, onVoicesReady } from './voice.js';
 import { fruitPortalHTML } from './fruit.js';
 
-// The Grown-ups portal (grown-up PIN): check jobs children have claimed, allocate after-dinner jobs,
-// change morning jobs, choose the read-aloud voice, add extra jobs with your own prices, add or take away coins, and open a child's farm or mine any time.
+// The Grown-ups portal (grown-up PIN). Opens on a big card for each child. Tap a child to see just their things:
+// jobs to check, coins, fruit and Open farm. Setup that rarely changes (job lists, voice, app update) sits behind ⚙️ Settings.
 
 const ICONS = ['⭐', '🧹', '🧽', '🧺', '🗑️', '🍽️', '🫧', '🪴', '🐶', '🚗', '📚', '🛏️', '👟', '🧸', '🪟', '🧼', '🍳', '👕', '🪥', '🎒'];
 const MORNING_IDEAS = [
   { name: 'Get dressed', icon: '👕' }, { name: 'Brush teeth', icon: '🪥' }, { name: 'Eat breakfast', icon: '🥣' },
   { name: 'Feed the pet', icon: '🐶' }, { name: 'Read', icon: '📚' }, { name: 'Pack lunch', icon: '🍎' },
 ];
-const TABS = [['check', '✅ Check jobs'], ['coins', '🪙 Coins'], ['night', '🌙 Night jobs'], ['morning', '☀️ Morning jobs'], ['extras', '⭐ Extra jobs'], ['fruit', '🍓 Fruit'], ['open', '🔓 Farm & mine'], ['voice', '🔊 Voice']];
+const TABS = [['night', '🌙 Night jobs'], ['morning', '☀️ Morning jobs'], ['extras', '⭐ Extra jobs'], ['voice', '🔊 Voice'], ['app', '🔄 App']];
 
 export function createPortal(ctx) {
   const { state, esc } = ctx;
   let el = null;
-  let tab = 'check';
+  let view = 'home'; // home (a card per child) | kid (one child's page) | settings
+  let tab = 'night';  // which Settings page
   let kidId = null;
   let expiresAt = 0;
   let tick = null;
@@ -23,13 +24,11 @@ export function createPortal(ctx) {
   const saveSettings = () => ctx.kvSet('settings', state.settings);
   const uid = (p) => `${p}${Date.now().toString(36)}`;
 
-  async function open(startTab, startKid) {
+  async function open() {
     // Always asks for the PIN (never lets a recent PIN carry over from 🔔 or another grown-up screen).
     if (!(await ctx.grownUp('Grown-ups portal'))) return;
-    tab = startTab || 'check';
-    // Open on the first child with jobs waiting to be checked.
-    const waiting = kids().find((k) => Object.keys(state.days[k.id]?.claims || {}).length);
-    kidId = startKid || waiting?.id || kidId || kids()[0].id;
+    view = 'home';
+    kidId = kidId || kids()[0].id;
     // Grown-up time runs out after GROWN_MINUTES, then the PIN is needed again.
     expiresAt = Date.now() + GROWN_MINUTES * 60e3;
     clearInterval(tick);
@@ -70,18 +69,45 @@ export function createPortal(ctx) {
         <button class="farm-btn small" data-add="${kind}">＋ Add</button></div></div>`;
   }
 
-  function checkTab() {
+  const waitingOf = (id) => Object.keys(state.days[id]?.claims || {}).length;
+
+  // Front page: one big card per child.
+  function homeView() {
+    return `<p>Tap a child to check their jobs, give or take coins, see their fruit, or open their farm.</p>
+      <div class="gk-cards">${kids().map((k) => {
+        const n = waitingOf(k.id), asked = (state.days[k.id]?.reminders || []).length;
+        return `<button class="gk-card" style="--kid:${k.color}" data-kid="${k.id}">
+          <span class="gk-av">${k.avatar}</span><b>${esc(k.name)}</b>
+          <span class="gk-coins">🪙 ${ctx.coinsOf(k.id)}</span>
+          ${n ? `<span class="gk-note wait">⏳ ${n} job${n === 1 ? '' : 's'} to check</span>` : '<span class="gk-note">No jobs to check</span>'}
+          ${asked ? `<span class="gk-note">🔔 Asked ${asked}× today</span>` : ''}
+        </button>`;
+      }).join('')}</div>`;
+  }
+
+  // One child's page: open farm, jobs to check, coins, fruit.
+  function kidView() {
     const k = ctx.kid(kidId);
-    const d = state.days[kidId];
-    const claims = d?.claims || {};
-    const list = ctx.listFor(k, 'extras');
-    const pending = list.filter((h) => claims[h.id]);
-    return `${kidChips(true)}
-      ${pending.length ? `<h3>⏳ ${esc(k.name)} says they did these</h3>
+    return `<div class="gk-head" style="--kid:${k.color}"><span class="gk-av">${k.avatar}</span><b>${esc(k.name)}</b>
+        <span class="gk-coins">🪙 <span class="coin-num" data-coins-of="${k.id}">${ctx.coinsOf(k.id)}</span></span>
+        <button class="farm-btn gk-farm" data-open-farm="${k.id}">🐔 Open ${esc(k.name)}'s farm</button></div>
+      <p class="pf-note">Opening the farm here has no time limit and doesn't use up their farm visits.</p>
+      ${waitingSection(k)}${coinsSection(k)}${tickSection(k)}
+      <h3>🍓 Fruit</h3>${fruitPortalHTML(k, esc)}`;
+  }
+
+  function waitingSection(k) {
+    const claims = state.days[k.id]?.claims || {};
+    const pending = ctx.listFor(k, 'extras').filter((h) => claims[h.id]);
+    return pending.length ? `<h3>⏳ ${esc(k.name)} says they did these</h3>
         ${pending.map((h) => `<div class="claim-row"><span>${h.icon}</span><b>${esc(h.name)}</b><small>🪙 ${h.coins || 2}</small>
-          <button class="farm-btn small ok" data-confirm="${h.id}">✓ Done</button><button class="farm-btn small" data-reject="${h.id}">✕ Not yet</button></div>`).join('')}`
-        : `<p>No jobs waiting for ${esc(k.name)}.</p>`}
-      <h3>Or tick a job ${esc(k.name)} did</h3>
+          <button class="farm-btn small ok" data-confirm="${h.id}">✓ Done</button><button class="farm-btn small" data-reject="${h.id}">✕ Not yet</button></div>`).join('')}` : '';
+  }
+
+  function tickSection(k) {
+    const d = state.days[k.id];
+    const list = ctx.listFor(k, 'extras');
+    return `<h3>✅ Tick a job ${esc(k.name)} did</h3>
       <div class="grown-jobs" style="--kid:${k.color}">
         ${list.map((h) => `<button class="grown-job ${d?.extras[h.id] ? 'done' : ''}" data-job="${h.id}">
           <span class="gj-icon">${h.icon}</span><span>${esc(h.name)}</span><small>${d?.extras[h.id] ? '✓ Done · tap to undo' : `🪙 ${h.coins || 2}`}</small></button>`).join('')}
@@ -91,12 +117,11 @@ export function createPortal(ctx) {
   // Add or take away coins by hand (a missed job, a kindness, a correction). Saved as a list, so it shows its history.
   const WHY = ['⭐ Extra job', '💛 Kindness', '🧾 Owed from before', '↩️ Correction'];
   let why = WHY[0];
-  function coinsTab() {
-    const k = ctx.kid(kidId);
-    const mine = (state.coinAdjust || []).filter((a) => a.kidId === kidId).slice(-8).reverse();
-    return `${kidChips()}
+  function coinsSection(k) {
+    const mine = (state.coinAdjust || []).filter((a) => a.kidId === k.id).slice(-8).reverse();
+    return `<h3>🪙 Give or take coins</h3>
       <div class="coin-adjust" style="--kid:${k.color}">
-        <div class="ca-balance">${k.avatar} ${esc(k.name)} has <b>🪙 <span class="coin-num">${ctx.coinsOf(kidId)}</span></b></div>
+        <div class="ca-balance">${k.avatar} ${esc(k.name)} has <b>🪙 <span class="coin-num">${ctx.coinsOf(k.id)}</span></b></div>
         <div class="ca-why">${WHY.map((w) => `<button class="${w === why ? 'on' : ''}" data-why="${esc(w)}">${w}</button>`).join('')}</div>
         <div class="ca-btns">${[-10, -5, -1].map((n) => `<button class="ca minus" data-adj="${n}">− ${-n}</button>`).join('')}${[1, 5, 10].map((n) => `<button class="ca plus" data-adj="${n}">+ ${n}</button>`).join('')}</div>
       </div>
@@ -158,24 +183,12 @@ export function createPortal(ctx) {
       <h3>Add a helpful job</h3>${addForm('extra')}`;
   }
 
-  // 🍓 Fruit: one child at a time (never side by side): their fruit, hand action, recent stars and two questions to ask.
-  function fruitTab() {
-    const k = ctx.kid(kidId);
-    return `${kidChips()}${fruitPortalHTML(k, esc)}`;
-  }
-
-  function openTab() {
-    return `<p>Open a farm or the mine for a child. No code, no time limit, and it doesn't use up their farm visits.</p>
-      ${kids().map((k) => `<div class="job-row-edit" style="--kid:${k.color}"><span class="ji">${k.avatar}</span><b>${esc(k.name)}</b>
-        <button class="farm-btn small" data-open-farm="${k.id}">🐔 Open farm</button>
-        <button class="farm-btn small" data-open-mine="${k.id}">⛏ Open mine</button></div>`).join('')}
-      <div class="job-row-edit"><span class="ji">🔄</span><b>App version ${esc(ctx.version() || '?')}<small> Gets the newest version from the internet. Jobs, coins and farms are kept.</small></b>
+  function appTab() {
+    return `<div class="job-row-edit"><span class="ji">🔄</span><b>App version ${esc(ctx.version() || '?')}<small> Gets the newest version from the internet. Jobs, coins and farms are kept.</small></b>
         <button class="farm-btn small" data-update-now="1">Update now</button></div>
-      <div class="job-row-edit"><span class="ji">🔨</span><b>Farm set-up<small> Each child gets one free set-up of their painted farm (move anything, as often as they like). Give everyone another one here.</small></b>
+      <div class="job-row-edit"><span class="ji">🔨</span><b>Farm set-up<small> Each child gets one free set-up of their farm (move anything, as often as they like). Give everyone another one here.</small></b>
         <button class="farm-btn small" data-farm-setup="1">Give again</button></div>
-      <div class="job-row-edit"><span class="ji">🎨</span><b>New painted farm<small> Build-your-own farm with painted animals and garden beds. Switch it off any time: nothing is lost.</small></b>
-        <button class="farm-btn small ${state.settings.newFarm ? 'sellhen' : ''}" data-new-farm="1">${state.settings.newFarm ? '✓ On' : 'Off'}</button></div>
-      <div class="job-row-edit"><span class="ji">🏰</span><b>Build on the Rock (try-out)<small> A pretend-day test of the new building game. Needs internet. It does not touch jobs, coins, farms or the mine.</small></b>
+      <div class="job-row-edit"><span class="ji">🏰</span><b>Build on the Rock (try-out)<small> A pretend-day test of the new building game. Needs internet. It does not touch jobs, coins or farms.</small></b>
         <a class="farm-btn small" href="docs/rock/play.html" target="_blank" rel="noopener" style="text-decoration:none">Open</a></div>`;
   }
 
@@ -208,10 +221,13 @@ export function createPortal(ctx) {
   }
 
   function draw() {
-    const body = { check: checkTab, coins: coinsTab, night: nightTab, morning: morningTab, extras: extrasTab, fruit: fruitTab, open: openTab, voice: voiceTab }[tab]();
+    const body = view === 'kid' ? kidView() : view === 'settings'
+      ? { night: nightTab, morning: morningTab, extras: extrasTab, voice: voiceTab, app: appTab }[tab]() : homeView();
+    const left = view === 'home' ? '<h2>👨‍👩‍👧 Grown-ups</h2>' : '<button class="farm-btn small gk-back" data-home>← All children</button>';
     const html = `<div class="farm-sheet portal">
-      <div class="portal-head"><h2>👨‍👩‍👧 Grown-ups</h2><span class="portal-time" title="Grown-up time left">🔒 ${GROWN_MINUTES}:00</span><button class="farm-btn small" data-lock>🔒 Lock now</button><button class="farm-btn small" data-close>Done</button></div>
-      <nav class="portal-tabs">${TABS.map(([id, name]) => `<button class="${id === tab ? 'on' : ''}" data-tab="${id}">${name}</button>`).join('')}</nav>
+      <div class="portal-head">${left}<span class="portal-time" title="Grown-up time left">🔒 ${GROWN_MINUTES}:00</span>
+        ${view === 'home' ? '<button class="farm-btn small" data-settings>⚙️ Settings</button>' : ''}<button class="farm-btn small" data-lock>🔒 Lock</button><button class="farm-btn small" data-close>Done</button></div>
+      ${view === 'settings' ? `<nav class="portal-tabs">${TABS.map(([id, name]) => `<button class="${id === tab ? 'on' : ''}" data-tab="${id}">${name}</button>`).join('')}</nav>` : ''}
       <div class="portal-body">${body}</div></div>`;
     if (!el) {
       el = document.createElement('div');
@@ -219,7 +235,8 @@ export function createPortal(ctx) {
       document.body.appendChild(el);
       el.addEventListener('click', onClick);
     }
-    const scroll = el.querySelector('.portal-body')?.scrollTop || 0;
+    const scroll = el.dataset.at === view + tab + kidId ? el.querySelector('.portal-body')?.scrollTop || 0 : 0;
+    el.dataset.at = view + tab + kidId;
     el.innerHTML = html;
     el.querySelector('.portal-body').scrollTop = scroll;
   }
@@ -235,14 +252,13 @@ export function createPortal(ctx) {
     const before = ctx.coinsOf(id);
     d.extras[jobId] = ctx.clock.now().toISOString();
     d.log.push({ t: d.extras[jobId], routine: 'extras', habit: jobId, action: 'done', by: 'grown-up' });
-    if (ctx.doneCount(k, d, 'extras') <= 4) ctx.sendToMine(id, { swings: 1, hands: 1 });
     await ctx.dayPut(d);
     await ctx.refreshSummary();
     const gained = ctx.coinsOf(id) - before;
     if (el) draw(); else ctx.render();
     await new Promise((r) => setTimeout(r, 60));
     // In the portal: the child's chip. On the board: the child's coins show for a few seconds while they fly in.
-    const target = el ? el.querySelector(`.who[data-kid="${id}"] .coin-num`) : ctx.coinTarget(id);
+    const target = el ? el.querySelector(`[data-coins-of="${id}"]`) : ctx.coinTarget(id);
     if (gained > 0) ctx.flyCoins(gained, fromRect, target, before);
     ctx.speak(`${h.name}! ${gained} coins for ${k.name}. Thank you for helping!`, true);
   }
@@ -254,7 +270,6 @@ export function createPortal(ctx) {
     if (d.extras[jobId]) {
       delete d.extras[jobId];
       d.log.push({ t: ctx.clock.now().toISOString(), routine: 'extras', habit: jobId, action: 'undo', by: 'grown-up' });
-      if (ctx.doneCount(k, d, 'extras') < 4) ctx.sendToMine(kidId, { swings: -1, hands: -1 });
       await ctx.dayPut(d);
       await ctx.refreshSummary();
       return draw();
@@ -276,6 +291,8 @@ export function createPortal(ctx) {
     const ds = t.dataset;
     if ('close' in ds) return close();
     if ('lock' in ds) { close(); return ctx.toast('🔒 Locked. The PIN is needed to come back in.'); }
+    if ('home' in ds) { view = 'home'; return draw(); }
+    if ('settings' in ds) { view = 'settings'; return draw(); }
     if (ds.tab) { tab = ds.tab; return draw(); }
     if (ds.startBy) {
       // Move the start-by time (default 7:15) by 5 minutes, between 6:00 and 9:00.
@@ -292,10 +309,9 @@ export function createPortal(ctx) {
       ctx.kvSet('farms', state.farms);
       return ctx.toast('🔨 Done! Every child can set up their whole farm once more.');
     }
-    if (ds.newFarm) { state.settings.newFarm = !state.settings.newFarm; saveSettings(); return draw(); }
     if ('useVoice' in ds) { saveVoiceSettings({ ...voiceSettings(), uri: ds.useVoice }); draw(); return sayWith(ds.useVoice); }
     if (ds.voiceRate) { saveVoiceSettings({ ...voiceSettings(), rate: Number(ds.voiceRate) }); draw(); return sayWith(voiceSettings().uri); }
-    if (ds.kid) { kidId = ds.kid; return draw(); }
+    if (ds.kid) { kidId = ds.kid; if (view === 'home') view = 'kid'; return draw(); }
     if (ds.icon && t.closest('.icon-pick')) { t.parentElement.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b === t)); return; }
     if (ds.confirm) return confirmClaim(kidId, ds.confirm, t.getBoundingClientRect());
     if (ds.why) { why = ds.why; return draw(); }
@@ -366,7 +382,6 @@ export function createPortal(ctx) {
       return draw();
     }
     if (ds.openFarm) { el.remove(); el = null; return ctx.openFarm(ds.openFarm); }
-    if (ds.openMine) { el.remove(); el = null; return ctx.openMine(ds.openMine); }
   }
 
   return { open, confirmClaim };

@@ -1,5 +1,5 @@
-// The read-aloud voice. A grown-up picks it in Grown-ups → 🔊 Voice; the app and the mine both use it.
-// Saved in localStorage as { uri, rate } under 'app.voice' (mine.html reads the same key).
+// The read-aloud voice. A grown-up picks it in Grown-ups → 🔊 Voice.
+// Saved in localStorage as { uri, rate } under 'app.voice'.
 
 const KEY = 'app.voice';
 // Apple's joke voices (singing, robots, whispers) are left out of the list.

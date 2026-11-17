@@ -262,7 +262,7 @@ export function createFarm(ctx) {
   // ---------- the painted farm (Grown-ups → Open → New painted farm) ----------
   // When it's on, the field is the painted, build-your-own farm (js/farm-world.js) and every animal picture is painted.
   // When it's off, everything is exactly the old farm. The saved farm is the same either way.
-  const painted = () => !!state.settings?.newFarm;
+  const painted = () => true; // the painted farm is the only farm now (18 Nov 2026); the old farm's drawing code is left unused
   // Pigs only have a painted picture, so a pig still shows (painted) if the painted farm is switched off again.
   const animalArt = (...a) => (painted() || a[0] === 'pig' ? W.paintArt(...a) : stickerArt(...a));
   const snakeArt = () => (painted() ? W.paintArt('snake', true) : stickerSnake());

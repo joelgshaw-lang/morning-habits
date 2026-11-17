@@ -615,7 +615,6 @@ svg.bld { width: 70px; height: 70px; }
 .all-done-card .big { font-size: 140px; animation: wiggle 0.8s ease-in-out infinite; }
 .all-done-card h2 { font-size: 40px; margin: 0; color: var(--kid); }
 .focus .tiles.extras { flex: 1; grid-template-columns: repeat(4, 1fr); }
-.btn.mine-mini { font-size: 26px; padding: 0 14px; background: #fef3c7; }
 .farm-mini { height: 100%; display: flex; flex-direction: column; gap: 10px; background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px; min-height: 0; }
 .mini-head { display: flex; justify-content: space-between; align-items: center; font-size: 22px; }
 .mini-head span { font-size: 16px; font-weight: 800; color: var(--muted); }
@@ -940,10 +939,6 @@ body.dev .screen { padding-bottom: 80px; }
   .morning .hello h1 { font-size: 34px; }
 }
 
-/* ---------- the Mine and the Temple, opened from a child's ⛏ Mine tab ---------- */
-.mine-frame { position: fixed; inset: 0; z-index: 50; background: #1a110b; }
-.mine-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
-.tab.mine-tab { background: linear-gradient(135deg, #fde68a, #f59e0b); color: #5b3a00; }
 
 /* ---------- Grown-ups portal: add or take away coins ---------- */
 .coin-adjust { background: #fff; border: 3px solid var(--kid); border-radius: 22px; padding: 16px; margin: 12px 0; display: grid; gap: 12px; }
@@ -1088,3 +1083,17 @@ button.w2-it { pointer-events: auto; cursor: pointer; }
 
 /* The app version, tiny in the corner of every screen (see showVersion in js/app.js). */
 #ver { position: fixed; right: 6px; bottom: 3px; z-index: 5; font-size: 11px; font-weight: 800; color: rgba(60, 50, 40, 0.45); pointer-events: none; }
+
+/* ---------- Grown-ups: a big card per child (18 Nov 2026) ---------- */
+.gk-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 10px; }
+.gk-card { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 20px 14px; border: 0; border-radius: 22px; font: inherit; background: color-mix(in srgb, var(--kid) 14%, #fff); box-shadow: var(--shadow); border-bottom: 6px solid var(--kid); cursor: pointer; }
+.gk-card b { font-size: 26px; }
+.gk-av { font-size: 54px; line-height: 1; }
+.gk-coins { font-size: 20px; font-weight: 900; color: #92400e; }
+.gk-note { font-size: 15px; font-weight: 800; color: var(--muted); }
+.gk-note.wait { color: #b45309; background: #fef3c7; border-radius: 10px; padding: 2px 10px; }
+.gk-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border-radius: 18px; background: color-mix(in srgb, var(--kid) 14%, #fff); }
+.gk-head .gk-av { font-size: 40px; }
+.gk-head b { font-size: 26px; }
+.gk-head .gk-farm { margin: 0 0 0 auto; min-height: 56px; font-size: 19px; }
+.portal-head .gk-back { margin-right: 12px; }

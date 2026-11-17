@@ -17,10 +17,9 @@ const ALL_DONE_HOME_MS = 12000;   // ...or 12s after finishing everything
 const HOLD_MS = 800;              // press-and-hold to tick a habit, so exploring taps don't count
 const UNDO_MS = 8000;
 const FOCUS_HOME_MS = 9000;      // after a tick, the board resets soon so kids go and do the next job
-const SESSION_MS = 3 * 60 * 1000;   // farm time per visit (mine time doesn't count)
+const SESSION_MS = 3 * 60 * 1000;   // farm time per visit
 const FARM_VISITS_PER_DAY = 2;      // a child can open their farm twice a day on their own
 const COIN_SHOW_MS = 8000;          // a child's coins show on the board for a few seconds after they earn, then hide again
-const MINE_GROWN_MS = 20 * 60000;   // a grown-up opening a child's mine from the portal gives 20 minutes
 const PRAISE = ['Great job!', 'Awesome!', 'You did it!', 'Super star!', 'Way to go!', 'Nice work!', 'Brilliant!', 'Keep it up!', 'Fantastic!', 'Well done!'];
 
 const state = {
@@ -35,7 +34,6 @@ const state = {
   lastTouch: Date.now(),
   renderedDay: null,
   reloadPending: false,
-  mineOpen: false,   // the Mine and the Temple is open over the child's screen
   tab: 'morning',    // routine shown on a child's screen: morning | extras | night
   dinners: {},       // dayKey -> when a grown-up tapped "Dinner's finished"
   sum: null,         // coins, streaks and tonight's family race (from family.js)
@@ -121,70 +119,6 @@ function runLeft(kidId) {
   return r ? r.duration - (Date.now() - r.startMs) : 0;
 }
 
-// ---------- the Mine and the Temple (mine.html, shown in a frame) ----------
-// Habits feed it through a small inbox in localStorage that the mine collects:
-// each habit = 1 swing, a finished morning/night routine or prayer timer = gold by the mole, an extra chore = a helping hand.
-function sendToMine(kidId, item) {
-  try { const key = `mine4.inbox.${kidId}`, list = JSON.parse(localStorage.getItem(key) || '[]'); list.push(item); localStorage.setItem(key, JSON.stringify(list)); } catch {}
-}
-function mineSwings(kidId) {
-  try {
-    const save = JSON.parse(localStorage.getItem(`mine4.${kidId}`) || 'null');
-    const inbox = JSON.parse(localStorage.getItem(`mine4.inbox.${kidId}`) || '[]');
-    return Math.max(0, (save?.swings || 0) + inbox.reduce((n, it) => n + (it.swings || 0), 0));
-  } catch { return 0; }
-}
-// A grown-up opens the mine with the PIN (inside mine.html) for 20 minutes; 🔑 shows when it needs opening.
-// Each child has their own unlock (mine4.openUntil.<child>), so opening one child's mine never opens another's.
-function mineOpenLeft(id = state.kidId) { try { return Math.max(0, Number(localStorage.getItem(`mine4.openUntil.${id}`) || 0) - Date.now()); } catch { return 0; } }
-// Digging waits until the morning jobs are done, so the game never competes with getting ready.
-function mineLocked(k = kid()) {
-  const w = windowInfo('morning');
-  return w.phase !== 'closed' && doneCount(k, state.day, 'morning') < listFor(k, 'morning').length;
-}
-function openMine() {
-  const k = kid();
-  if (mineLocked(k)) {
-    toast('⛏ Finish your morning jobs first, then dig!');
-    return speak('Finish your morning jobs first, then you can dig!');
-  }
-  state.mineOpen = true;
-  state.autoHomeAt = 0; // don't jump home from inside the mine
-  state.lastTouch = Date.now();
-  const el = document.createElement('div');
-  el.className = 'mine-frame';
-  el.innerHTML = `<iframe src="./mine.html?embed=1&kid=${encodeURIComponent(k.id)}" title="The Mine and the Temple" allow="autoplay"></iframe>`;
-  document.body.appendChild(el);
-}
-// From the Grown-ups portal: opens this one child's mine for 20 minutes (no PIN inside the mine).
-function openMineFor(id) {
-  try { localStorage.setItem(`mine4.openUntil.${id}`, String(Date.now() + MINE_GROWN_MS)); } catch {}
-  state.grownMine = true;
-  state.kidId = id;
-  state.day = state.days[id];
-  state.mineOpen = true;
-  state.autoHomeAt = 0;
-  state.lastTouch = Date.now();
-  const el = document.createElement('div');
-  el.className = 'mine-frame';
-  el.innerHTML = `<iframe src="./mine.html?embed=1&kid=${encodeURIComponent(id)}" title="The Mine and the Temple" allow="autoplay"></iframe>`;
-  document.body.appendChild(el);
-}
-
-function closeMine() {
-  state.mineOpen = false;
-  // A mine a grown-up opened from the portal locks again when it closes.
-  if (state.grownMine) { try { localStorage.removeItem(`mine4.openUntil.${state.kidId}`); } catch {} state.grownMine = false; }
-  document.querySelector('.mine-frame')?.remove();
-  state.lastTouch = Date.now();
-  if (state.kidId) renderKid();
-}
-window.addEventListener('message', (e) => {
-  if (e.origin !== location.origin) return;
-  if (e.data?.type === 'mine-activity') state.lastTouch = Date.now();
-  if (e.data?.type === 'mine-close') closeMine();
-});
-
 // ---------- coins, streaks, dinner race ----------
 
 async function refreshSummary() {
@@ -212,7 +146,7 @@ const portal = createPortal({
   state, esc, kid: (id) => kid(id), clock, todayKey: () => todayKey(), loadDay, dayPut, kvSet, refreshSummary: () => refreshSummary(),
   coinsOf: (id) => coinsOf(id), flyCoins: (...a) => flyCoins(...a), speak: (...a) => speak(...a), toast: (h) => toast(h),
   grownUp: (...a) => grownUp(...a), render: () => render(), listFor: (...a) => listFor(...a), doneCount: (...a) => doneCount(...a),
-  sendToMine: (...a) => sendToMine(...a), openFarm: (id) => openFarm(id, { grown: true }), openMine: (id) => openMineFor(id),
+  openFarm: (id) => openFarm(id, { grown: true }),
   endGrace: () => { grownUntil = 0; }, coinTarget: (id) => coinTarget(id),
   version: () => state.appVersion || '', updateNow: () => updateNow(),
 });
@@ -253,7 +187,7 @@ const dinnerToday = () => state.dinners[todayKey()];
 // ---------- farm codes and farm time ----------
 // Chores need no sign-in: the family board shows everyone. A child's own 4-digit code opens their farm
 // (where coins get spent) once their routine is done: twice a day, 3 minutes each.
-// A grown-up can open anyone's farm (or mine) any time from the Grown-ups portal.
+// A grown-up can open anyone's farm any time from the Grown-ups portal.
 
 const readJSON = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; } };
 const writeJSON = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
@@ -262,8 +196,8 @@ const nowMs = () => clock.now().getTime();
 const visitsLeft = (id) => { const f = farm.farmOf(id); return FARM_VISITS_PER_DAY - (f.visitDay === todayKey() ? f.visits || 0 : 0); };
 const sessionLeft = (id) => Math.max(0, SESSION_MS - (sessions[id]?.used || 0));
 const sessionText = () => (state.farmUnlimited ? '👨‍👩‍👧 Grown-up ∞' : sessionPaused() ? '⏸ Paused' : `⏳ ${clock.fmtDuration(sessionLeft(state.farmKid))}`);
-// Farm time doesn't tick while praying, while a grown-up has the farm open, or while the mine is open.
-const sessionPaused = () => !!state.prayer || state.farmUnlimited || state.mineOpen;
+// Farm time doesn't tick while praying or while a grown-up has the farm open.
+const sessionPaused = () => !!state.prayer || state.farmUnlimited;
 
 function beginSession(id) {
   const s = (sessions[id] ||= {});
@@ -522,7 +456,7 @@ async function claimJob(jobId) {
 
 // ---------- breath prayers: one guided breath, held on the board ----------
 // Hold 🙏 for one slow breath (about 5 seconds). The button swells: "Breathe in… Jesus loves me… breathe out…",
-// then a chime and "Amen!". Up to 3 a day. Prayer is time with God, not a way to earn: no coins, no pickaxe swings.
+// then a chime and "Amen!". Up to 3 a day. Prayer is time with God, not a way to earn: no coins.
 const BREATH_WORDS = [[0, 'Breathe in…'], [0.4, 'Jesus loves me…'], [0.7, 'breathe out…']];
 
 function startBreath(btn, id, pointerId) {
@@ -979,7 +913,6 @@ function renderFarmScreen(k) {
           <div class="session-chip" title="Farm time left">⏳ ${clock.fmtDuration(sessionLeft(k.id))}</div>
           <div class="coin-chip">🪙 ${coinsOf(k.id)} · ⭐ ${farm.starsLeft(k.id)} · 🔥 ${streakOf(k.id)}</div>
         </div>
-        <button class="btn mine-mini" data-action="mine" aria-label="Mine (a grown-up opens it)">⛏${mineOpenLeft() ? '' : '🔑'}</button>
         <button class="btn speak ${readAloudOn() ? 'on' : ''}" data-action="toggle-speak" aria-pressed="${readAloudOn()}" aria-label="Read aloud">${readAloudOn() ? '🔊' : '🔇'}</button>
       </header>
       ${farm.bodyHTML(k)}
@@ -1011,7 +944,7 @@ async function render() {
 // "Judah, it's go time!" at 7:00 and 7:10 (15 and 5 minutes before the start-by time), once each,
 // for every child who hasn't started their morning yet. Remembered per day, so a reload doesn't repeat it.
 function goTimeVoice() {
-  if (defaultTab() !== 'morning' || state.farmKid || state.mineOpen) return;
+  if (defaultTab() !== 'morning' || state.farmKid) return;
   const by = clock.atTime(state.settings.startBy || '07:15', state.settings.dayStartHour).getTime();
   const now = nowMs();
   const said = readJSON('goTime', {});
@@ -1062,7 +995,7 @@ function tick() {
     el.classList.toggle('fast', took < 20 * 60000);
   });
   app.querySelectorAll('[data-race]').forEach((el) => { el.textContent = fmtMinutes(nowMs() - new Date(el.dataset.race).getTime()); });
-  const idle = Date.now() - state.lastTouch > (state.mineOpen ? 3 * IDLE_MS : IDLE_MS) && state.prayer?.phase !== 'confirm';
+  const idle = Date.now() - state.lastTouch > IDLE_MS && state.prayer?.phase !== 'confirm';
   const away = (state.kidId || state.prayer || state.farmKid) && !document.querySelector('.fr-ov'); // not during Fruit time
   // The automatic trip home waits while the child is still tapping (e.g. feeding their animals).
   const autoHome = state.autoHomeAt && Date.now() > state.autoHomeAt && Date.now() - state.lastTouch > 4000 && !document.querySelector('.farm-ov');
@@ -1073,7 +1006,6 @@ function tick() {
 
 function goHome() {
   document.querySelectorAll('.farm-ov').forEach((el) => el.remove());
-  if (state.mineOpen) closeMine();
   closeOverlay();
   state.kidId = null;
   state.day = null;
@@ -1111,9 +1043,6 @@ function afterDone(id, habitId, allowUndo, r = 'morning') {
   const d = state.days[id];
   const h = listFor(k, r).find((x) => x.id === habitId);
   const all = r !== 'extras' && doneCount(k, d, r) === listFor(k, r).length;
-  // Extra chores give mine swings for the first 4 a day only.
-  if (h.type !== 'timer' && (r !== 'extras' || doneCount(k, d, 'extras') <= 4)) sendToMine(k.id, r === 'extras' ? { swings: 1, hands: 1 } : { swings: 1 });
-  if (all) sendToMine(k.id, { gold: 1, icon: r === 'night' ? '🌙' : '☀️' });
   if (allowUndo) {
     clearTimeout(state.undos[k.id]?.timer);
     state.undos[k.id] = { habitId, routine: r, timer: setTimeout(() => { delete state.undos[k.id]; if (!state.prayer && !state.farmKid) renderKid(); }, UNDO_MS) };
@@ -1226,7 +1155,6 @@ async function undo(id = state.kidId) {
   clearTimeout(u.timer);
   delete state.undos[id];
   delete mapFor(d, routine)[habitId];
-  if (routine !== 'extras' || doneCount(kid(id), d, 'extras') < 4) sendToMine(id, routine === 'extras' ? { swings: -1, hands: -1 } : { swings: -1 });
   d.log.push({ t: clock.now().toISOString(), routine, habit: habitId, action: 'undo' });
   state.autoHomeAt = 0;
   await dayPut(d);
@@ -1434,7 +1362,6 @@ async function endRun(kidId, completed) {
   if (completed) {
     day.done.pray = end;
     day.log.push({ t: end, habit: 'pray', action: 'done' });
-    sendToMine(kidId, { swings: 1, gold: 1, icon: '🙏' }); // time with God: gold by the mole
   }
   await dayPut(day);
   return day;
@@ -1671,7 +1598,6 @@ document.addEventListener('click', async (e) => {
     case 'fruit-time': unlockAudio(); return openFruitTime(kid());
     case 'fruit-skip': return skipFruitToday(kid());
     case 'fruit-badge': return sayBadge(kid());
-    case 'mine': return openMine();
     case 'undo': e.stopPropagation(); return undo(col?.dataset.col);
     case 'toggle-speak': {
       state.prefs.readAloud[state.kidId] = !readAloudOn();

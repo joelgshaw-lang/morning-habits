@@ -1,6 +1,6 @@
 // Offline support: serve from cache first, refresh the cache in the background.
 // Bump VERSION when you deploy a change so old files are cleared.
-const VERSION = 'v51';
+const VERSION = 'v52';
 const CACHE = `morning-${VERSION}`;
 // The app itself. An update only installs if every one of these downloads, so keep this list short.
 const ASSETS = [
@@ -23,7 +23,6 @@ const ASSETS = [
   './js/fruits.js',
   './js/fruit-art.js',
   './fruit.css',
-  './mine.html',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
