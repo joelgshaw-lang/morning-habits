@@ -1,7 +1,7 @@
 import { openDB, kvGet, kvSet, dayGet, dayPut, dayDelete, dayAll } from './db.js';
 import * as clock from './clock.js';
 import { DEFAULT_SETTINGS, GROWN_PIN, BREATHS_PER_DAY, BREATH_MS } from './config.js';
-import { summarize, startOffer, startCoins, fmtMinutes, nightFinishedAt, morningStart, houseJobsFor, planFor, COINS, EXTRAS_DAY_CAP, startByMs, bedtimeBonus } from './family.js';
+import { summarize, startOffer, startCoins, fmtMinutes, nightFinishedAt, morningStart, houseJobsFor, planFor, COINS, EXTRAS_DAY_CAP, startByMs, bedtimeBonus, practiceMs } from './family.js';
 import { createPortal } from './portal.js';
 import { createFarm } from './farm.js';
 import { askPin } from './pinpad.js';
@@ -715,6 +715,7 @@ function clockHTML() {
 
 function tileHTML(k, h, d, nudgeId, r) {
   const at = mapFor(d, r)[h.id];
+  if (h.type === 'practice' && r === 'morning') return practiceTileHTML(k, h, d, at, nudgeId);
   const open = clock.atTime(state.settings.windowOpen, state.settings.dayStartHour);
   if (at) {
     const early = r === 'morning' && new Date(at) < open;
@@ -822,13 +823,19 @@ function columnHTML(k, d, r) {
       : `${d.nightStartedAt && total ? nightTimerHTML(k, d) : ''}
         <button class="going-up" data-action="going-up"><span class="gu-moon">🌙</span><b>Going up!</b><small>${total ? 'Night jobs done! ' : ''}My last tap tonight</small></button>`;
   } else if (all) {
-    main = '<div class="all-done-card"><div class="big">🏆</div><h2>All done!</h2></div>';
+    // Keyboard may still be counting bonus minutes after everything else is done.
+    const playing = r === 'morning' && list.find((h) => h.type === 'practice' && d.practice?.[h.id]?.start);
+    main = playing ? tileHTML(k, playing, d, null, r).replace('class="tile', 'class="tile next-tile')
+      : '<div class="all-done-card"><div class="big">🏆</div><h2>All done!</h2></div>';
   } else {
+    // A running 🎤/🎹 timer takes the big tile, so the child can see their minutes.
+    const playing = r === 'morning' && list.find((h) => h.type === 'practice' && d.practice?.[h.id]?.start);
+    const big = playing || next;
     main = `${r === 'night' && d.nightStartedAt ? nightTimerHTML(k, d) : ''}
       ${r === 'night' ? '<div class="part-label">🍽️ After-dinner job</div>' : ''}
-      ${tileHTML(k, next, d, null, r).replace('class="tile', 'class="tile next-tile')}
-      ${r === 'night' ? '' : `<div class="next-hint">${next.type === 'timer' ? 'Tap to start your prayer timer' : 'Do it, then hold here ✓'}</div>`}
-      <div class="job-row">${list.map((h) => tileHTML(k, h, d, null, r).replace('class="tile', `class="tile mini-tile ${h === next ? 'is-next' : ''}`)).join('')}</div>`;
+      ${tileHTML(k, big, d, null, r).replace('class="tile', 'class="tile next-tile')}
+      ${r === 'night' ? '' : `<div class="next-hint">${big.type === 'timer' ? 'Tap to start your prayer timer' : big.type === 'practice' ? (d.done[big.id] ? `Bonus coins up to ${big.bonusTo} min · ⏹ Stop when you finish` : d.practice?.[big.id]?.start ? 'Tap to pause' : 'Tap to start the timer') : 'Do it, then hold here ✓'}</div>`}
+      <div class="job-row">${list.map((h) => tileHTML(k, h, d, null, r).replace('class="tile', `class="tile mini-tile ${h === big ? 'is-next' : ''}`)).join('')}</div>`;
   }
   if (r !== 'extras') main += askedNoteHTML(d, r);
   // Morning: a grown-up says how bedtime went last night (PIN), which pays the bedtime bonus.
@@ -1296,12 +1303,121 @@ function endHold(pointerId, lifted) {
   }
 }
 
+// ---------- practice timers: 🎤 Singing and 🎹 Keyboard ----------
+// Tap the tile to start (tap again to pause). The job ticks itself at h.minutes (7).
+// Keyboard (bonusTo) keeps counting: +1 coin a minute from 8 to 15 (family.js), then stops by itself;
+// ⏹ Stop ends it sooner. Morning only. Saved on the day as d.practice[habitId] = { acc, start }.
+const practiceOf = (d, id) => d?.practice?.[id];
+const mmss = (ms) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
+const capMs = (h) => (h.bonusTo || h.minutes) * 60000;
+function practiceRunning() {
+  return state.settings?.kids.some((k) => Object.values(state.days[k.id]?.practice || {}).some((p) => p.start)) || false;
+}
+
+function practiceTileHTML(k, h, d, at, nudgeId) {
+  const p = practiceOf(d, h.id);
+  const ms = Math.min(practiceMs(p), capMs(h));
+  const running = !!p?.start;
+  const bonus = h.bonusTo ? Math.max(0, Math.floor(ms / 60000) - h.minutes) : 0;
+  const live = `<span data-practice="${k.id}:${h.id}">${mmss(ms)}</span>`;
+  if (at) {
+    // Done. Keyboard may still be counting bonus minutes.
+    return `
+      <div class="tile done ${running ? 'practising' : ''}" role="button" data-action="habit" data-habit="${h.id}">
+        <span class="tile-icon">${h.icon}</span>
+        <span class="tile-name">${esc(h.name)}</span>
+        <span class="tile-sub">${running ? `⏱ ${live} · 🪙 +<span data-bonus="${k.id}:${h.id}">${bonus}</span>` : `✓ ${Math.floor(ms / 60000)} min${bonus ? ` · 🪙 +${bonus}` : ''}`}</span>
+        ${running ? `<button class="undo-chip" data-action="practice-stop" data-habit="${h.id}">⏹ Stop</button>` : ''}
+      </div>`;
+  }
+  const sub = running ? `⏱ ${live}` : p ? `⏸ ${live} · tap` : `⏱ ${h.minutes} min${h.bonusTo ? ` · up to ${h.bonusTo}` : ''} · tap`;
+  return `
+    <div class="tile ${running ? 'running' : ''} ${nudgeId === h.id ? 'nudge' : ''}" role="button" data-action="habit" data-habit="${h.id}">
+      <span class="tile-icon">${h.icon}</span>
+      <span class="tile-name">${esc(h.name)}</span>
+      <span class="tile-sub">${sub}</span>
+      <span class="tile-coin">${coinTag(tileCoins(h, 'morning', k, d))}</span>
+    </div>`;
+}
+
+async function togglePractice(id, h) {
+  const d = state.days[id];
+  if (!d) return;
+  if (defaultTab() !== 'morning') return toast(`${h.icon} ${h.name} is a morning job.`);
+  const p = ((d.practice ||= {})[h.id] ||= { acc: 0, start: null });
+  if (p.start) { p.acc += Date.now() - p.start; p.start = null; speakFor(id, `${h.name} paused.`); }
+  else { p.start = Date.now(); unlockAudio(); speakFor(id, `${h.name} timer started. ${h.minutes} minutes!`); }
+  state.lastTouch = Date.now();
+  await dayPut(d);
+  updateWakeLock();
+  renderKid();
+}
+
+async function stopPractice(id, habitId) {
+  const d = state.days[id];
+  const p = practiceOf(d, habitId);
+  if (!p?.start) return;
+  const h = listFor(kid(id), 'morning').find((x) => x.id === habitId);
+  p.acc = Math.min(capMs(h), p.acc + Date.now() - p.start);
+  p.start = null;
+  await dayPut(d);
+  const before = state.sum;
+  await refreshSummary();
+  updateWakeLock();
+  renderKid();
+  coinNews(before, id);
+  const bonus = Math.max(0, Math.floor(p.acc / 60000) - h.minutes);
+  speakFor(id, bonus ? `Great practice! ${bonus} extra coin${bonus === 1 ? '' : 's'}!` : `${h.name} finished. Well done!`);
+}
+
+// Every quarter second: update the clocks, tick the job at 7 minutes, stop at the cap.
+const practiceBusy = new Set(); // "kid:habit" while saving, so a tick or stop never runs twice (kept out of the saved day)
+function checkPractice() {
+  for (const k of state.settings?.kids || []) {
+    const d = state.days[k.id];
+    for (const [hid, p] of Object.entries(d?.practice || {})) {
+      if (!p.start) continue;
+      const h = k.habits.find((x) => x.id === hid);
+      if (!h) continue;
+      const ms = practiceMs(p);
+      document.querySelectorAll(`[data-practice="${k.id}:${hid}"]`).forEach((el) => { el.textContent = mmss(Math.min(ms, capMs(h))); });
+      document.querySelectorAll(`[data-bonus="${k.id}:${hid}"]`).forEach((el) => { el.textContent = String(Math.max(0, Math.floor(ms / 60000) - h.minutes)); });
+      const key = `${k.id}:${hid}`;
+      if (practiceBusy.has(key)) continue;
+      if (!d.done[hid] && ms >= h.minutes * 60000) {
+        practiceBusy.add(key);
+        if (!h.bonusTo) { p.acc = h.minutes * 60000; p.start = null; }
+        completePractice(k.id, h).finally(() => practiceBusy.delete(key));
+      } else if (d.done[hid] && ms >= capMs(h)) {
+        practiceBusy.add(key);
+        stopPractice(k.id, hid).finally(() => practiceBusy.delete(key));
+      }
+    }
+  }
+}
+
+// Tick a practice job as a morning job, even if the board has moved on from the morning.
+async function completePractice(id, h) {
+  const d = state.days[id];
+  if (d.done[h.id]) return;
+  const at = clock.now().toISOString();
+  d.done[h.id] = at;
+  d.log.push({ t: at, routine: 'morning', habit: h.id, action: 'done' });
+  await dayPut(d);
+  const before = state.sum;
+  await refreshSummary();
+  afterDone(id, h.id, false, 'morning');
+  coinNews(before, id);
+  if (h.bonusTo) setTimeout(() => speakFor(id, `Keep going for bonus coins, up to ${h.bonusTo} minutes!`), 2500);
+  updateWakeLock();
+}
+
 // ---------- prayer timer ----------
 
 let wakeLock = null;
 
 async function updateWakeLock() {
-  const want = Object.keys(state.runs).length > 0 && !document.hidden;
+  const want = (Object.keys(state.runs).length > 0 || practiceRunning()) && !document.hidden;
   try {
     if (want && !wakeLock && 'wakeLock' in navigator) {
       wakeLock = await navigator.wakeLock.request('screen');
@@ -1339,6 +1455,7 @@ async function startPrayer() {
 
 // Runs every 250ms for all kids, so a timer keeps going while siblings use the iPad.
 function checkRuns() {
+  checkPractice();
   for (const id of Object.keys(state.runs)) {
     const left = runLeft(id);
     if (left <= 0) { finishPrayer(id); continue; }
@@ -1599,6 +1716,7 @@ document.addEventListener('click', async (e) => {
     case 'fruit-skip': return skipFruitToday(kid());
     case 'fruit-badge': return sayBadge(kid());
     case 'undo': e.stopPropagation(); return undo(col?.dataset.col);
+    case 'practice-stop': e.stopPropagation(); return stopPractice(col?.dataset.col, el.dataset.habit);
     case 'toggle-speak': {
       state.prefs.readAloud[state.kidId] = !readAloudOn();
       await kvSet('prefs', state.prefs);
@@ -1610,6 +1728,7 @@ document.addEventListener('click', async (e) => {
       const h = listFor(kid(), state.tab).find((x) => x.id === el.dataset.habit);
       if (mapFor(state.day, state.tab)[h.id]) return speak(`${h.name} is already done. Nice!`);
       if (h.type === 'timer') return openPrayer();
+      if (h.type === 'practice') return togglePractice(kid().id, h);
       return;
     }
     case 'pray-start': return startPrayer();
@@ -1631,6 +1750,16 @@ document.addEventListener('visibilitychange', () => {
 // Fill in fields added to DEFAULT_SETTINGS since this iPad first saved its settings.
 function migrate(s) {
   if ((s.version || 1) >= DEFAULT_SETTINGS.version) return s;
+  // v12: Music becomes Singing and Keyboard (7-minute timers), in the same place in each child's list.
+  if ((s.version || 1) < 12) {
+    const practice = DEFAULT_SETTINGS.kids[0].habits.filter((h) => h.type === 'practice');
+    for (const k of s.kids || []) {
+      if (k.habits.some((h) => h.type === 'practice')) continue;
+      const i = k.habits.findIndex((h) => h.id === 'music');
+      const add = practice.map((h) => structuredClone(h));
+      if (i < 0) k.habits.push(...add); else k.habits.splice(i, 1, ...add);
+    }
+  }
   for (const [key, val] of Object.entries(DEFAULT_SETTINGS)) if (!(key in s)) s[key] = structuredClone(val);
   for (const dk of DEFAULT_SETTINGS.kids) {
     const k = s.kids.find((x) => x.id === dk.id);

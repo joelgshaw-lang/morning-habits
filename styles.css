@@ -1097,3 +1097,7 @@ button.w2-it { pointer-events: auto; cursor: pointer; }
 .gk-head b { font-size: 26px; }
 .gk-head .gk-farm { margin: 0 0 0 auto; min-height: 56px; font-size: 19px; }
 .portal-head .gk-back { margin-right: 12px; }
+
+/* ---------- 🎤 Singing / 🎹 Keyboard practice timers (18 Nov 2026) ---------- */
+.tile.done.practising { box-shadow: 0 0 0 4px #fde68a, var(--shadow); }
+.tile.done.practising .tile-sub { font-size: 22px; font-weight: 900; }

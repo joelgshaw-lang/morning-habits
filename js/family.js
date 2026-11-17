@@ -77,9 +77,12 @@ export function houseJobsFor(settings, kid) {
 
 // The jobs and prices a day was planned with. Saved on the day record (app.js keeps today's up to date),
 // so changing jobs later never rewrites past coins or streaks.
+// Minutes practised so far: { acc: ms already counted, start: ms when the timer was last started, or null when paused }.
+export const practiceMs = (p) => (p ? (p.acc || 0) + (p.start ? Date.now() - p.start : 0) : 0);
+
 export function planFor(settings, kid) {
   return {
-    habits: kid.habits.map((h) => ({ id: h.id })),
+    habits: kid.habits.map((h) => (h.bonusTo ? { id: h.id, minutes: h.minutes, bonusTo: h.bonusTo } : { id: h.id })),
     house: houseJobsFor(settings, kid).map((h) => ({ id: h.id, coins: h.coins || 2 })),
     bedtime: kid.nightHabits.map((h) => ({ id: h.id })),
     extras: Object.fromEntries(settings.extraChores.map((c) => [c.id, c.coins || 2])),
@@ -167,6 +170,13 @@ function dayCoins(settings, kid, day, fam) {
     if (onTime) items.push({ coins: onTime * COINS.morningOnTime, why: `${onTime} morning job${onTime === 1 ? '' : 's'} on time` });
     if (morning.length > onTime) items.push({ coins: (morning.length - onTime) * COINS.morningLate, why: 'Morning jobs done late' });
     if (onTime === plan.habits.length) items.push({ coins: COINS.morningAll, why: 'Whole morning on time' });
+  }
+  // 🎹 Practice bonus: +1 coin for each whole minute past the job's minutes, up to bonusTo (keyboard: 8 to 15 min).
+  for (const h of plan.habits) {
+    const p = h.bonusTo && day.done?.[h.id] && day.practice?.[h.id];
+    if (!p) continue;
+    const extra = Math.max(0, Math.min(h.bonusTo, Math.floor(practiceMs(p) / 60000)) - h.minutes);
+    if (extra) items.push({ coins: extra, why: `${extra} extra keyboard minute${extra === 1 ? '' : 's'}` });
   }
   // "Last night 🛏️", chosen by a grown-up this morning.
   const bed = day.lastNight ? bedtimeBonus(day.lastNight.how) : 0;
