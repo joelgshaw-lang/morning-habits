@@ -174,7 +174,9 @@ export function createPortal(ctx) {
       <div class="job-row-edit"><span class="ji">🔨</span><b>Farm set-up<small> Each child gets one free set-up of their painted farm (move anything, as often as they like). Give everyone another one here.</small></b>
         <button class="farm-btn small" data-farm-setup="1">Give again</button></div>
       <div class="job-row-edit"><span class="ji">🎨</span><b>New painted farm<small> Build-your-own farm with painted animals and garden beds. Switch it off any time: nothing is lost.</small></b>
-        <button class="farm-btn small ${state.settings.newFarm ? 'sellhen' : ''}" data-new-farm="1">${state.settings.newFarm ? '✓ On' : 'Off'}</button></div>`;
+        <button class="farm-btn small ${state.settings.newFarm ? 'sellhen' : ''}" data-new-farm="1">${state.settings.newFarm ? '✓ On' : 'Off'}</button></div>
+      <div class="job-row-edit"><span class="ji">🏰</span><b>Build on the Rock (try-out)<small> A pretend-day test of the new building game. Needs internet. It does not touch jobs, coins, farms or the mine.</small></b>
+        <a class="farm-btn small" href="docs/rock/play.html" target="_blank" rel="noopener" style="text-decoration:none">Open</a></div>`;
   }
 
   const SPEEDS = [[0.8, 'Slow'], [0.9, 'Calm'], [0.95, 'Normal'], [1.05, 'Quick']];

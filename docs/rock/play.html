@@ -1,0 +1,1336 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Build on the Rock</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&display=swap">
+<style>
+/* Layout: the page fills the screen and does not scroll. Thin day bar, then the 3D stage (it never jumps), a caption strip under it,
+   the tray of pieces, and one panel that scrolls inside itself with its main button pinned at the bottom.
+   Wide screens put tray + panel beside the stage. Small phones fall back to an ordinary scrolling page. Single dusk look by choice. */
+:root{
+  color-scheme:dark;
+  --night:#15122e; --plum:#2a2050; --panel:#221b44; --panel2:#2c2356; --line:#463a78;
+  --ink:#f3eefc; --soft:#b9afd8; --gold:#f2b93f; --gold-ink:#2b1a02; --ember:#ff9a4a; --pearl:#f8eef4; --straw:#6f6a3c;
+  --display:"Fredoka","Trebuchet MS",system-ui,sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+html,body{background:var(--night);height:100%}
+body{color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.4;margin:0;overflow:hidden;
+  padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px))}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+.app{height:calc(100vh - 16px);height:calc(100dvh - 16px);max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
+h1,h2,h3{font-family:var(--display);font-weight:600;margin:0;letter-spacing:.2px}
+h1{font-size:19px} h2{font-size:18px} h3{font-size:15px;color:var(--soft);font-weight:500}
+p{margin:0}
+button{font-family:var(--display);font-weight:500;font-size:16px;color:var(--ink);background:var(--panel2);
+  border:1px solid var(--line);border-bottom-width:3px;border-radius:12px;padding:7px 12px;min-height:44px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation}
+button:hover{border-color:var(--soft)}
+button:active{transform:translateY(1px);border-bottom-width:2px}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--ember);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--gold);color:var(--gold-ink);border-color:#a8771a}
+button:disabled{opacity:.45;cursor:default}
+.big{display:block;width:100%;font-size:19px;font-weight:600;min-height:52px;background:var(--gold);color:var(--gold-ink);border-color:#a8771a}
+.quiet{background:transparent;border-bottom-width:1px;color:var(--soft)}
+.link{background:none;border:0;color:var(--soft);text-decoration:underline;min-height:44px;padding:4px 8px;font-family:var(--body);font-weight:700}
+
+/* day bar */
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:5px 8px;flex:none}
+.bar .seg{display:flex;gap:4px}
+.bar .seg button{padding:5px 10px}
+.chip{display:inline-flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-weight:700;font-size:14px;min-height:32px}
+.candle{width:8px;height:20px;border-radius:2px;background:linear-gradient(to top,#f1e8dc var(--left,50%),rgba(255,255,255,.12) var(--left,50%));position:relative}
+.candle::before{content:"";position:absolute;left:50%;bottom:calc(var(--left,50%) - 1px);width:7px;height:9px;margin-left:-3.5px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:var(--ember);box-shadow:0 0 8px 2px rgba(255,154,74,.7)}
+.chip.fire{background:#5a2414;border-color:var(--ember)}
+.bar .sp{flex:1}
+#plan{flex:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:5px 12px;font-size:15px;display:flex;gap:9px;align-items:center}
+.dot{width:14px;height:14px;border-radius:4px;flex:none;border:1px solid rgba(255,255,255,.3)}
+.dot.W{background:repeating-linear-gradient(0deg,#6f6a3c 0 3px,#4d4a2a 3px 5px)}
+
+/* stage */
+.main{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px}
+.left{flex:none;display:flex;flex-direction:column;gap:6px;min-width:0}
+#stage{position:relative;width:100%;aspect-ratio:4/3;max-height:43vh;max-height:43dvh;border-radius:18px;overflow:hidden;border:1px solid var(--line);
+  background:linear-gradient(#120f33 0%,#2c1f5c 38%,#6f3d74 68%,#d98458 90%,#f0b06a 100%)}
+#stage::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 55%,rgba(0,0,0,0) 55%,rgba(8,5,24,.55) 100%)}
+#c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab}
+#c:active{cursor:grabbing}
+#tag{position:absolute;z-index:2;left:10px;top:10px;font-size:13px;color:var(--ink);background:rgba(18,14,40,.6);border-radius:999px;padding:3px 10px;pointer-events:none}
+#goal{position:absolute;z-index:2;left:10px;top:38px;min-height:32px;font-size:13px;padding:3px 10px;border-radius:999px;background:rgba(242,185,63,.92);color:var(--gold-ink);border-color:#a8771a;font-family:var(--body);font-weight:700}
+.starchip{cursor:pointer;color:var(--gold);font-family:var(--body)}
+#views{position:absolute;z-index:2;right:8px;top:8px;display:flex;gap:4px}
+#views button{min-width:50px;padding:4px 7px;font-size:14px;background:rgba(34,27,68,.82)}
+#toast{position:absolute;z-index:3;left:50%;top:42%;transform:translate(-50%,-50%);background:rgba(18,14,40,.92);border:1px solid var(--ember);border-radius:14px;padding:10px 16px;font-weight:700;text-align:center;pointer-events:none}
+#fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}
+#cap{flex:none;display:flex;align-items:center;gap:10px;min-height:50px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px 12px}
+#say{flex:1;font-weight:700;font-size:clamp(15px,2vw,17px);line-height:1.3;text-wrap:balance}
+#say:empty::before{content:"Drag the picture to turn it.";color:var(--soft);font-weight:600}
+.side{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;gap:8px}
+@media (min-width:1000px) and (orientation:landscape){
+  .main{flex-direction:row}
+  .left{flex:1.5}
+  #stage{max-height:calc(100vh - 190px);max-height:calc(100dvh - 190px)}
+  .side{flex:1;min-width:330px}
+}
+/* small phones: an ordinary scrolling page */
+@media (max-width:560px),(max-height:620px){
+  body{overflow:auto;height:auto} html{height:auto}
+  .app{height:auto} .main{display:flex;flex-direction:column} #stage{aspect-ratio:1/1;max-height:none} #panel{min-height:300px}
+  #views{flex-wrap:wrap;justify-content:flex-end;max-width:60%} #views button{min-width:44px;padding:4px 5px;font-size:13px} .tile{width:112px} .grid.three{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:900px){h1{display:none}}
+
+/* tray and panel */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:8px 12px;display:flex;flex-direction:column;gap:6px}
+#tray{flex:none}
+#panel{flex:1;min-height:0;padding:0;gap:0;overflow:hidden}
+#pbody{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+#pfoot{flex:none;padding:8px 12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+#pfoot:empty{display:none}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row .sp{flex:1}
+.note{color:var(--soft);font-size:14px}
+.tiles{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.tile{flex:none;width:128px;min-height:62px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;font-family:var(--body);font-weight:700;font-size:13px;line-height:1.15;padding:7px;scroll-snap-align:start}
+.tile .sw{width:100%;height:14px;border-radius:5px;border:1px solid rgba(255,255,255,.3)}
+.tile[aria-pressed="true"]{outline:3px solid var(--gold);outline-offset:1px;background:var(--panel2);color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid button{text-align:left;display:flex;gap:8px;align-items:center;line-height:1.2}
+.grid button small{display:block;font-family:var(--body);font-weight:600;font-size:12.5px;opacity:.85}
+.say{font-size:17px;font-weight:700;line-height:1.35}
+.pray{background:var(--panel2);border-left:4px solid var(--pearl);border-radius:8px;padding:8px 12px;font-size:17px;font-weight:600}
+.mortar{background:var(--panel2);border-left:4px solid #e8e2d0;border-radius:8px;padding:6px 12px;font-size:15px}
+.step{display:flex;flex-direction:column;gap:6px}
+ul.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
+input[type=text],input[type=password]{font:inherit;font-size:18px;color:var(--ink);background:var(--night);border:1px solid var(--line);border-radius:10px;min-height:48px;padding:0 12px;width:100%}
+
+/* grown-up tools: a separate sheet behind a PIN */
+#toolsWrap{position:fixed;inset:0;z-index:15;background:var(--night);overflow-y:auto;padding:14px max(16px,env(safe-area-inset-right,0px)) 30px max(16px,env(safe-area-inset-left,0px))}
+#toolsWrap .head{display:flex;align-items:center;gap:10px;max-width:1240px;margin:0 auto 12px}
+.tools{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));max-width:1240px;margin:0 auto}
+select{font:inherit;color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:10px;min-height:44px;padding:0 10px}
+.wc{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;font-size:14px}
+.wc .nums{display:flex;gap:4px}
+.wc .nums button{min-width:44px;padding:4px}
+.tag3{font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px;margin-left:6px;background:var(--panel2);border:1px solid var(--line);white-space:nowrap}
+#out{white-space:pre-wrap;font-size:14px;color:var(--ink);background:var(--night);border-radius:10px;padding:8px 10px;min-height:2.6em}
+label.tog{display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer}
+label.tog input{width:22px;height:22px;accent-color:var(--gold)}
+
+/* in-page confirm */
+#modal{position:fixed;inset:0;z-index:20;background:rgba(8,5,24,.72);display:flex;align-items:center;justify-content:center;padding:20px}
+#modal .box{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;max-width:440px;width:100%;display:flex;flex-direction:column;gap:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="app">
+  <div class="bar" id="bar">
+    <h1>Build on the Rock</h1>
+    <div class="seg" role="group" aria-label="Whose turn" id="kids"></div>
+    <span class="chip" id="dayChip"></span>
+    <span class="chip" id="fireChip"><span class="candle" id="candle" aria-hidden="true"></span><span id="fireTxt"></span></span>
+    <span class="chip" id="cityChip"></span>
+    <button type="button" class="chip starchip" id="stars" title="Stars to spend"></button>
+    <span class="sp"></span>
+    <button type="button" id="mute" class="quiet" aria-pressed="false">Sound on</button>
+    <button type="button" id="grown" class="quiet">Grown-ups</button>
+  </div>
+  <div id="plan" hidden></div>
+  <div class="main">
+    <div class="left">
+      <div id="stage">
+        <canvas id="c" aria-label="A block house on a small island, built on a foundation stone carved Jesus Christ. Drag to turn it."></canvas>
+        <span id="tag"></span>
+        <button type="button" id="goal" hidden title="This building's goal. Tap to change it."></button>
+        <div id="views" role="group" aria-label="Turn the picture">
+          <button type="button" data-view="left">Left</button><button type="button" data-view="front">Front</button><button type="button" data-view="right">Right</button><button type="button" data-view="centre">Centre</button><button type="button" data-view="city">City</button>
+        </div>
+        <div id="toast" hidden role="status"></div>
+        <div id="fallback" hidden>This picture needs 3D graphics, which this browser has switched off. The buttons still work.</div>
+      </div>
+      <div id="cap"><p id="say" aria-live="polite"></p><button type="button" id="undo" hidden>Undo</button></div>
+    </div>
+    <div class="side">
+      <section class="card" id="tray" aria-label="Pieces to build with"></section>
+      <section class="card" id="panel"><div id="pbody"></div><div id="pfoot"></div></section>
+    </div>
+  </div>
+</div>
+<div id="toolsWrap" hidden>
+  <div class="head"><h2>Grown-up tools</h2><span style="flex:1"></span><button type="button" id="toolsClose" class="big" style="width:auto">Close</button></div>
+  <div class="tools" id="toolsBody"></div>
+</div>
+<div id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modalTxt"><div class="box"><p class="say" id="modalTxt"></p><input id="modalIn" hidden><div class="row"><button type="button" id="modalNo">No, go back</button><button type="button" id="modalAlt" class="link" hidden></button><span class="sp"></span><button type="button" id="modalYes" class="big" style="width:auto"></button></div></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="rules.js"></script>
+<script src="content.js"></script>
+<script>
+(function(){
+'use strict';
+/* ================= 1. small helpers ================= */
+const R=window.RockRules,RC=window.RockContent||{};
+const $=function(id){return document.getElementById(id)};
+if(!R){$('fallback').hidden=false;$('fallback').textContent='The game rules (rules.js) did not load.';return}
+function h(tag,attrs,kids){const e=document.createElement(tag);
+  if(attrs)for(const k in attrs){const v=attrs[k];if(v==null||v===false)continue;
+    if(k==='class')e.className=v;else if(k==='text')e.textContent=v;else if(k==='style')e.style.cssText=v;
+    else if(k.slice(0,2)==='on')e.addEventListener(k.slice(2),v);else e.setAttribute(k,v===true?'':v)}
+  (kids||[]).forEach(function(c){if(c!=null)e.appendChild(typeof c==='string'?document.createTextNode(c):c)});return e}
+function btn(label,fn,cls,extra){const a={type:'button',class:cls||null,onclick:fn};if(extra)for(const k in extra)a[k]=extra[k];return h('button',a,typeof label==='string'?[label]:label)}
+function rnd(a,b){return a+Math.random()*(b-a)}
+function rint(n){return Math.floor(Math.random()*n)}
+function cap1(s){s=String(s||'');return s.charAt(0).toUpperCase()+s.slice(1)}
+const WEEK=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const AGES=[6,8,12],WALLS=R.CONFIG.wallOrder;
+const WALLNAME={front:'front wall',left:'left wall',right:'right wall',free:'decorations'};
+
+/* ================= 2. content adapter: every word comes from content.js where it has one ================= */
+function get(){for(let i=0;i<arguments.length;i++){let o=RC;const p=arguments[i].split('.');for(let j=0;j<p.length&&o!=null;j++)o=o[p[j]];if(o!=null)return o}return null}
+function forAge(v,age){if(v&&typeof v==='object'&&!Array.isArray(v)){const k=String(age);if(v[k]!=null)return v[k]}return v}
+function txt(v,age,vars){v=forAge(v,age);if(Array.isArray(v))v=v.length?v[rint(v.length)]:'';
+  if(v&&typeof v==='object')v=v.say||v.line||v.text||v.label||v.tip||'';
+  v=String(v==null?'':v);return fill(v,vars)}
+function fill(t,vars){const base={name:'',sibling:'your brother or sister',friend:'them'};for(const k in (vars||{}))if(vars[k]!=null&&vars[k]!=='')base[k]=vars[k];
+  t=String(t).replace(/\{name\},\s*(\w)/g,function(m,c){return base.name?base.name+', '+c:c.toUpperCase()});
+  return t.replace(/\{(\w+)\}/g,function(m,k){return base[k]!=null?String(base[k]):m})}
+function byId(list,id){for(let i=0;i<(list||[]).length;i++)if(list[i]&&list[i].id===id)return list[i];return null}
+/* ONE LOOKUP TABLE: fruit name -> gem. content.js and rules.js use different letter codes, so nothing is ever matched by code.
+   Nine colours chosen to stand apart from each other and from gold (amber) and straw (dull thatch). */
+const GEMRGB={love:[215,35,55],joy:[245,125,30],peace:[40,100,230],patience:[20,180,165],kindness:[40,170,80],goodness:[205,228,60],faithfulness:[125,85,225],gentleness:[250,150,195],'self-control':[120,38,120]};
+const NAME2CODE={};Object.keys(R.CONFIG.gems).forEach(function(k){NAME2CODE[R.CONFIG.gems[k]]=k});
+const FRUITS=(function(){const src=RC.fruits||{},list=Array.isArray(src)?src:(RC.fruitOrder||Object.keys(src)).map(function(k){return src[k]}).filter(Boolean);
+  const out=list.map(function(f){const name=f.fruit||f.name||'';return{code:NAME2CODE[name.toLowerCase()],ccode:f.code||f.id,name:name,raw:f}}).filter(function(f){return f.code});
+  if(!out.length)Object.keys(R.CONFIG.gems).forEach(function(k){out.push({code:k,ccode:k,name:cap1(R.CONFIG.gems[k]),raw:{}})});return out})();
+const FRUIT={},CFRUIT={};FRUITS.forEach(function(f){FRUIT[f.code]=f;CFRUIT[f.ccode]=f});
+function isGem(t){return !!R.CONFIG.gems[t]}
+function css(t){if(isGem(t)){const c=GEMRGB[R.CONFIG.gems[t]];return 'rgb('+c.join(',')+')'}return {G:'#ecaa28',S:'#d0daec',W:'repeating-linear-gradient(0deg,#6f6a3c 0 3px,#4d4a2a 3px 5px)',P:'#f8eef4',L:'#ffd58a'}[t]||'#999'}
+const CT={
+  hard:function(age){return forAge(get('hardMoments','morningPlan.hardMoments'),age)||[]},
+  resp:function(age){return forAge(get('responses','morningPlan.responses'),age)||[]},
+  strawCards:function(){return get('strawCards','straw.ownUpCards')||[]},
+  feelings:function(){return get('stopAndPray.feelings')||[]},
+  tips:function(){return get('parentCoach','parentTips')||[]},
+  praise:function(f,act){let p=null;try{if(act&&act.id&&typeof RC.praiseForAct==='function')p=RC.praiseForAct(act.id)}catch(e){}
+    if(!p&&act&&f.raw.praiseFor)p=f.raw.praiseFor[act.id];return fill(p||txt(f.raw.praise,6)||f.name)},
+  /* fire words: age 6 uses fireWords, 8 and 12 use fireWordsOlder when it has the line */
+  fire:function(key,age){let v=age===6?null:forAge(get('fireWordsOlder.'+key),age);if(v==null||typeof v==='object')v=get('fireWords.'+key);return txt(v,age)},
+  seedOnly:function(age){return txt(get('gospel.seedOnly'),age)||'Another seed is planted. You planted. God makes it grow.'},
+  lampLine:function(){return get('gospel.lamp.line')||''},
+  neighbour:function(age){return txt(get('gospel.newBuilder','gospel.neighbour'),age)||'Someone began to build on Jesus. Look, a new builder next door.'},
+  prayed:function(age){return txt(get('gospel.prayed'),age)||'Each time you pray for them, their house gains a stone.'}
+};
+function weekly(){const w=get('weeklyCheck'),g=get('growthCheck')||{};
+  const items=((w&&w.items)||g.items||[]).map(function(i,n){return{id:i.id||('i'+n),ask:i.ask||i.q||i.label||i.text||String(i),better:i.better||'higher'}});
+  const me=w&&w.parentItem?{id:w.parentItem.id||'me',ask:w.parentItem.ask,better:w.parentItem.better||'higher',me:true}:null;
+  const scale=((w&&w.scale)||g.scale||[]).slice(0,4).map(function(s){return typeof s==='string'?s:s.label});
+  return{intro:(w&&w.intro)||g.intro||'',look:(w&&w.lookBack)||g.lookBack||'',items:items,me:me,scale:scale,how:(w&&(w.howToRead||w.notes))||(g.parentView&&g.parentView.shows)||[],
+    labels:(g.parentView&&g.parentView.labels)||{growing:'Growing',steady:'Steady',harder:'Harder lately'},never:(w&&w.neverShow)||''}}
+
+/* ================= 3. saved state: one RockRules state per pretend child ================= */
+/* per child: s = the rules state; x = today only (cleared each morning); p = page things that last (names on seeds, tomorrow's plan) */
+/* this round's rules switches: real blueprint shapes, and a bale only comes out once it has been made right in real life */
+R.CONFIG.shapes.enabled=true;R.CONFIG.pullNeedsMadeRight=true;
+const KEY='rock-play-v3';let DB=null;
+function newX(){return{phase:'morning',night:'account',acct:0,plan:null,planUsed:null,talked:null,goldGiven:false,stopPray:false,frameDown:false,fireWords:'',ended:false,sealN:null}}
+function fresh(age){const s=R.newChild({name:'',age:age});R.startDay(s,1);return{s:s,x:newX(),p:{tryTomorrow:null,seedNames:{},lamps:{},plots:{},dared:{},dark:false}}}
+function load(){try{DB=JSON.parse(localStorage.getItem(KEY))}catch(e){DB=null}
+  if(!DB||typeof DB!=='object'||!DB.kids)DB={cur:6,kids:{},weekly:{},mute:false,speak:false,tip:0,pin:null,month:1,autoPull:false};
+  if(!DB.weekly)DB.weekly={};if(AGES.indexOf(DB.cur)<0)DB.cur=6;if(!DB.month)DB.month=1;
+  AGES.forEach(function(a){const k=DB.kids[a];if(!k||!k.s||!k.s.walls||!k.s.today||!k.s.bp||!k.s.bp.walls||!k.x||!k.p)DB.kids[a]=fresh(a)})}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}
+function K(){return DB.kids[DB.cur]}function st(){return K().s}function X(){return K().x}
+function age(){return st().profile.age}
+function band(){const a=age();return a<=6?6:a<=9?8:12}
+load();
+
+/* ================= 4. sound (made in the browser, only after the first tap) and read-aloud ================= */
+let AC=null,tapped=false;
+function tone(f,at,d,type,vol,f2){const t=AC.currentTime+at,o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t);
+  if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+0.02)}
+function noise(at,d,vol,freq){const t=AC.currentTime+at,n=Math.floor(AC.sampleRate*d),b=AC.createBuffer(1,n,AC.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*(1-i/n);
+  const s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=b;f.type='bandpass';f.frequency.value=freq;g.gain.value=vol;s.connect(f);f.connect(g);g.connect(AC.destination);s.start(t)}
+const SFX={
+  tap:function(){tone(660,0,0.05,'sine',0.08)},
+  place:function(){tone(420,0,0.1,'triangle',0.28,240);noise(0,0.05,0.12,900)},
+  gem:function(){tone(1320,0,0.28,'sine',0.16);tone(1980,0.08,0.34,'sine',0.12)},
+  straw:function(){tone(110,0,0.24,'sine',0.45,55);noise(0,0.14,0.2,350)},
+  creak:function(){tone(150,0,0.45,'sawtooth',0.07,95);tone(210,0.12,0.4,'sawtooth',0.05,120);noise(0.05,0.3,0.05,700)},
+  pearl:function(){[1568,1976,2349,3136].forEach(function(f,i){tone(f,i*0.07,0.4,'sine',0.09)})},
+  fire:function(){noise(0,2,0.1,500);for(let i=0;i<16;i++)noise(Math.random()*1.8,0.05+Math.random()*0.08,0.22,1200+Math.random()*2600)},
+  fall:function(){tone(85,0,0.5,'sine',0.45,40);noise(0,0.5,0.3,280);noise(0.25,0.4,0.2,200)},
+  seal:function(){[523,659,784,1047].forEach(function(f,i){tone(f,i*0.14,0.5,'triangle',0.2)});tone(1568,0.6,0.7,'sine',0.1)},
+  no:function(){tone(220,0,0.12,'sine',0.15,180)}
+};
+function sfx(n){if(DB.mute||!tapped)return;try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();SFX[n]()}catch(e){}}
+document.addEventListener('pointerdown',function(){tapped=true},true);
+document.addEventListener('keydown',function(){tapped=true},true);
+function speak(t){if(!DB.speak||!t)return;try{const y=window.speechSynthesis;if(!y||!window.SpeechSynthesisUtterance)return;y.cancel();const u=new SpeechSynthesisUtterance(t);u.rate=0.92;y.speak(u)}catch(e){}}
+/* the caption strip sits under the picture (it never covers it) and clears itself when it goes stale */
+let sayTimer=0;
+function say(t,quiet){$('say').textContent=t||'';clearTimeout(sayTimer);if(t){sayTimer=setTimeout(function(){$('say').textContent=''},Math.max(9000,t.length*110));if(!quiet)speak(t)}}
+let toastTimer=0;
+function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(function(){e.hidden=true},2200)}
+
+/* ================= 5. the 3D picture (look copied from the approved rock-mockup.html) =================
+   Drawing is kept cheap for an iPad 7: everything that stands still is merged into one mesh per material ("batches"):
+   the scenery, the frame of the house, each wall's stones, the rubble pile and the whole City. A stone only becomes its own
+   mesh ("loose") for the moment it moves: dropping in, being pulled, burning, tumbling. Taps are tested against invisible boxes. */
+function make3D(){
+const stage=$('stage'),canvas=$('c');if(!window.THREE)return null;let renderer;
+try{renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:true})}catch(e){return null}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.shadowMap.autoUpdate=false;
+const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const scene=new THREE.Scene();scene.fog=new THREE.Fog(0x4a2f66,70,190);
+const camera=new THREE.PerspectiveCamera(30,4/3,0.5,400),camLook=new THREE.Vector3(0,5,0),camGoal=new THREE.Vector3(0,10.5,35),lookGoal=new THREE.Vector3(0,5,0);
+const world=new THREE.Group();scene.add(world);const TURN=-0.55;world.rotation.y=TURN;let rotGoal=TURN;
+const Y0=1.6;let shadowTicks=20,camSnap=true,cityView=false,maxCalls=0;
+/* the shape of the blueprint being built (from the rules: walls of any width and height, the door anywhere along the front) */
+const G={Fc:5,Fr:3,Sc:3,Sr:3,bw:2,colW:2,Wf:10,D:6,px:5.5,Hf:6,Hs:6,H:6,zc:0.5,door:2};
+function setShape(s){const w=R.summary(s).walls;G.Fc=w.front.cols;G.Fr=w.front.rows;G.Sc=w.left.cols;G.Sr=w.left.rows;
+  G.bw=G.Fc<=5?2:12/G.Fc;G.Wf=G.bw*G.Fc;G.colW=Math.min(2,6/G.Sc);G.D=G.colW*G.Sc;G.px=G.Wf/2+0.5;
+  G.Hf=2*G.Fr;G.Hs=2*G.Sr;G.H=Math.max(G.Hf,G.Hs);G.zc=3.5-G.D/2;G.door=((s.bp&&s.bp.door)||R.CONFIG.door).col}
+function wallW(w){return w==='front'?G.bw:G.colW}
+function wallH(w){return w==='front'?G.Hf:G.Hs}
+function pivotAt(w){return w==='front'?[0,Y0,3.5]:[w==='left'?-G.px:G.px,Y0,0]}
+function slotLocal(w,c,r){return w==='front'?[-G.Wf/2+G.bw*(c+0.5),1+2*r,0]:[0,1+2*r,3-G.colW*(c+0.5)]}
+function wallBox(w){return w==='front'?{w:G.Wf,h:G.Hf,d:1,x:0,y:Y0+G.Hf/2,z:3.5}:{w:1,h:G.Hs,d:G.D,x:w==='left'?-G.px:G.px,y:Y0+G.Hs/2,z:3-G.D/2}}
+function freePos(i,down){const top=down?Y0+0.62:Y0+G.Hf+0.92;return [[-G.px,top,3.5],[G.px,top,3.5],[-6.7,Y0+0.62,5.55],[-4.3,Y0+0.62,5.55],[4.3,Y0+0.62,5.55],[-2.9,Y0+0.62,5.55]][i%6]}
+function roofParts(){const out=[[G.Wf+4.6,0.3,G.D+4,'trim',0.05]];let d=G.D+3.6,y=0.5,n=0;while(d>1.5&&n<5){out.push([G.Wf+4.2,0.8,d,'roof',y]);d-=2;y+=0.8;n++}out.push([Math.min(G.Wf+4.6,14.6),0.6,1.5,'G',y-0.1]);return out}
+function roofTop(){const p=roofParts();return p[p.length-1][4]+0.3}
+function spirePos(i){return [0,Y0+G.H+roofTop()+0.75+1.45*i,G.zc]}
+
+/* ---- textures made in code (16 pixels a block, bevelled edges) ---- */
+let seed=11;function prn(){seed=(seed*16807)%2147483647;return (seed-1)/2147483646}
+function clamp(v){return Math.max(0,Math.min(255,v|0))}
+function tex(base,style){
+  const s=16,cv=document.createElement('canvas');cv.width=cv.height=s;const g=cv.getContext('2d');
+  for(let y=0;y<s;y++)for(let x=0;x<s;x++){
+    let n=(prn()-0.5)*22;
+    if(style!=='grass'&&style!=='leaf'){if(x===0||y===0)n+=20;if(x===s-1||y===s-1)n-=34;else if(x===s-2||y===s-2)n-=10}
+    if(style==='brick'){if(y===8)n-=30;if((x+(y<8?0:4))%8===0&&y!==0)n-=22}
+    if(style==='thatch'){n=n*0.6+((x*5+y*3)%7-3)*8;if((x+y*2)%5===0)n-=30;if(prn()<0.2)n-=26}
+    if(style==='gem'){if(Math.abs(x-y)<2)n+=50;if(x+y<9)n+=32;if(x+y>23)n-=26}
+    if(style==='gold'){n+=(16-(x+y))*1.8;if(prn()<0.07)n+=44}
+    if(style==='silver'){n=n*0.7+(x+y<10?14:0)}
+    if(style==='pearl'){n=n*0.4+(x+y<12?10:-6)}
+    if(style==='grass'){if(prn()<0.14)n+=34;if(prn()<0.08)n-=30}
+    if(style==='leaf'){if((x+y)%4===0)n-=26;if(prn()<0.12)n+=36}
+    if(style==='wood'){n+=((x*3)%4-1.5)*9;if(y%8===7)n-=20}
+    if(style==='tile'){if(y%4===3)n-=40;if((x+(y>>2)*2)%4===0)n-=18}
+    g.fillStyle='rgb('+clamp(base[0]+n)+','+clamp(base[1]+n)+','+clamp(base[2]+n)+')';g.fillRect(x,y,1,1);
+  }
+  const t=new THREE.CanvasTexture(cv);t.magFilter=THREE.NearestFilter;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.encoding=THREE.sRGBEncoding;return t;
+}
+/* a cut gem: irregular facets with dark leading between them, brighter toward the top left (from scene.js) */
+function gemTex(base){
+  const s=32,cv=document.createElement('canvas');cv.width=cv.height=s;const g=cv.getContext('2d'),pts=[];
+  for(let i=0;i<11;i++)pts.push([2+prn()*28,2+prn()*28,(prn()-0.4)*70]);
+  for(let y=0;y<s;y++)for(let x=0;x<s;x++){
+    let d1=1e9,d2=1e9,sh=0;for(let i=0;i<pts.length;i++){const d=Math.hypot(x-pts[i][0],y-pts[i][1]);if(d<d1){d2=d1;d1=d;sh=pts[i][2]}else if(d<d2)d2=d}
+    let n=sh+(30-(x+y))*1.1;
+    if(d2-d1<1.3)n=-85;
+    if(x<2||y<2||x>s-3||y>s-3)n=-95;else if(x<4||y<4)n+=38;
+    if(Math.abs(x-y+6)<1.2&&x>6&&x<22)n+=60;
+    g.fillStyle='rgb('+clamp(base[0]+n)+','+clamp(base[1]+n)+','+clamp(base[2]+n)+')';g.fillRect(x,y,1,1);
+  }
+  const t=new THREE.CanvasTexture(cv);t.magFilter=THREE.NearestFilter;t.encoding=THREE.sRGBEncoding;return t;
+}
+function mat(base,style,emissive,ei){return new THREE.MeshLambertMaterial({map:tex(base,style),emissive:new THREE.Color(emissive||0x000000),emissiveIntensity:ei||0})}
+function flat(c,e,ei){return new THREE.MeshLambertMaterial({color:c,emissive:new THREE.Color(e||0x000000),emissiveIntensity:ei||0})}
+function hex(a){return (a[0]<<16)|(a[1]<<8)|a[2]}
+const M={
+  stone:mat([146,140,148],'brick'),rock:mat([78,72,98],'brick'),plinth:mat([98,94,110],'brick'),grass:mat([70,136,82],'grass'),
+  leaf:mat([46,116,66],'leaf'),leaf2:mat([70,146,78],'leaf'),wood:mat([126,88,58],'wood'),trim:mat([78,52,38],'wood'),
+  roof:mat([36,140,146],'tile',0x0a5a5a,0.22),char:mat([40,30,28],''),band:flat(0x2e2114),
+  S:mat([208,218,236],'silver'),G:mat([236,170,40],'gold',0xb07a10,0.22),W:mat([108,104,58],'thatch'),P:mat([248,238,244],'pearl',0xffd9ec,0.3),
+  lamp:new THREE.MeshBasicMaterial({color:0xffd58a}),skin:flat(0xe9b78f),shirt:flat(0x4d7bd6),pants:flat(0x2c3558),
+  fl:[flat(0xff6f7d,0xff3050,0.3),flat(0xffd95a,0xffb020,0.3),flat(0xf6f0ff,0xbfb0ff,0.25),flat(0xff9ad0,0xff50a0,0.3)],
+  cap:flat(0xd8453a),stem:flat(0xf1e8dc),cloud:new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.14,fog:false,depthWrite:false}),
+  slot:new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}),   /* the invisible box a tap is tested against */
+  dot:new THREE.SpriteMaterial({color:0xffe7a6,blending:THREE.AdditiveBlending,transparent:true,opacity:0.8,depthWrite:false,depthTest:false,fog:false}),
+  dotHot:new THREE.SpriteMaterial({color:0xffffff,blending:THREE.AdditiveBlending,transparent:true,opacity:1,depthWrite:false,depthTest:false,fog:false}),
+  seam:flat(0xfff6fb,0xffcfe6,0.9),mortar:flat(0xe6dcc2,0xe6dcc2,0.2),
+  doors:{doorRed:flat(0xc8402f),doorBlue:flat(0x3f6fd0),doorGreen:flat(0x3f9a58)},
+  lineGold:new THREE.LineBasicMaterial({color:0xffd27a,transparent:true,opacity:0.42}),
+  crackFill:new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.07,depthWrite:false}),
+  lineCrack:new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.75}),
+  lineSlot:new THREE.LineBasicMaterial({color:0xffe7a6,transparent:true,opacity:0.8})
+};
+M.L=M.plinth;
+const PANE={},GCOL={},GEM={},GEMLIT={};Object.keys(R.CONFIG.gems).forEach(function(k){const c=GEMRGB[R.CONFIG.gems[k]],e=hex([c[0]*0.75|0,c[1]*0.75|0,c[2]*0.75|0]);
+  M[k]=mat(c,'gem',e,0.3);PANE[k]=mat(c,'gem',e,0.9);GCOL[k]=hex(c);
+  /* the gem pieces themselves: shiny cut gems, brighter once three in a line make a window */
+  const t=gemTex(c);GEM[k]=new THREE.MeshPhongMaterial({map:t,emissive:new THREE.Color(hex(c)),emissiveIntensity:0.16,shininess:90,specular:0x999999});
+  GEMLIT[k]=new THREE.MeshPhongMaterial({map:t,emissive:new THREE.Color(hex(c)),emissiveIntensity:0.5,shininess:90,specular:0x999999})});
+
+/* ---- geometry: shared boxes, and "batches" that merge many still boxes into one mesh per material ---- */
+function boxGeo(w,h,d){const g=new THREE.BoxGeometry(w,h,d),uv=g.attributes.uv,dm=[[d,h],[d,h],[w,d],[w,d],[w,h],[w,h]];
+  for(let f=0;f<6;f++)for(let i=0;i<4;i++){const k=f*4+i;uv.setXY(k,uv.getX(k)*dm[f][0],uv.getY(k)*dm[f][1])}return g}
+const geoCache={};function geo(w,h,d){const k=w+'_'+h+'_'+d;return geoCache[k]||(geoCache[k]=boxGeo(w,h,d))}
+const plainCache={};function plain(w,h,d){const k=w+'_'+h+'_'+d;return plainCache[k]||(plainCache[k]=new THREE.BoxGeometry(w,h,d))}   /* one whole texture per face */
+function merge(list){let n=0;list.forEach(function(g){n+=g.attributes.position.count});
+  const P=new Float32Array(n*3),N=new Float32Array(n*3),U=new Float32Array(n*2);let o=0;
+  list.forEach(function(g){P.set(g.attributes.position.array,o*3);N.set(g.attributes.normal.array,o*3);U.set(g.attributes.uv.array,o*2);o+=g.attributes.position.count;g.dispose()});
+  const B=new THREE.BufferGeometry();B.setAttribute('position',new THREE.BufferAttribute(P,3));B.setAttribute('normal',new THREE.BufferAttribute(N,3));B.setAttribute('uv',new THREE.BufferAttribute(U,2));return B}
+let trash=[];
+function Batch(keep){this.g={};this.keep=keep}
+Batch.prototype.box=function(w,h,d,m,x,y,z,noShadow,rot,plainUV){const g=(plainUV?new THREE.BoxGeometry(w,h,d):boxGeo(w,h,d)).toNonIndexed();
+  if(rot)g.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(rot[0],rot[1],rot[2])));
+  g.translate(x,y,z);const k=m.uuid+(noShadow?'n':'s');(this.g[k]||(this.g[k]={m:m,n:noShadow,list:[]})).list.push(g);return this};
+Batch.prototype.into=function(parent,bin){const self=this;Object.keys(this.g).forEach(function(k){const e=self.g[k],B=merge(e.list),o=new THREE.Mesh(B,e.m);
+  if(!e.n){o.castShadow=true;o.receiveShadow=true}parent.add(o);if(!self.keep)(bin||trash).push(B)});this.g={};return parent};
+/* many box outlines as ONE set of lines */
+function Lines(){this.p=[]}
+Lines.prototype.box=function(w,h,d,x,y,z){const hw=w/2,hh=h/2,hd=d/2,c=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]],e=[0,1,1,2,2,3,3,0,4,5,5,6,6,7,7,4,0,4,1,5,2,6,3,7];
+  for(let i=0;i<e.length;i++){const q=c[e[i]];this.p.push(x+q[0]*hw,y+q[1]*hh,z+q[2]*hd)}return this};
+Lines.prototype.into=function(parent,material,bin){if(!this.p.length)return null;const B=new THREE.BufferGeometry();B.setAttribute('position',new THREE.BufferAttribute(new Float32Array(this.p),3));(bin||trash).push(B);
+  const l=new THREE.LineSegments(B,material);parent.add(l);return l};
+const haloTex=(function(){const cv=document.createElement('canvas');cv.width=cv.height=64;const g=cv.getContext('2d'),gr=g.createRadialGradient(32,32,0,32,32,32);
+  gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(0.35,'rgba(255,255,255,.45)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(cv)})();
+M.dot.map=haloTex;M.dotHot.map=haloTex;
+const haloMats={};
+function haloMat(color,op,own){const mk=function(){return new THREE.SpriteMaterial({map:haloTex,color:color,blending:THREE.AdditiveBlending,transparent:true,opacity:op,depthWrite:false,fog:false})};
+  if(own)return mk();const k=color+'_'+op;return haloMats[k]||(haloMats[k]=mk())}
+function halo(color,size,op,own){const s=new THREE.Sprite(haloMat(color,op,own));s.scale.set(size,size,1);return s}
+function glow(parent,color,size,op,x,y,z){const s=halo(color,size,op);s.position.set(x,y,z);parent.add(s);return s}
+/* small painted signs: a "!" over a wobbly wall, name boards, little tags */
+const texCache={};
+function markMat(level){const k='mark'+level;if(texCache[k])return texCache[k];const cv=document.createElement('canvas');cv.width=cv.height=64;const g=cv.getContext('2d');
+  g.fillStyle=level>=2?'#e5482f':'#f2b93f';g.beginPath();g.arc(32,32,28,0,6.3);g.fill();g.lineWidth=4;g.strokeStyle='#fff';g.stroke();
+  g.fillStyle=level>=2?'#fff':'#2b1a02';g.font='900 46px Arial,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('!',32,35);
+  const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;return texCache[k]=new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false,depthWrite:false,fog:false})}
+function signMat(name,bg,fg,front){const k='sign'+name+bg+(front?'f':'');if(texCache[k])return texCache[k];const cv=document.createElement('canvas');cv.width=256;cv.height=80;const g=cv.getContext('2d');
+  g.fillStyle=bg||'#7e583a';g.fillRect(4,4,248,72);g.strokeStyle='#3a2a18';g.lineWidth=6;g.strokeRect(4,4,248,72);
+  g.fillStyle=fg||'#fff6e0';g.font='700 40px Georgia,serif';g.textAlign='center';g.textBaseline='middle';g.fillText(String(name).slice(0,22),128,42,236);
+  const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;return texCache[k]=new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false,depthTest:!front,fog:false})}
+function sign(parent,name,w,x,y,z,bg,fg,front){const s=new THREE.Sprite(signMat(name,bg,fg,front));s.scale.set(w,w*80/256,1);s.position.set(x,y,z);parent.add(s);return s}
+
+/* ---- lights ---- */
+scene.add(new THREE.HemisphereLight(0x9a90ff,0x3a2a22,0.58));
+const sun=new THREE.DirectionalLight(0xffc48a,0.95);sun.position.set(-14,24,18);sun.castShadow=true;
+sun.shadow.mapSize.set(1024,1024);const sc=sun.shadow.camera;sc.left=-24;sc.right=24;sc.top=34;sc.bottom=-24;sc.near=1;sc.far=90;sun.shadow.bias=-0.002;scene.add(sun);
+const doorLight=new THREE.PointLight(0xffb060,1.3,17,2);doorLight.position.set(0,Y0+2.2,6);world.add(doorLight);
+const homeLight=new THREE.PointLight(0xffa040,0.9,13,2);homeLight.position.set(0,Y0+2.5,0);world.add(homeLight);
+const fireLight=new THREE.PointLight(0xff6a20,0,34,2);fireLight.position.set(0,Y0+3,4);world.add(fireLight);
+
+/* ---- sky ---- */
+(function(){const n=240,pos=new Float32Array(n*3);for(let i=0;i<n;i++){const a=prn()*Math.PI*2,e=0.15+prn()*1.2,r=150;pos[i*3]=Math.cos(a)*Math.cos(e)*r;pos[i*3+1]=Math.sin(e)*r;pos[i*3+2]=Math.sin(a)*Math.cos(e)*r-20}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:1.1,transparent:true,opacity:0.85,fog:false})))})();
+glow(scene,0xfff4d8,34,0.95,-52,58,-130);
+const clouds=new THREE.Group();scene.add(clouds);(function(){const b=new Batch(true);[[-40,30,-80,1],[34,38,-95,1.3],[10,26,-70,0.8],[-70,22,-60,1.1]].forEach(function(c){const k=c[3];
+  b.box(16*k,2.4*k,5*k,M.cloud,c[0],c[1],c[2],true).box(9*k,2.4*k,4*k,M.cloud,c[0]-3*k,c[1]+2.2*k,c[2],true).box(7*k,2*k,4*k,M.cloud,c[0]+5*k,c[1]+1.8*k,c[2]+0.5,true)});b.into(clouds)})();
+
+/* ---- the island, the garden and the foundation stone (never change) ---- */
+function island(b,sx,sz,ox,oy,oz){ox=ox||0;oy=oy||0;oz=oz||0;b.box(sx,1,sz,M.grass,ox,oy-0.5,oz).box(sx-2,2,sz-2,M.rock,ox+0.3,oy-2,oz).box(sx*0.68,2.6,sz*0.62,M.rock,ox-0.6,oy-4.3,oz+0.4).box(sx*0.4,2.6,sz*0.38,M.rock,ox+0.5,oy-6.9,oz-0.3).box(sx*0.18,2,sz*0.2,M.rock,ox,oy-9.2,oz);return b}
+(function(){const b=new Batch(true);island(b,22,17);
+  b.box(4,1,3,M.grass,-11.6,-0.75,3.2).box(3,1,4,M.grass,11.9,-0.85,-2).box(5,1,2.6,M.grass,3.4,-0.75,9.2).box(3,1.6,2,M.rock,-11.4,-2,3.2).box(2.4,1.6,3,M.rock,11.6,-2.1,-2);
+  [[-5,-5.4,3,'e'],[4,-8,-2,'t'],[7.5,-3.6,4,'p']].forEach(function(c){b.box(0.8,2.4,0.8,M[c[3]],c[0],c[1],c[2],true,[0,0,0.2]);glow(world,GCOL[c[3]],4,0.35,c[0],c[1]-0.6,c[2])});
+  b.box(15,Y0,9,M.stone,0,Y0/2,1.5).box(15.5,0.3,9.5,M.plinth,0,0.15,1.5);
+  b.box(1.6,1.1,2.4,M.stone,8.3,0.55,4.4).box(1.4,0.55,2.4,M.stone,9.7,0.28,4.4);
+  [[10.8,4.6,1.5],[10.4,6.3,1.2],[8.6,7.9,1.3],[6.4,7.9,1.1]].forEach(function(p){b.box(p[2],0.14,p[2]*0.8,M.stone,p[0],0.07,p[1],true)});
+  function tree(x,z,s){b.box(0.8*s,3.2*s,0.8*s,M.wood,x,1.6*s,z).box(3.4*s,1.6*s,3.4*s,M.leaf,x,3.8*s,z).box(2.4*s,1.4*s,2.4*s,M.leaf2,x,5.2*s,z).box(1.2*s,1*s,1.2*s,M.leaf,x,6.3*s,z)}
+  tree(-9.9,-2.6,1);tree(10.1,-4.3,0.8);   /* the trees stand back beside the Rock, so neither can cover a side wall when the picture is turned */
+  [[-8.6,0.5,6.2,1.5,1],[-9.8,0.4,2.9,1.4,0.8],[4.6,0.35,7.6,1.1,0.7]].forEach(function(q,i){b.box(q[3],q[4],q[3],i%2?M.leaf2:M.leaf,q[0],q[1],q[2])});
+  for(let x=-10;x<=-3;x+=1.75)b.box(0.3,1.1,0.3,M.trim,x,0.55,7.9);b.box(7.3,0.15,0.15,M.trim,-6.5,0.8,7.9,true).box(7.3,0.15,0.15,M.trim,-6.5,0.42,7.9,true);
+  for(let i=0;i<34;i++){const x=(prn()-0.5)*20.5,z=(prn()-0.5)*15.5;if(Math.abs(x)<8.2&&z>-6.5&&z<6.4)continue;if(x>5.6&&z>5.6)continue;b.box(0.26,0.36,0.26,M.fl[i%4],x,0.18,z,true)}
+  [[-4.2,7.1],[-5,6.7]].forEach(function(m){b.box(0.22,0.4,0.22,M.stem,m[0],0.2,m[1],true).box(0.6,0.26,0.6,M.cap,m[0],0.5,m[1],true)});
+  [[-9.6,6.9,'e'],[-10.2,6.2,'k']].forEach(function(c){b.box(0.55,1.4,0.55,M[c[2]],c[0],0.6,c[1],false,[0.25,0.6,0.2])});glow(world,GCOL.e,3.6,0.4,-9.9,0.9,6.6);
+  /* lantern posts stand on the grass at the front corners, where they cannot hide the bottom row */
+  [-7.1,6.0].forEach(function(x){b.box(0.22,1.7,0.22,M.trim,x,0.85,6.9).box(0.6,0.12,0.6,M.trim,x,1.72,6.9,true).box(0.4,0.5,0.4,M.lamp,x,2.05,6.9,true);glow(world,0xffb858,3,0.7,x,2.05,6.9)});
+  b.into(world);
+  const cv=document.createElement('canvas');cv.width=1024;cv.height=128;const g=cv.getContext('2d');g.font='700 84px Georgia,"Times New Roman",serif';g.textAlign='center';g.textBaseline='middle';
+  g.fillStyle='rgba(255,255,255,.32)';g.fillText('JESUS CHRIST',513,69);g.fillStyle='rgba(22,16,30,.82)';g.fillText('JESUS CHRIST',510,65);
+  const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;const p=new THREE.Mesh(new THREE.PlaneGeometry(11.5,1.44),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}));p.position.set(0,Y0/2+0.05,6.02);world.add(p)})();
+const flies=[];for(let i=0;i<8;i++){const s=halo(0xfff0a0,0.55,0.9,true);world.add(s);flies.push({h:s,x:(prn()-0.5)*19,y:1+prn()*6,z:1+(prn()-0.3)*8,p:prn()*6.28,s:0.4+prn()*0.6})}
+
+/* ---- the Rock behind: grows with the blueprint so it always stands taller than the walls ---- */
+const rockG=new THREE.Group();world.add(rockG);let rockH=0,rockBin=[];
+function buildRock(){const hh=Math.max(9,G.H+3);if(hh===rockH)return;rockH=hh;while(rockG.children.length)rockG.remove(rockG.children[0]);rockBin.forEach(function(g){g.dispose()});rockBin=[];
+  const b=new Batch();
+  b.box(14,hh,3,M.rock,0,hh/2,-4.5).box(8,2,2.6,M.rock,-1.2,hh+1,-4.6).box(4,1.6,2.2,M.rock,1.4,hh+2.8,-4.6).box(3,3,2.4,M.rock,-8,1.5,-4.8).box(3,2,2.4,M.rock,8,1,-4.6);
+  b.box(14.3,0.35,3.3,M.grass,0,hh+0.15,-4.5).box(8.3,0.35,2.9,M.grass,-1.2,hh+2.15,-4.6).box(4.3,0.35,2.5,M.grass,1.4,hh+3.75,-4.6).box(3.2,0.35,2.6,M.grass,-8,3.15,-4.8).box(3.2,0.35,2.6,M.grass,8,2.15,-4.6);
+  [[-6.4,1.6],[-4.6,2.4],[-2.2,1.2],[0.8,2],[3.4,1.4],[5.8,2.6],[6.6,1.2]].forEach(function(v){b.box(0.5,v[1],0.16,M.leaf2,v[0],hh-v[1]/2,-2.92,true)});
+  [[4.6,1.2,-4.3,'e',0.25],[5.5,0.9,-4.0,'t',-0.3],[-5.6,0.9,-4.2,'k',0.2]].forEach(function(c){b.box(0.8,2,0.8,M[c[3]],c[0],hh+c[1],c[2],false,[0,0,c[4]])});
+  glow(rockG,GCOL.t,5.5,0.4,5,hh+1.5,-4.1);glow(rockG,GCOL.k,5,0.4,-5.6,hh+1.3,-4.2);
+  b.into(rockG,rockBin)}
+
+/* ---- the City on the Rock: every sealed building, the streets and the family landmark, merged into a handful of meshes.
+        It is only rebuilt when something in it changes. ---- */
+const cityG=new THREE.Group();world.add(cityG);let cityKey='',cityBin=[],plotMarks=[];
+function viewXZ(xv,zv){const c=Math.cos(TURN),s=Math.sin(TURN);return [xv*c-zv*s,xv*s+zv*c]}   /* a spot given as seen from the usual camera */
+const CITY=[27,5,-60],PER=R.CONFIG.city.streetEvery||4;
+function plotPos(i){const row=Math.floor(i/PER),col=i%PER;return [(col-(PER-1)/2)*4.6,row*1.3,-row*4.8]}
+function buildCity(s,p){const sm=R.summary(s),plots=p.plots||{},key=JSON.stringify([s.city.map(function(c){return [c.n,c.stars,plots[c.n]]}),sm.family,sm.streets,(s.purchases||[]).length]);
+  if(key===cityKey)return;cityKey=key;while(cityG.children.length)cityG.remove(cityG.children[0]);cityBin.forEach(function(g){g.dispose()});cityBin=[];plotMarks=[];
+  if(!s.city.length&&!sm.family.stones)return;
+  const xz=viewXZ(CITY[0],CITY[2]);cityG.position.set(xz[0],CITY[1],xz[1]);cityG.rotation.y=-TURN;
+  const b=new Batch(),rows=Math.max(1,Math.ceil((s.city.length+1)/PER)),depth=rows*4.8+9;
+  island(b,PER*4.6+6,depth,0,0,5-depth/2+2);
+  for(let r=0;r<rows;r++){const q=plotPos(r*PER);b.box(PER*4.6+3,q[1]+0.6,4.4,M.rock,0,q[1]/2+0.3,q[2]);   /* terraces, so back rows show */
+    if(r<sm.streets)b.box(PER*4.6+2,0.14,1.1,M.stone,0,q[1]+0.67,q[2]+2.3,true)}                              /* a finished street is paved */
+  s.city.forEach(function(rec){const i=plots[rec.n];if(i==null)return;const q=plotPos(i),front=(rec.layout&&rec.layout.front)||[],cols=front.length||5;
+    const w=1.3+0.3*cols,hh=0.9+0.36*(rec.rows||3),y=q[1]+0.6,body=rec.gold>=rec.silver?M.G:M.S;
+    b.box(w,hh,2.2,body,q[0],y+hh/2,q[2]).box(w+0.6,0.45,2.8,M.roof,q[0],y+hh+0.22,q[2]).box(w+0.6,0.45,1.5,M.roof,q[0],y+hh+0.67,q[2]);
+    const gems=front.join('').split('').filter(isGem).slice(0,3);gems.forEach(function(k,j){b.box(0.5,0.6,0.16,PANE[k],q[0]+(j-(gems.length-1)/2)*0.75,y+hh*0.55,q[2]+1.12,true)});
+    for(let j=0;j<(rec.stars||0);j++)b.box(0.28,0.28,0.28,M.lamp,q[0]+(j-((rec.stars||1)-1)/2)*0.5,y+hh+1.25,q[2],true);   /* its stars */
+    if(rec.spireDone)b.box(0.4,1.6,0.4,PANE[(rec.spire&&rec.spire[0])||'f']||PANE.f,q[0],y+hh+1.9,q[2],true)});
+  /* the family landmark at the front of the City: it gains height from gifted stones and a gold ring for every street */
+  const lm=[0,0.6,6.2],tall=1.5+Math.min(8,sm.family.stones*0.25);b.box(4,0.6,3,M.stone,lm[0],lm[1]+0.3,lm[2]).box(1.8,tall,1.8,M.S,lm[0],lm[1]+0.6+tall/2,lm[2]);
+  for(let j=0;j<Math.min(6,sm.family.sets);j++)b.box(2.2,0.3,2.2,M.G,lm[0],lm[1]+1.1+j*1.1,lm[2]);
+  b.box(1.1,0.5,1.1,M.G,lm[0],lm[1]+0.85+tall,lm[2]);
+  /* banners bought with stars hang across the front of the City */
+  const banners=(s.purchases||[]).filter(function(q){return q.kind==='banner'}).length;
+  if(banners){b.box(0.14,3,0.14,M.trim,-6,2.1,8).box(0.14,3,0.14,M.trim,6,2.1,8);for(let j=0;j<11;j++)b.box(0.7,0.7,0.08,M.fl[j%4],-5+j,3.2-Math.sin(j/10*Math.PI)*0.7,8,true)}
+  b.into(cityG,cityBin);glow(cityG,0xffc070,16,0.4,0,4,2)}
+function showPlots(list){hidePlots();list.forEach(function(i,n){const q=plotPos(i),m=sign(cityG,String(n+1),2.4,q[0],q[1]+2.4,q[2],'#f2b93f','#2b1a02',true);m.scale.set(2.2,2.2,1);m.userData.plot=i;plotMarks.push(m);
+  const g=halo(0xffe7a6,5,0.7,true);g.position.set(q[0],q[1]+1,q[2]);cityG.add(g);plotMarks.push(g);g.userData.glowOnly=true})}
+function hidePlots(){plotMarks.forEach(function(m){if(m.parent)m.parent.remove(m)});plotMarks=[]}
+function cityPop(i){const q=plotPos(i),v=new THREE.Vector3(q[0],q[1]+2,q[2]);cityG.localToWorld(v);world.worldToLocal(v);sparks(v,0xffe7a6,10,5)}
+
+/* ---- everything that is redrawn from the saved state ---- */
+const house=new THREE.Group(),far=new THREE.Group();world.add(house,far);
+let pivots={},P={},ghosts=[],ghostLines=[],frameParts=[],freeMeshes=[],bodies=[],fx=[],tweens=[],armed=null,roofGhost=null,nbGroups={},seedMeshes=[],marks=[];
+const sway={front:0,left:0,right:0},lean={front:0,left:0,right:0};let tremble=0,T=0;
+function key(w,c,r){return w+':'+c+':'+r}
+/* a box laid along a wall: `along` the wall, `th` through it */
+function wbox(b,wall,o,along,h,th,m,da,up,plainUV){if(wall==='front')b.box(along,h,th,m,o[0]+da,o[1]+up,o[2],false,null,plainUV);else b.box(th,h,along,m,o[0],o[1]+up,o[2]+da,false,null,plainUV)}
+/* one stone, merged into its wall's batch */
+function pieceInto(b,wall,o,p,lit){const w=wallW(wall),f=w/2,t=p.t;
+  if(isGem(t)){wbox(b,wall,o,w,2,1,M.trim,0,0);wbox(b,wall,o,w*0.92,1.84,1.1,lit?GEMLIT[t]:GEM[t],0,0,true)}
+  else if(t==='G'){wbox(b,wall,o,w,2,1,M.G,0,0);wbox(b,wall,o,w*1.01,0.3,1.1,M.G,0,0.85);wbox(b,wall,o,0.6*f,0.6,1.16,M.G,0,-0.1)}
+  else if(t==='W'){wbox(b,wall,o,w*1.02,2.04,1.03,M.W,0,0);wbox(b,wall,o,w*1.03,0.24,1.1,M.band,0,0.5);wbox(b,wall,o,w*1.03,0.24,1.1,M.band,0,-0.5);   /* thatch with rope binding, no shine */
+    wbox(b,wall,o,0.22*f,2.06,1.1,M.band,0.6*f,0);wbox(b,wall,o,0.22*f,2.06,1.1,M.band,-0.6*f,0);if(p.forgiven)wbox(b,wall,o,0.8*f,0.8,1.2,M.P,0,0)}
+  else if(t==='L'){wbox(b,wall,o,w,2,1,M.plinth,0,0);wbox(b,wall,o,0.9*f,1.1,1.16,M.lamp,0,0)}
+  else wbox(b,wall,o,w,2,1,M[t]||M.S,0,0)}
+/* one stone as its own mesh, for the moment it moves (kept simple: one or two draws) */
+function makeLoose(wall,p,lit){const side=wall==='left'||wall==='right',w=side?G.colW:(wall==='front'?G.bw:2),t=p.t;let m;
+  if(isGem(t))m=new THREE.Mesh(side?plain(1.06,1.9,w*0.96):plain(w*0.96,1.9,1.06),lit?GEMLIT[t]:GEM[t]);
+  else m=new THREE.Mesh(side?geo(1,2,w):geo(w,2,1),M[t]||M.S);
+  m.castShadow=true;m.userData={wall:wall,t:t,flat:side?'z':'x',loose:true};
+  if(t==='W'){const b=new Batch(),o=[0,0,0],wl=side?'left':'front',f=w/2;const band=function(al,h,da,up){if(side)b.box(1.1,h,al,M.band,0,up,da,true);else b.box(al,h,1.1,M.band,da,up,0,true)};
+    band(w*1.03,0.24,0,0.5);band(w*1.03,0.24,0,-0.5);band(0.22*f,2.06,0.6*f,0);band(0.22*f,2.06,-0.6*f,0);if(p.forgiven){if(side)b.box(1.2,0.8,0.8*f,M.P,0,0,0,true);else b.box(0.8*f,0.8,1.2,M.P,0,0,0,true)}b.into(m);m.scale.set(1.03,1.03,1.03)}
+  if(t==='L')m.add(halo(0xffc060,4,0.6));
+  return m}
+function figure(b,x,y,z,shirt){b.box(0.3,0.7,0.35,M.pants,x-0.2,y+0.35,z).box(0.3,0.7,0.35,M.pants,x+0.2,y+0.35,z).box(0.8,0.85,0.45,shirt,x,y+1.12,z).box(0.62,0.62,0.62,M.skin,x,y+1.86,z)}
+const NBPOS=[[-13.5,-15,6.5],[-22,-32,11]];
+function neighbour(n,i){const g=new THREE.Group(),v=NBPOS[i%NBPOS.length],xz=viewXZ(v[0],v[1]);g.position.set(xz[0],v[2]+Math.max(0,G.H-6)*0.65,xz[1]);g.scale.setScalar(0.8);g.rotation.y=-TURN*0.6;
+  const b=new Batch();island(b,9,7);b.box(6.8,1,4.6,M.stone,0,0.5,0);figure(b,2.6,1,1.7,M.cap);
+  b.box(0.2,1.5,0.2,M.trim,-2.8,1.75,1.8).box(0.36,0.45,0.36,M.lamp,-2.8,2.7,1.8,true);
+  const kinds=['S','S','G','S','t','S','G','S','k','S','S','G'];let last=null;
+  for(let j=0;j<n.stones;j++){const x=-2+2*(j%3),y=2+2*Math.floor(j/3);
+    if(j===n.stones-1){last=new THREE.Mesh(geo(2,2,1),M[kinds[j%12]]);last.position.set(x,y,-0.2);g.add(last)}else b.box(2,2,1,M[kinds[j%12]],x,y,-0.2)}
+  if(n.stones>=R.CONFIG.gospel.neighbourHouse)b.box(7,0.7,3,M.roof,0,9.35,-0.2).box(5,0.7,2,M.roof,0,10.05,-0.2);
+  b.into(g);glow(g,0xffb858,4,0.75,-2.8,2.7,1.8);g.userData.last=last;
+  if(n.name)sign(g,fill(get('gospel.whoDidYouTell.islandLabel')||'{friend}',{friend:n.name}),5.2,0,-0.9,3.75);   /* a name board on the front of their island */
+  far.add(g);nbGroups[n.id]=g;return g}
+function rubbleSpot(i){const a=Math.sin(i*12.9898)*43758.5453,b=Math.sin(i*78.233)*12543.123,u=a-Math.floor(a),v=b-Math.floor(b),layer=Math.floor(i/8);
+  return [8.4+(u-0.5)*(3.6-layer*0.5),0.3+layer*0.48,6.95+(v-0.5)*(1.7-layer*0.25),u*3]}
+
+/* render(s, x, p, opt): rebuild the whole picture from the saved state. opt.loose = keys of stones that are about to move;
+   opt.frameLoose = the pillars and door are about to fall (a cave-in). */
+function render(s,x,p,opt){p=p||{};opt=opt||{};const sm=R.summary(s),loose={};(opt.loose||[]).forEach(function(k){loose[k]=1});
+  [house,far].forEach(function(g){while(g.children.length)g.remove(g.children[0])});
+  trash.forEach(function(g){g.dispose()});trash=[];fx.forEach(function(f){world.remove(f.s);f.s.material.dispose()});fx=[];
+  P={};ghosts=[];ghostLines=[];frameParts=[];freeMeshes=[];bodies=[];tweens=tweens.filter(function(t){return t.keep});armed=null;nbGroups={};seedMeshes=[];marks=[];tremble=0;canvas.style.touchAction='pan-y';
+  setShape(s);buildRock();buildCity(s,p);
+  const wb=R.wobble(s);
+  pivots={front:new THREE.Group(),left:new THREE.Group(),right:new THREE.Group()};
+  WALLS.forEach(function(w){const a=pivotAt(w);pivots[w].position.set(a[0],a[1],a[2]);house.add(pivots[w])});
+  /* floor, the foundation row that always stays, the little builder, the pillars and the door */
+  const hb=new Batch(),doorX=-G.Wf/2+G.bw*(G.door+0.5),buys={};(s.purchases||[]).forEach(function(q){buys[q.kind]=(buys[q.kind]||0)+1;if(M.doors[q.kind])buys.door=q.kind});
+  hb.box(G.Wf,0.12,G.D,M.wood,0,Y0+0.06,G.zc);
+  hb.box(Math.max(0.2,doorX-G.bw/2+G.Wf/2+0.7),0.5,0.45,M.plinth,(doorX-G.bw/2-G.Wf/2-0.7)/2,Y0+0.25,4.2).box(Math.max(0.2,G.Wf/2+0.7-doorX-G.bw/2),0.5,0.45,M.plinth,(doorX+G.bw/2+G.Wf/2+0.7)/2,Y0+0.25,4.2);
+  hb.box(0.45,0.5,G.D+1.6,M.plinth,-G.px-0.7,Y0+0.25,G.zc+0.6).box(0.45,0.5,G.D+1.6,M.plinth,G.px+0.7,Y0+0.25,G.zc+0.6);
+  figure(hb,7.1,Y0,5.2,M.shirt);
+  const doorMat=M.doors[buys.door]||M.wood;
+  function frameInto(b,ox,oy,oz,which){
+    if(which!=='door')[-G.px,G.px].forEach(function(px){if(which!=null&&which!==px)return;b.box(1,G.Hf,1,M.stone,px-ox,Y0+G.Hf/2-oy,3.5-oz).box(1.3,0.4,1.3,M.trim,px-ox,Y0+G.Hf+0.1-oy,3.5-oz).box(1.3,0.5,1.3,M.plinth,px-ox,Y0+0.25-oy,3.5-oz)});
+    if(which==null||which==='door')b.box(G.bw,2,1,doorMat,doorX-ox,Y0+1-oy,3.5-oz).box(G.bw*0.65,1.6,1.08,M.trim,doorX-ox,Y0+0.8-oy,3.5-oz).box(0.2,0.2,1.2,M.G,doorX+0.2*G.bw-ox,Y0+0.9-oy,3.5-oz).box(G.bw*1.15,0.16,0.7,M.roof,doorX-ox,Y0+2.14-oy,4.22-oz,false,[0.3,0,0])}
+  if(!x.frameDown){
+    if(opt.frameLoose)[[-G.px,Y0+G.Hf/2,3.5,-G.px,'z'],[G.px,Y0+G.Hf/2,3.5,G.px,'z'],[doorX,Y0+1,3.5,'door','x']].forEach(function(q){const g=new THREE.Group();g.position.set(q[0],q[1],q[2]);g.userData.flat=q[4];const b=new Batch();frameInto(b,q[0],q[1],q[2],q[3]);b.into(g);house.add(g);frameParts.push(g)});
+    else frameInto(hb,0,0,0,null)}
+  /* decorations bought with stars */
+  if(buys.flag&&!x.frameDown){hb.box(0.12,2.4,0.12,M.trim,G.px,Y0+G.Hf+1.5,3.5,true).box(1.3,0.8,0.08,M.cap,G.px+0.7,Y0+G.Hf+2.2,3.5,true)}
+  if(buys.flowers)for(let i=0;i<Math.min(3,buys.flowers);i++){const fx0=[-3.4,3.4,-6.3][i];hb.box(1.8,0.35,0.5,M.wood,fx0,Y0+0.18,5.6,true);for(let j=0;j<4;j++)hb.box(0.26,0.34,0.26,M.fl[(i+j)%4],fx0-0.6+j*0.4,Y0+0.5,5.6,true)}
+  if(buys.lantern){hb.box(0.2,1.6,0.2,M.trim,8.3,1.9,3.5).box(0.4,0.5,0.4,M.lamp,8.3,2.95,3.5,true);glow(house,0xffb858,3.4,0.75,8.3,2.95,3.5)}
+  /* the lamp lit by Stop and Pray */
+  if(x.stopPray&&!x.frameDown){hb.box(0.5,0.6,0.5,M.lamp,G.px,Y0+2.6,4.25,true);glow(house,0xffc060,5.5,0.85,G.px,Y0+2.6,4.3)}
+  /* windows: exactly the ones the rules list (three gems in a line) */
+  const win=sm.windows,lit={};
+  (win.list||[]).forEach(function(wd){(wd.cells||[]).forEach(function(c){const q=s.walls[wd.wall]&&s.walls[wd.wall][c.col]&&s.walls[wd.wall][c.col][c.row];if(q)lit[q.id]=true})});
+  /* the stones: each wall is one batch. A steady wall is merged into the house; a wobbling one hangs on its own pivot so it can sway and lean. */
+  const wbat={};function batchOf(w){if(wb[w]>0)return wbat[w]||(wbat[w]={b:new Batch(),off:[0,0,0],into:pivots[w]});if(!wbat.steady)wbat.steady={b:new Batch(),into:house};return{b:wbat.steady.b,off:pivotAt(w)}}
+  WALLS.forEach(function(w){s.walls[w].forEach(function(col,c){col.forEach(function(q,r){if(!q)return;const k=key(w,c,r),L=slotLocal(w,c,r);let m;
+    if(loose[k])m=makeLoose(w,q,lit[q.id]);
+    else{const t=batchOf(w);pieceInto(t.b,w,[t.off[0]+L[0],t.off[1]+L[1],t.off[2]+L[2]],q,lit[q.id]);m=new THREE.Mesh(w==='front'?geo(G.bw,2,1):geo(1,2,G.colW),M.slot);m.visible=false;m.userData={wall:w,t:q.t}
+      if(q.t==='W'&&q.forgiven){const hl=halo(0xffe6f2,4.2,0.7);hl.position.set(L[0],L[1],L[2]);pivots[w].add(hl)}}
+    m.position.set(L[0],L[1],L[2]);m.userData.c=c;m.userData.r=r;pivots[w].add(m);P[k]=m})})});
+  /* window frames: dark leading round a mosaic window; gold leading, cross bars and a glow for a pure one */
+  (win.list||[]).forEach(function(wd){const w=wd.wall,t=batchOf(w),cs=wd.cells,a=slotLocal(w,cs[0].col,cs[0].row),z=slotLocal(w,cs[2].col,cs[2].row),bwid=wallW(w),up=cs[0].row!==cs[2].row;
+    const mid=[t.off[0]+(a[0]+z[0])/2,t.off[1]+(a[1]+z[1])/2,t.off[2]+(a[2]+z[2])/2],mm=wd.pure?M.G:M.band,al=up?bwid:bwid*3,hh=up?6:2;
+    wbox(t.b,w,mid,al+0.1,0.16,1.26,mm,0,hh/2);wbox(t.b,w,mid,al+0.1,0.16,1.26,mm,0,-hh/2);wbox(t.b,w,mid,0.16,hh+0.1,1.26,mm,al/2,0);wbox(t.b,w,mid,0.16,hh+0.1,1.26,mm,-al/2,0);
+    if(wd.pure){cs.forEach(function(c){const L=slotLocal(w,c.col,c.row),o=[t.off[0]+L[0],t.off[1]+L[1],t.off[2]+L[2]];wbox(t.b,w,o,bwid*0.9,0.1,1.2,M.band,0,0);wbox(t.b,w,o,0.1,1.8,1.2,M.band,0,0)});
+      const hl=halo(GCOL[s.walls[w][cs[1].col][cs[1].row].t]||0xffffff,6.5,0.4);const L=slotLocal(w,cs[1].col,cs[1].row);hl.position.set(L[0],L[1],L[2]);pivots[w].add(hl)}});
+  /* pearl seams left by putting straw right, and extra mortar as a thin pale line between the courses */
+  s.seams.forEach(function(q){if(!s.walls[q.wall]||q.row>=wallH(q.wall)/2)return;const t=batchOf(q.wall),L=slotLocal(q.wall,q.col,q.row),o=[t.off[0]+L[0],t.off[1]+L[1]-1+(q.row===0?0.68:0.08),t.off[2]+L[2]];
+    wbox(t.b,q.wall,o,wallW(q.wall),0.3,1.16,M.seam,0,0);const hl=halo(0xffe6f2,2.8,0.6);hl.position.set(L[0]+(q.wall==='front'?0:(q.wall==='left'?-0.7:0.7)),L[1]-0.9,L[2]+(q.wall==='front'?0.7:0));pivots[q.wall].add(hl)});
+  if(sm.mortar)WALLS.forEach(function(w){const t=batchOf(w),rows=wallH(w)/2;for(let r=1;r<rows;r++){if(w==='front')t.b.box(G.Wf+0.06,0.07,1.06,M.mortar,t.off[0],t.off[1]+2*r,t.off[2],true);else t.b.box(1.06,0.07,G.D+0.06,M.mortar,t.off[0],t.off[1]+2*r,t.off[2]+3-G.D/2,true)}});
+  hb.into(house);Object.keys(wbat).forEach(function(k){wbat[k].b.into(wbat[k].into)});
+  /* decorations in the free slots and the spire dare above the roof line */
+  s.free.forEach(function(q,i){if(!q)return;const m=makeLoose('free',q,lit[q.id]),v=freePos(i,x.frameDown);m.scale.setScalar(0.62);m.position.set(v[0],v[1],v[2]);m.userData.c=i;m.userData.r=0;house.add(m);P[key('free',i,0)]=m;freeMeshes.push(m)});
+  (s.spire||[]).forEach(function(q,i){if(!q)return;const m=makeLoose('spire',q,true),v=spirePos(i);m.scale.setScalar(0.7-0.12*i);m.position.set(v[0],v[1],v[2]);m.userData.c=i;m.userData.r=0;house.add(m);P[key('spire',i,0)]=m});
+  /* the blueprint: one faint gold outline of the walls still to finish, the roof and the spire to come; white ghosts where a wall is cracked */
+  const gl=new Lines(),cl=new Lines();
+  WALLS.forEach(function(w){const t=sm.walls[w],bx=wallBox(w);if(s.cracked[w]>0){crackInto(cl,w)}else if(t.filled<t.total)gl.box(bx.w,bx.h,bx.d,bx.x,bx.y,bx.z)});
+  roofGhost=new THREE.Group();house.add(roofGhost);const rl=new Lines();roofParts().slice(1).forEach(function(a){rl.box(a[0],a[1],a[2],0,Y0+G.H+a[4],G.zc)});
+  (s.spire||[]).forEach(function(q,i){if(q)return;const v=spirePos(i),sz=1.4*(0.7-0.12*i)/0.7;rl.box(sz,1.3,sz*0.7,v[0],v[1],v[2])});
+  rl.into(roofGhost,M.lineGold);gl.into(house,M.lineGold);cl.into(house,M.lineCrack);
+  /* the rubble pile by the steps (one batch) */
+  const rb=new Batch();s.rubble.slice(0,28).forEach(function(q,i){const v=rubbleSpot(i);rb.box(1.1,0.5,1.1,isGem(q.t)?GEM[q.t]:(M[q.t]||M.S),v[0],v[1],v[2],false,[0,v[3],0],isGem(q.t))});rb.into(house);
+  /* the garden: a sprout for every seed, a garden lamp and a name board where the rules keep them */
+  const lamps={};(sm.garden||[]).forEach(function(g){lamps[g.id-1]=1;if(g.seed!=null)lamps[g.seed]=1});
+  const sb=new Batch();let signs=0;s.seeds.slice(-8).forEach(function(q,i){const sx=-3.4-i*0.9,sz=7.15-(i%2)*0.45,nm=q.name||(p.seedNames||{})[q.id];sb.box(0.14,0.6,0.14,M.leaf2,sx,0.3,sz,true).box(0.4,0.12,0.2,M.leaf2,sx+0.2,0.55,sz,true).box(0.4,0.12,0.2,M.leaf2,sx-0.2,0.42,sz,true);
+    if(lamps[q.id]||(p.lamps||{})[q.id])sb.box(0.1,0.7,0.1,M.trim,sx+0.38,0.35,sz-0.25,true).box(0.26,0.3,0.26,M.lamp,sx+0.38,0.82,sz-0.25,true);
+    if(nm&&signs<4){sb.box(0.08,1.2+0.7*(signs%2),0.08,M.trim,sx,0.6+0.35*(signs%2),sz+0.12,true);sign(house,nm,2.3,sx,1.5+0.7*(signs%2),sz+0.14);signs++}});sb.into(house);
+  if(s.seeds.length)seedMeshes.push(glow(house,0xffe9a0,3.2,0.45,-3.4-(Math.min(8,s.seeds.length)-1)*0.9,0.6,7));
+  s.neighbours.slice(0,2).forEach(neighbour);
+  /* wobble straight from the rules: 1 = a clear sway, 2 = an obvious lean. Each gets a "!" over the wall. Reduced motion: a still tilt and the marker. */
+  WALLS.forEach(function(w){const v=wb[w];sway[w]=v===1?0.05:v>=2?0.025:0;lean[w]=v>=2?0.14:(v===1&&reduce?0.05:0);if(!v)return;
+    const mk=new THREE.Sprite(markMat(v)),bx=wallBox(w),sz=v>=2?2.6:1.7;mk.scale.set(sz,sz,1);mk.position.set(bx.x,Y0+bx.h+1.6,bx.z);mk.userData.y=mk.position.y;mk.userData.v=v;house.add(mk);marks.push(mk)});
+  homeLight.intensity=x.frameDown?0.3:0.9;if(!cityView)home();shadowTicks=20}
+function crackInto(cl,w){const bx=wallBox(w),f=new THREE.Mesh(geo(bx.w,bx.h,bx.d),M.crackFill);f.position.set(bx.x,bx.y,bx.z);house.add(f);for(let r=0;r<bx.h/2;r++)cl.box(bx.w,2,bx.d,bx.x,Y0+1+2*r,bx.z)}
+function crackGhost(w){const cl=new Lines();crackInto(cl,w);cl.into(house,M.lineCrack)}
+
+/* ---- little engines: tweens, falling, sparks ---- */
+const ease={io:function(k){return k<0.5?2*k*k:1-Math.pow(-2*k+2,2)/2},out:function(k){return 1-Math.pow(1-k,3)},lin:function(k){return k},
+  bounce:function(k){const n=7.5625,d=2.75;if(k<1/d)return n*k*k;if(k<2/d)return n*(k-=1.5/d)*k+0.75;if(k<2.5/d)return n*(k-=2.25/d)*k+0.9375;return n*(k-=2.625/d)*k+0.984375}};
+function tw(dur,fn,e,keep){return new Promise(function(res){tweens.push({t:0,dur:reduce?0.01:dur,fn:fn,e:e||ease.io,done:res,keep:keep})})}
+function wait(ms){return new Promise(function(r){setTimeout(r,reduce?Math.min(ms,160):ms)})}
+function wpos(m){const v=new THREE.Vector3();m.getWorldPosition(v);world.worldToLocal(v);return v}
+function sparks(wp,color,n,rise){for(let j=0;j<n&&fx.length<44;j++){const s=halo(color,2,0.9,true);s.visible=false;world.add(s);fx.push({s:s,t:-j*0.04,life:0.7,x:wp.x+rnd(-0.7,0.7),y:wp.y+rnd(-0.4,0.4),z:wp.z+rnd(-0.3,0.7),rise:rise||rnd(1.5,3.5)})}}   /* never more than a few dozen sprites at once */
+function outward(wall){return wall==='left'?[-1,0]:wall==='right'?[1,0]:[0,1]}
+function tumble(m,vx,vy,vz){house.attach(m);m.traverse(function(o){if(o.isSprite)o.visible=false});bodies.push({m:m,v:new THREE.Vector3(vx,vy,vz),w:new THREE.Vector3(rnd(-4,4),rnd(-3,3),rnd(-4,4)),rest:false})}
+function groundAt(x,z){return (Math.abs(x)<7.5&&z>-3&&z<6)?Y0:0}
+function settleBody(b){const m=b.m,r0=m.rotation.clone(),tx=m.userData.flat==='x'?Math.PI/2:0,tz=m.userData.flat==='z'?Math.PI/2:0;
+  tw(0.18,function(k){m.rotation.x=r0.x+(tx-r0.x)*k;m.rotation.z=r0.z+(tz-r0.z)*k},ease.out)}
+function isLoose(m){return m&&m.userData.loose}
+
+/* ---- actions the page asks for (stones that move must have been drawn loose) ---- */
+function dropIn(wall,c,r,delay){const m=P[key(wall,c,r)];if(!isLoose(m))return Promise.resolve();const y=m.position.y,straw=m.userData.t==='W';m.position.y=y+8;m.visible=!delay;
+  return wait(delay||0).then(function(){m.visible=true;return tw(0.42,function(k){m.position.y=y+8*(1-k)},ease.bounce)}).then(function(){
+    if(straw){tremble=1.6;setTimeout(function(){if(!armed)tremble=0},380);sparks(wpos(m),0x8a8450,2)}else sparks(wpos(m),isGem(m.userData.t)?GCOL[m.userData.t]:0xfff0c0,isGem(m.userData.t)?5:3)})}
+function burst(wall,c,r,color,n){const m=P[key(wall,c,r)];if(m)sparks(wpos(m),color,n||6)}
+function cellsFx(wall,cells,color){cells.forEach(function(c){const L=slotLocal(wall,c.col,c.row),v=new THREE.Vector3(L[0],L[1],L[2]);pivots[wall].localToWorld(v);world.worldToLocal(v);sparks(v,color,3,2)})}
+function hideGhosts(){ghosts.concat(ghostLines).forEach(function(g){if(g.parent)g.parent.remove(g)});ghosts=[];ghostLines=[]}
+/* glowing spaces: a soft outline with a pulsing dot. Taps are tested against ONE invisible plate per space.
+   hints[key] = 'window' | 'pure': this space would finish a window, so it gets a brighter marker and a little tag. */
+function showGhosts(list,hints){hideGhosts();hints=hints||{};const gl={house:new Lines(),front:new Lines(),left:new Lines(),right:new Lines()};list.forEach(function(q){let g,w,hh,d;
+  if(q.wall==='free'){w=1.3;hh=1.3;d=0.7;g=new THREE.Mesh(geo(w,hh,0.12),M.slot);const v=freePos(q.col,false);g.position.set(v[0],v[1],v[2]);house.add(g)}
+  else if(q.wall==='spire'){w=1.2;hh=1.2;d=0.9;g=new THREE.Mesh(geo(w,hh,0.12),M.slot);const v=spirePos(q.col);g.position.set(v[0],v[1],v[2]);house.add(g)}
+  else{const side=q.wall!=='front';w=side?1:G.bw;hh=2;d=side?G.colW:1;g=new THREE.Mesh(side?geo(0.12,hh,d):geo(w,hh,0.12),M.slot);const L=slotLocal(q.wall,q.col,q.row);g.position.set(L[0],L[1],L[2]);pivots[q.wall].add(g)}
+  (gl[q.wall]||gl.house).box(w*0.9,hh*0.9,d*0.9,g.position.x,g.position.y,g.position.z);const hint=hints[key(q.wall,q.col,q.row)];   /* all the outlines on one wall are one set of lines */
+  const dot=new THREE.Sprite(hint?M.dotHot:M.dot);dot.scale.setScalar(hint?2.3:1.2);g.add(dot);
+  if(hint){const tg=sign(g,hint==='pure'?'pure window!':'window!',hint==='pure'?2.5:2,0,1.25,0,hint==='pure'?'#f2b93f':'#2c2356',hint==='pure'?'#2b1a02':'#fff6e0',true);tg.userData.tag=true}
+  if(q.wall==='spire')sign(g,'dare?',1.6,1.6,0,0,'#5a2414','#ffd9b0',true);
+  g.userData={ghost:true,wall:q.wall,c:q.col,r:q.row};ghosts.push(g)});
+  Object.keys(gl).forEach(function(k){const l=gl[k].into(k==='house'?house:pivots[k],M.lineSlot);if(l)ghostLines.push(l)})}
+/* the pull: the child drags the bale sideways, slowly. It can only come out as fast as `minMs` allows; racing ahead of it makes it slip.
+   cb('fast') or cb('slip') if it slips back (they just try again), cb('done') when it is out. */
+function armPull(wall,c,r,minMs,cb){const m=P[key(wall,c,r)];if(!isLoose(m)){cb('gone');return}armed={m:m,wall:wall,base:m.position.clone(),k:0,min:minMs||800,cb:cb,active:false};canvas.style.touchAction='none'}
+function disarm(){if(armed){armed.m.position.copy(armed.base);armed.m.scale.set(1.03,1.03,1.03);armed=null}tremble=0;canvas.style.touchAction='pan-y'}
+function pullTo(k){const a=armed,o=outward(a.wall);a.k=k;a.m.position.x=a.base.x+o[0]*3.2*k;a.m.position.z=a.base.z+o[1]*3.2*k}
+function pullDone(){const a=armed;if(!a)return;armed=null;canvas.style.touchAction='pan-y';const s0=a.m.scale.x;sparks(wpos(a.m),0xffe6f2,6);
+  tw(0.28,function(k){const v=s0*(1-k*0.97);a.m.scale.set(v,v,v)}).then(function(){if(a.m.parent)a.m.parent.remove(a.m);tremble=0;a.cb('done')})}
+function pullSlip(kind){const a=armed;if(!a||!a.active)return;a.active=false;const p=a.m.position.clone();sparks(wpos(a.m),0x8a8450,3);
+  tw(0.25,function(k){a.m.position.lerpVectors(p,a.base,k)},ease.out).then(function(){tremble=0;a.cb(kind||'slip')})}
+function pullTick(){if(!armed||!armed.active||!down||!down.pull)return;const el=(performance.now()-down.t)/armed.min,dist=down.dist||0;
+  if(dist-el>0.45&&el<0.9){down=null;pullSlip('fast');return}
+  pullTo(Math.min(dist,el,1));if(dist>=1&&el>=1){down=null;pullDone()}}
+function autoPull(){if(!armed)return;armed.active=true;tremble=1;tw(1.3,function(k){if(armed)pullTo(k)}).then(pullDone)}
+/* after the rules settle a column, the stones above drop one row */
+function settle(wall,col,list){return Promise.all(list.map(function(q){const m=P[key(wall,col,q.from)];if(!isLoose(m))return null;const y0=m.position.y,y1=1+2*q.to;return tw(0.4,function(k){m.position.y=y0+(y1-y0)*k},ease.bounce)}))}
+function fireStart(){tw(2.2,function(k){fireLight.intensity=Math.sin(k*Math.PI)*3.4},ease.lin);
+  for(let i=0;i<26;i++){const side=i%3,s=halo(i%2?0xff7a20:0xffc040,2.6,0.9,true);let x,z;
+    if(side===0){x=rnd(-G.Wf/2,G.Wf/2);z=4.5}else if(side===1){x=-G.px-1;z=rnd(3-G.D,3.6)}else{x=G.px+1;z=rnd(3-G.D,3.6)}
+    s.visible=false;world.add(s);fx.push({s:s,t:-rnd(0,0.9),life:rnd(0.7,1.1),x:x,y:Y0,z:z,rise:rnd(G.H*0.8,G.H*1.3)})}
+  return wait(900)}
+function burn(wall,c,r){const k=key(wall,c,r),m=P[k];if(!isLoose(m))return Promise.resolve();delete P[k];
+  m.traverse(function(o){if(o.isMesh)o.material=M.char;if(o.isSprite)o.visible=false});sparks(wpos(m),0xff8a30,4,4);const s0=m.scale.x;
+  return tw(0.55,function(q){const v=s0*(1-q*0.98);m.scale.set(v,v,v)}).then(function(){if(m.parent)m.parent.remove(m)})}
+function knock(wall,c,r){const k=key(wall,c,r),m=P[k];if(!isLoose(m))return;delete P[k];const o=outward(wall);tumble(m,o[0]*rnd(4,6)+rnd(0.5,2.5),4,o[1]*rnd(4,6)+rnd(-1,1))}
+function fallOne(wall){const o=outward(wall);Object.keys(P).forEach(function(k){const m=P[k];if(m.userData.wall!==wall||!isLoose(m))return;delete P[k];
+  tumble(m,o[0]*rnd(4,8)+rnd(-2,2),rnd(2,6),o[1]*rnd(4,8)+rnd(-1.5,1.5))});sway[wall]=0;lean[wall]=0;marks.forEach(function(mk){if(mk.parent)mk.parent.remove(mk)});marks=[];
+  crackGhost(wall)}
+function wallFall(wall){fallOne(wall);return wait(1300)}
+function caveIn(){WALLS.forEach(function(w,i){setTimeout(function(){fallOne(w)},i*300)});
+  setTimeout(function(){frameParts.forEach(function(g){tumble(g,rnd(-2,2),rnd(2,4),rnd(3,6))});frameParts=[];if(roofGhost)roofGhost.visible=false},500);
+  tw(1.2,function(k){homeLight.intensity=0.9-0.6*k},ease.lin);return wait(2400)}
+function spireFall(){Object.keys(P).forEach(function(k){const m=P[k];if(m.userData.wall!=='spire')return;delete P[k];tumble(m,rnd(2,5),rnd(1,3),rnd(3,6))});return wait(1100)}
+function crown(){const g=halo(0xffd070,20,0,true);g.position.set(0,Y0+G.H*0.6,2);house.add(g);return tw(1.3,function(k){g.material.opacity=Math.sin(k*Math.PI)*0.75},ease.lin)}
+function mendGlow(wall){const bx=wallBox(wall),g=halo(0xffe6f2,14,0,true);g.position.set(bx.x,bx.y,bx.z);house.add(g);return tw(1,function(k){g.material.opacity=Math.sin(k*Math.PI)*0.7},ease.lin)}
+/* seal: decorations lift, the roof drops on under the spire, the building glows */
+function seal(){const top=Y0+G.H,k=G.Wf/10;
+  freeMeshes.forEach(function(m){const y=m.position.y;if(y>Y0+G.Hf)tw(0.4,function(q){m.position.y=y+1.9*q},ease.out)});
+  const list=roofParts().map(function(a){return [a[0],a[1],a[2],M[a[3]],0,top+a[4],G.zc]}).concat([
+    [1.5,3.4,1.5,M.stone,-4.2*k,top+3.2,G.zc-1.2],[1.9,0.4,1.9,M.plinth,-4.2*k,top+5.1,G.zc-1.2]]);
+  let chain=wait(450);
+  list.forEach(function(p,i){chain=chain.then(function(){if(i===0&&roofGhost)roofGhost.visible=false;const o=new THREE.Mesh(geo(p[0],p[1],p[2]),p[3]);o.castShadow=true;o.position.set(p[4],p[5]+9,p[6]);house.add(o);
+    tw(0.5,function(q){o.position.y=p[5]+9*(1-q)},ease.bounce);return wait(200)})});
+  return chain.then(function(){return wait(450)}).then(function(){
+    const g=halo(0xffd070,18,0,true);g.position.set(0,top+5,1);house.add(g);tw(1.6,function(q){g.material.opacity=Math.sin(q*Math.PI)*0.85;homeLight.intensity=0.9+q*0.9},ease.lin);return wait(1900)})}
+function sprout(){const s=seedMeshes[seedMeshes.length-1];if(!s)return;sparks(wpos(s),0xbfffb0,6,2.5)}
+function neighbourIn(id){const g=nbGroups[id];if(!g)return;const y=g.position.y;tw(0.9,function(k){g.position.y=y+12*(1-k)},ease.bounce);lookAt(g)}
+function stoneIn(id){const g=nbGroups[id];if(!g)return;const o=g.userData.last;if(o){const y=o.position.y;tw(0.5,function(k){o.position.y=y+8*(1-k)},ease.bounce).then(function(){sparks(wpos(o),0xfff0c0,5)})}lookAt(g)}
+function lookAt(g){if(cityView)return;const v=new THREE.Vector3();g.getWorldPosition(v);lookGoal.set(v.x*0.45,5,0);setTimeout(function(){if(!cityView)home()},2600)}
+function camDist(){return Math.max(1,1.3/camera.aspect)*(1+Math.max(0,G.H/2-3)*0.15)}
+function home(){const n=Object.keys(nbGroups).length,d=camDist()*(n?1.1:1),rows=G.H/2;   /* pull back a little so the neighbour next door stays in view */
+  camGoal.set(0,(10.5+(rows-3)*1.6)*d,35*d);lookGoal.set(0,Y0+rows-0.3,0)}
+const VIEWS={centre:TURN,front:-0.06,left:0.8,right:-1.0};
+function turnTo(v){if(v==='city'){cityView=true;rotGoal=TURN;const d=Math.max(1,1.3/camera.aspect);camGoal.set(CITY[0]-4,CITY[1]+13*d,CITY[2]+33*d);lookGoal.set(CITY[0],CITY[1]+3,CITY[2]-4);return}
+  cityView=false;if(VIEWS[v]!=null)rotGoal=VIEWS[v];home()}
+/* turn gently so the wall that just changed can be seen */
+function faceWall(w){if(cityView)return;const r=rotGoal;if(w==='left'&&r<0.35)rotGoal=0.8;else if(w==='right'&&r>-0.35)rotGoal=-0.85;else if(w==='front'&&Math.abs(r)>0.75)rotGoal=r>0?0.4:TURN}
+
+/* ---- pointer: tap a glowing space, a straw bale or a City plot; drag a bale that is ready to pull; or turn the picture ---- */
+const ray=new THREE.Raycaster(),ptr=new THREE.Vector2(),tmp=new THREE.Vector3();let down=null;
+function screenOf(o){const b=canvas.getBoundingClientRect();o.getWorldPosition(tmp);tmp.project(camera);return [(tmp.x+1)/2*b.width+b.left,(1-tmp.y)/2*b.height+b.top]}
+function fresh3(){scene.updateMatrixWorld();camera.updateMatrixWorld()}   /* so a tap straight after a change is tested against the picture as it now is */
+function aim(e){fresh3();const b=canvas.getBoundingClientRect();ptr.set(((e.clientX-b.left)/b.width)*2-1,-((e.clientY-b.top)/b.height)*2+1);ray.setFromCamera(ptr,camera)}
+function pieces(){return Object.keys(P).map(function(k){return P[k]})}
+function near(o,e){const p=screenOf(o);return Math.hypot(p[0]-e.clientX,p[1]-e.clientY)}
+/* is this glowing space in plain sight (not behind another wall)? */
+const eye=new THREE.Vector3(),dir=new THREE.Vector3();
+function inSight(g,blocks){g.getWorldPosition(eye);const d=eye.distanceTo(camera.position);dir.copy(eye).sub(camera.position).normalize();ray.set(camera.position,dir);
+  const hs=ray.intersectObjects(blocks,false);return !hs.length||hs[0].distance>d-2.4}   /* the slanted side of the block next door does not count as hiding it */
+/* What was tapped? The nearest thing under the finger wins: one plate per glowing space, one box per laid block (no outlines, no glows).
+   A near miss still counts for small fingers: the nearest space in plain sight within reach. */
+function tapTarget(e){
+  if(plotMarks.length){let bp=null,bd=64;fresh3();plotMarks.forEach(function(m){if(m.userData.glowOnly)return;const d=near(m,e);if(d<bd){bd=d;bp=m}});return bp?{plot:bp.userData.plot}:null}
+  const blocks=pieces();aim(e);const hs=ray.intersectObjects(ghosts.concat(blocks),false),first=hs.length?hs[0].object:null;
+  if(first&&first.userData.ghost)return{ghost:first};
+  if(first&&first.userData.t==='W'&&!ghosts.length)return{bale:first};
+  let best=null,bd=first?24:40;ghosts.forEach(function(g){const d=near(g,e);if(d<bd&&inSight(g,blocks)){bd=d;best=g}});
+  if(best)return{ghost:best};
+  if(first&&first.userData.t==='W')return{bale:first};
+  bd=first?20:34;blocks.forEach(function(m){if(m.userData.t!=='W')return;const d=near(m,e);if(d<bd){bd=d;best=m}});
+  return best?{bale:best}:null}
+canvas.addEventListener('pointerdown',function(e){down={x:e.clientX,y:e.clientY,t:performance.now(),r:world.rotation.y,pull:false,dist:0};
+  if(armed&&near(armed.m,e)<70){armed.active=true;down.pull=true;tremble=1;e.preventDefault()}
+  try{canvas.setPointerCapture(e.pointerId)}catch(_){}});
+canvas.addEventListener('pointermove',function(e){if(!down)return;
+  if(down.pull){down.dist=Math.min(1,Math.abs(e.clientX-down.x)/Math.max(110,Math.min(200,canvas.clientWidth*0.22)));pullTick();return}
+  if(cityView)return;
+  world.rotation.y=rotGoal=Math.max(-1.05,Math.min(1.05,down.r+(e.clientX-down.x)*0.008))});   /* clamped so nothing can ever cover the house */
+function up(e){if(!down)return;const d=down;down=null;
+  if(d.pull){if(armed&&armed.active){const el=(performance.now()-d.t)/armed.min;if(d.dist>=0.8&&el>=1)pullDone();else pullSlip(d.dist>=0.8?'fast':'slip')}return}   /* out only after the full slow time */
+  if(Math.hypot(e.clientX-d.x,e.clientY-d.y)<10&&performance.now()-d.t<600){const t=tapTarget(e);if(!t)return;
+    if(t.plot!=null){if(api.onPlot)api.onPlot(t.plot)}
+    else if(t.ghost){if(api.onGhost)api.onGhost({wall:t.ghost.userData.wall,col:t.ghost.userData.c,row:t.ghost.userData.r})}
+    else if(api.onBale)api.onBale(t.bale.userData.wall,t.bale.userData.c,t.bale.userData.r)}}
+canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',function(){if(down&&down.pull)pullSlip('slip');down=null});
+
+/* ---- size and the frame loop ---- */
+function size(){const w=stage.clientWidth,hh=stage.clientHeight;if(!w||!hh)return;renderer.setSize(w,hh,false);const a=w/hh;if(camera.aspect!==a){camera.aspect=a;camera.updateProjectionMatrix();camSnap=true;if(cityView)turnTo('city');else home()}}
+window.addEventListener('resize',size);if(window.ResizeObserver)new ResizeObserver(size).observe(stage);
+let last=performance.now();
+function loop(now){requestAnimationFrame(loop);const dt=Math.min(0.05,(now-last)/1000);last=now;T+=dt;
+  if(tweens.length||fx.length)shadowTicks=3;
+  for(let i=tweens.length-1;i>=0;i--){const t=tweens[i];t.t+=dt;const k=Math.min(1,t.t/t.dur);t.fn(t.e(k));if(k>=1){const j=tweens.indexOf(t);if(j>=0)tweens.splice(j,1);t.done()}}
+  bodies.forEach(function(b){if(b.rest)return;shadowTicks=3;const p=b.m.position;b.v.y-=32*dt;p.addScaledVector(b.v,dt);
+    b.m.rotation.x+=b.w.x*dt;b.m.rotation.y+=b.w.y*dt;b.m.rotation.z+=b.w.z*dt;
+    if(p.x>10){p.x=10;b.v.x*=-0.4}if(p.x<-9.6){p.x=-9.6;b.v.x*=-0.4}if(p.z>7.6){p.z=7.6;b.v.z*=-0.4}if(p.z<-2.4){p.z=-2.4;b.v.z*=-0.4}
+    const gy=groundAt(p.x,p.z)+0.55;if(p.y<=gy){p.y=gy;if(Math.abs(b.v.y)>5){b.v.y*=-0.3;b.v.x*=0.6;b.v.z*=0.6;b.w.multiplyScalar(0.5)}else{b.rest=true;settleBody(b)}}});
+  for(let i=fx.length-1;i>=0;i--){const f=fx[i];f.t+=dt;if(f.t<0)continue;const k=f.t/f.life;if(k>=1){world.remove(f.s);f.s.material.dispose();fx.splice(i,1);continue}
+    f.s.visible=true;f.s.position.set(f.x+Math.sin(T*9+i)*0.2,f.y+k*f.rise,f.z);f.s.material.opacity=Math.sin(k*Math.PI)*0.9;const s2=1.6+k*2.4;f.s.scale.set(s2,s2,1)}
+  if(!reduce){flies.forEach(function(f){f.h.position.set(f.x+Math.sin(T*f.s+f.p)*1.6,f.y+Math.sin(T*f.s*1.7+f.p)*0.8,f.z+Math.cos(T*f.s*0.8+f.p)*1.4);f.h.material.opacity=0.45+Math.sin(T*3+f.p)*0.45});
+    clouds.position.x+=dt*0.3;if(clouds.position.x>90)clouds.position.x=-90}
+  else flies.forEach(function(f){f.h.position.set(f.x,f.y,f.z)});
+  M.dot.opacity=reduce?0.9:0.55+Math.sin(T*5)*0.4;M.dotHot.opacity=reduce?1:0.7+Math.sin(T*9)*0.3;M.lineSlot.opacity=reduce?0.8:0.6+Math.sin(T*5)*0.25;
+  pullTick();
+  if(!down||down.pull){const dr=rotGoal-world.rotation.y;if(Math.abs(dr)>0.0005){world.rotation.y+=dr*(reduce?1:Math.min(1,dt*3.5));shadowTicks=2}}
+  if(!reduce)marks.forEach(function(mk,i){mk.position.y=mk.userData.y+Math.sin(T*(mk.userData.v>=2?6:3)+i)*0.25});
+  if(armed&&!reduce){const v=1.03+Math.sin(T*6)*0.03;if(!armed.active)armed.m.scale.set(v,v,v)}
+  const sw=reduce?0:Math.sin(T*3.2),tr=reduce?0:tremble*Math.sin(T*42)*0.006;
+  if(pivots.front){pivots.front.rotation.x=lean.front+sw*sway.front+tr;pivots.left.rotation.z=lean.left+sw*sway.left+tr;pivots.right.rotation.z=-(lean.right+sw*sway.right+tr)}
+  doorLight.intensity=1.3+Math.sin(T*7)*0.08;
+  const q=camSnap||reduce?1:Math.min(1,dt*3.2);camSnap=false;camera.position.lerp(camGoal,q);camLook.lerp(lookGoal,q);camera.lookAt(camLook);
+  if(shadowTicks>0){shadowTicks--;renderer.shadowMap.needsUpdate=true}
+  renderer.render(scene,camera);if(renderer.info.render.calls>maxCalls)maxCalls=renderer.info.render.calls}
+size();requestAnimationFrame(loop);
+const api={render:render,dropIn:dropIn,burst:burst,cellsFx:cellsFx,showGhosts:showGhosts,hideGhosts:hideGhosts,armPull:armPull,disarm:disarm,autoPull:autoPull,settle:settle,
+  fireStart:fireStart,burn:burn,knock:knock,wallFall:wallFall,caveIn:caveIn,spireFall:spireFall,crown:crown,mendGlow:mendGlow,seal:seal,sprout:sprout,neighbourIn:neighbourIn,stoneIn:stoneIn,
+  showPlots:showPlots,hidePlots:hidePlots,cityPop:cityPop,home:home,wait:wait,turnTo:turnTo,faceWall:faceWall,rot:function(){return world.rotation.y},
+  onGhost:null,onBale:null,onPlot:null,
+  /* for checking by hand or by a test */
+  snap:function(){world.rotation.y=rotGoal;camera.position.copy(camGoal);camLook.copy(lookGoal);camera.lookAt(camLook);fresh3()},tapTarget:tapTarget,
+  debugTap:function(e){aim(e);return ray.intersectObjects(ghosts.concat(pieces()),false).map(function(h){return [h.object.userData.wall,h.object.userData.c,h.object.userData.r,h.object.userData.ghost?'ghost':h.object.userData.t,Math.round(h.distance*10)/10]})},
+  screenOfSlot:function(w,c,r){fresh3();const o=ghosts.filter(function(g){return g.userData.wall===w&&g.userData.c===c&&g.userData.r===r})[0]||P[key(w,c,r)];return o?screenOf(o):null},
+  screenOfPlot:function(i){fresh3();const m=plotMarks.filter(function(q){return q.userData.plot===i})[0];return m?screenOf(m):null},
+  /* draw calls in the frame just drawn (shadow pass included when it ran), and the most seen since the last reset */
+  info:function(reset){const o={calls:renderer.info.render.calls,max:maxCalls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries};if(reset)maxCalls=0;return o},
+  frame:function(){fresh3();shadowTicks=1;renderer.shadowMap.needsUpdate=true;renderer.render(scene,camera);const a=renderer.info.render.calls;renderer.render(scene,camera);return {withShadows:a,plain:renderer.info.render.calls}}};
+return api}
+/* without 3D every scene call quietly does nothing, so the buttons still work */
+const S=make3D()||new Proxy({},{get:function(t,k){return k==='onGhost'||k==='onBale'||k==='onPlot'?null:k==='wait'?function(ms){return new Promise(function(r){setTimeout(r,Math.min(ms||0,60))})}:function(){return Promise.resolve()}},set:function(){return true}});
+if(!window.THREE||!$('c').getContext){$('fallback').hidden=false}
+
+/* ================= 6. words about pieces, plain-word reasons, undo, and the lamp workaround ================= */
+const ui={sel:null,sheet:null,m:null,busy:false,wc:{},simOut:'',temper:'typical',runs:0,undo:null};
+function K3(w,c,r){return w+':'+c+':'+r}
+function busy(){if(ui.busy){toast('Wait for the fire to finish.');sfx('no')}return ui.busy}
+function pieceLabel(p){if(p.m&&p.m.label)return p.m.label;if(isGem(p.t))return FRUIT[p.t].name;
+  return {G:(get('gold.name')||'Gold')+': '+(get('gold.meaning')||'time with God'),S:(get('silver.name')||'Silver')+': '+(get('silver.meaning')||'faithful work'),W:'Straw',P:'Pearl',L:'Lamp'}[p.t]||p.t}
+function why(reason,what){const kr=get('kidRules')||{},ck=reason==='cap'?{G:'capGold',S:'capSilver',W:'capStraw',gem:'capGem',L:'capLamp'}[what]:reason;if(kr[ck])return kr[ck];
+  if(reason==='cap')return {G:'Gold is given once a day. You already have today\'s.',S:'Two silver a day is the most. You have both.',W:'No more straw can land today.',gem:'That is all the gems for one day.'}[what]||'That is all for today.';
+  return {rubbleCap:'That is all the fallen stones you can lay again today. More tomorrow. Today\'s new pieces are always free to lay.',
+    slot:'A piece can\'t go there. It needs something under it.',noPiece:'That piece has already been laid.',
+    notForgiven:'Say sorry first. Then you can make it right.',pullCap:'This wall has had enough pulling for one day. The bale is forgiven already. It can come out tomorrow.',
+    notStraw:'That one is not straw.',notReady:'The building needs every space filled and no straw before it can ask for the fire.',
+    tooSoon:'Their house begins tomorrow. The first stone lands then.',alreadyToday:'Their stone for today has already landed. Another tomorrow.',
+    houseDone:'Their house is finished.',noNeighbour:'Nobody is building next door yet.',gemsOnly:'Only gems can go on the spire.',
+    notMadeRight:'Go and make it right first. Then it can come out.',notEnough:'Not enough stars for that yet.',notOffered:'That goal is not on offer for this building.'}[reason]||'Not right now.'}
+function refuse(reason,what){sfx('no');say(why(reason,what))}
+/* The rules still hand out a lamp as a tray piece for telling someone about Jesus. It is shown as a small garden lamp by the seed,
+   not as a reward block, so lamp pieces are kept out of the tray tiles and out of "lay the rest". */
+function isLamp(p){return p.t==='L'}
+function lampsAside(s,fn){const L=s.tray.filter(isLamp);s.tray=s.tray.filter(function(p){return !isLamp(p)});const r=fn();s.tray=s.tray.concat(L);return r}
+function trayTiles(s){return s.tray.filter(function(p){return !isLamp(p)})}
+/* 10-second Undo for a mistaken fruit or straw tap: the child's whole saved state is put back as it was */
+let undoTimer=0;
+function undoPoint(){ui.undo=JSON.stringify(K())}
+function offerUndo(){$('undo').hidden=false;clearTimeout(undoTimer);undoTimer=setTimeout(clearUndo,10000)}
+function clearUndo(){ui.undo=null;$('undo').hidden=true;clearTimeout(undoTimer)}
+$('undo').addEventListener('click',function(){if(!ui.undo||busy())return;DB.kids[DB.cur]=JSON.parse(ui.undo);clearUndo();ui.sheet=null;ui.sel=null;S.hideGhosts();redraw();say('Undone.',true)});
+
+function planText(pl){pl=pl||X().plan;if(!pl)return '';const f=FRUIT[pl.fruit],a=band();
+  return fill(forAge(get('morningPlan.ifThen'),a)||'When {hard}, I will {plan}.',{hard:pl.when,plan:pl.will,fruit:f.name.toLowerCase()})}
+function planPrayer(){const x=X(),f=FRUIT[x.plan.fruit],a=band();return fill(forAge(get('morningPlan.pray'),a)||f.raw.morningPrayer||'',{hard:x.plan.when,plan:x.plan.will,fruit:f.name.toLowerCase()})}
+function nightsToFire(){const s=st();if(R.isFireNight(s))return 0;const nights=R.CONFIG.fireNights[band()];for(let d=1;d<=7;d++)if(nights.indexOf((s.weekday+d)%7)>=0)return d;return 7}
+function mortarLine(sm){const left=sm.mortarEndsDay!=null?sm.mortarEndsDay-sm.day:0;
+  return (get('fairness.mortar.kid')||'Extra mortar for a while: your walls hold a little more.')+(left>0?' (About '+left+' more '+(left===1?'day':'days')+'.)':'')}
+function NA(){return forAge(get('nightAccount2'),band())||{}}   /* the newer night words, when content.js has them */
+function stage(){try{if(typeof RC.fadeStage==='function')return RC.fadeStage(DB.month)||{}}catch(e){}return{}}
+function flag(name,fallback){const f=stage().flags;return f&&f[name]!=null?!!f[name]:fallback}
+function fadeNote(re){const fp=get('fadePlan')||[];let out='';fp.forEach(function(m){if(m.month<=DB.month)(m.changes||[]).forEach(function(c){if(re.test(c))out=c})});return out}
+function gemCount(s){let n=R.windows(s).gems;s.city.forEach(function(c){n+=c.gems||0});s.tray.forEach(function(p){if(isGem(p.t))n++});s.rubble.forEach(function(p){if(isGem(p.t))n++});return n}
+
+/* ================= 7. drawing the page around the picture ================= */
+/* commissions: the rules name them one way and the words file another, so they are joined by this small table */
+const GOALWORD={pure2:'twoPure',rainbow:'rainbowRow',everyWall:'windowEveryWall',goldTop:'goldTop'};
+function goalWords(card){const g=byId(get('commissions.goals')||[],GOALWORD[card.id])||{};return{label:g.label||card.label,line:g.line||'',done:g.done||(card.label+'. Done!')}}
+function goalDone(){const g=R.commissionProgress(st());return !!(g&&g.done)}
+function cheerGoal(was){const g=R.commissionProgress(st());if(g&&g.done&&!was){const w=goalWords(g);sfx('seal');say(w.done);toast(w.label+' \u2714');return true}return false}
+/* where each sealed building stands in the City: the child's choice, kept by the page (the rules have no field for it) */
+function ensurePlots(k){const p=k.p;if(!p.plots)p.plots={};const used={};Object.keys(p.plots).forEach(function(n){used[p.plots[n]]=1});
+  k.s.city.forEach(function(rec){if(p.plots[rec.n]!=null||k.x.sealN===rec.n)return;let i=0;while(used[i])i++;p.plots[rec.n]=i;used[i]=1})}
+function freePlots(k,n){const used={};Object.keys(k.p.plots||{}).forEach(function(q){used[k.p.plots[q]]=1});const out=[];for(let i=0;out.length<n&&i<400;i++)if(!used[i])out.push(i);return out}
+function draw3(opt){const k=K();ensurePlots(k);S.render(k.s,k.x,k.p,opt)}
+function plotMode(){S.turnTo('city');S.showPlots(freePlots(K(),3))}
+function redraw(opt){draw3(opt);reGhost();if(X().phase==='night'&&X().night==='plot')plotMode();else S.hidePlots();drawAll()}
+/* glowing spaces for the piece in hand. A gem may also dare the spire, and is shown where it would finish a window. */
+function trayPiece(){if(!ui.sel)return null;const s=st(),list=ui.sel.list==='tray'?s.tray:s.rubble;return list.filter(function(p){return p.id===ui.sel.id})[0]||null}
+function openSlots(s,piece){return R.legalSlots(s).concat(piece&&isGem(piece.t)?R.spireSlots(s):[])}
+function windowHints(s,piece,slots){const out={};if(!piece||!isGem(piece.t))return out;const base=R.windows(s);
+  slots.forEach(function(q){if(q.wall==='free'||q.wall==='spire')return;const col=s.walls[q.wall][q.col];col[q.row]=piece;const w=R.windows(s);col[q.row]=null;   /* try it, ask the rules, take it out again */
+    if(w.pure>base.pure)out[K3(q.wall,q.col,q.row)]='pure';else if(w.total>base.total)out[K3(q.wall,q.col,q.row)]='window'});return out}
+function showSlots(){const s=st(),piece=trayPiece(),slots=piece?openSlots(s,piece):[];if(!slots.length){ui.sel=null;S.hideGhosts();return null}
+  S.showGhosts(slots,windowHints(s,piece,slots));return slots}
+/* the picture was redrawn: if a piece is still in hand, its glowing spaces come back */
+function reGhost(){if(ui.sel)showSlots()}
+function drawAll(){drawBar();drawTray();drawPanel();save()}
+function drawBar(){const s=st(),x=X(),kids=$('kids');kids.textContent='';
+  AGES.forEach(function(a){kids.appendChild(btn('Age '+a,function(){askSwitch(a)},null,{'aria-pressed':String(DB.cur===a)}))});
+  $('dayChip').textContent=WEEK[s.weekday]+' \u00b7 Day '+s.day;
+  const n=nightsToFire();$('fireTxt').textContent=n===0?(s.today.fired?'Fire is over':'Fire tonight'):n===1?'Fire tomorrow night':'Fire in '+n+' nights';
+  $('fireChip').className='chip'+(n===0&&!s.today.fired?' fire':'');$('candle').style.setProperty('--left',Math.max(12,Math.round(n/7*100))+'%');
+  $('cityChip').textContent='City: '+s.city.length;
+  $('mute').textContent=DB.mute?'Sound off':'Sound on';$('mute').setAttribute('aria-pressed',String(!!DB.mute));
+  const sm=R.summary(s);$('tag').textContent=s.bp.name+' \u00b7 '+(sm.slots.filled+sm.free.filled)+' of '+(sm.slots.total+sm.free.total)+' laid'+(sm.mortar?' \u00b7 extra mortar':'');
+  $('stars').textContent='\u2605 '+sm.starBalance;$('stars').setAttribute('aria-label',sm.starBalance+' stars to spend on decorations');
+  const g=sm.commission,ge=$('goal');ge.hidden=!g;if(g)ge.textContent=goalWords(g).label+': '+g.have+' of '+g.need+(g.done?' \u2714':'');
+  const pl=$('plan');pl.hidden=!x.plan||x.phase==='morning';pl.textContent='';
+  if(x.plan){pl.appendChild(h('span',{class:'dot',style:'background:'+css(x.plan.fruit)}));pl.appendChild(h('span',null,[h('strong',{text:'Today: '+FRUIT[x.plan.fruit].name+'. '}),planText()]))}}
+function tile(p,list){const sel=ui.sel&&ui.sel.id===p.id;
+  return btn([h('span',{class:'sw',style:'background:'+css(p.t)}),h('span',{text:pieceLabel(p)})],function(){pickTile(p,list)},'tile',{'aria-pressed':String(!!sel)})}
+function drawTray(){const s=st(),t=$('tray'),sm=R.summary(s),tiles=trayTiles(s);t.textContent='';
+  const can=tiles.length||(s.rubble.length&&sm.rubbleLeftToday>0);
+  t.appendChild(h('div',{class:'row'},[h('h2',{text:'Today\'s pieces'}),h('span',{class:'note',text:tiles.length?'Tap a piece, then tap a glowing space.':'Nothing waiting. Pieces come from real life.'}),h('span',{class:'sp'}),can?btn('Lay the rest for me',layRest):null]));
+  if(tiles.length)t.appendChild(h('div',{class:'tiles'},tiles.map(function(p){return tile(p,'tray')})));
+  if(s.rubble.length){t.appendChild(h('h3',{text:'Rubble pile: '+s.rubble.length+' fallen '+(s.rubble.length===1?'stone':'stones')+' \u00b7 '+sm.rubbleLeftToday+' more can be laid again today'}));
+    t.appendChild(h('div',{class:'tiles'},s.rubble.map(function(p){return tile(p,'rubble')})))}}
+function drawPanel(){const b=$('pbody'),f=$('pfoot'),x=X();b.textContent='';f.textContent='';b.scrollTop=0;
+  if(ui.busy){b.appendChild(h('p',{class:'say',text:'Watch the fire.'}));return}
+  if(ui.sheet){SHEETS[ui.sheet.kind](b,f,ui.sheet);return}
+  ({morning:drawMorning,day:drawDay,night:drawNight})[x.phase](b,f)}
+function openSheet(o){if(busy())return;S.disarm();ui.sheet=o;drawPanel()}
+function closeSheet(){S.disarm();ui.sheet=null;drawPanel()}
+function title(b,text){b.appendChild(h('div',{class:'row'},[h('h2',{text:text}),h('span',{class:'sp'}),ui.sheet?btn('Back',closeSheet,'quiet'):null]))}
+/* in-page confirm, optionally with one box to type in (a PIN, or a first name) */
+function confirmBox(text,yes,fn,opt){opt=opt||{};const inp=$('modalIn'),alt=$('modalAlt');$('modalTxt').textContent=text;$('modalYes').textContent=yes;
+  inp.hidden=!opt.input;inp.value='';
+  if(opt.input==='pin'){inp.type='password';inp.setAttribute('inputmode','numeric');inp.maxLength=4;inp.placeholder='4 numbers';inp.setAttribute('aria-label','PIN');inp.autocomplete='off'}
+  if(opt.input==='sum'){inp.type='text';inp.setAttribute('inputmode','numeric');inp.maxLength=3;inp.placeholder='The answer';inp.setAttribute('aria-label','The answer to the sum')}
+  if(opt.input==='name'){inp.type='text';inp.removeAttribute('inputmode');inp.maxLength=14;inp.placeholder='First name only (you can leave it empty)';inp.setAttribute('aria-label','First name')}
+  alt.hidden=!opt.alt;if(opt.alt){alt.textContent=opt.alt.label;alt.onclick=function(){$('modal').hidden=true;opt.alt.fn()}}
+  $('modalNo').textContent=opt.no||'No, go back';$('modal').hidden=false;
+  $('modalYes').onclick=function(){$('modal').hidden=true;fn(inp.value.trim())};$('modalNo').onclick=function(){$('modal').hidden=true;if(opt.onNo)opt.onNo()};
+  inp.onkeydown=function(e){if(e.key==='Enter')$('modalYes').click()};
+  (opt.input?inp:$('modalNo')).focus()}
+/* a child's straw and account are theirs: changing child asks first */
+function askSwitch(a){if(a===DB.cur||busy())return;confirmBox('Is this Age '+a+'\'s turn? Only Age '+a+' and a grown-up should be looking.','Yes, it is',function(){switchKid(a)})}
+function switchKid(a){DB.cur=a;ui.sel=null;ui.sheet=null;ui.m=null;clearUndo();S.hideGhosts();S.hidePlots();S.turnTo('centre');say('');redraw()}
+
+/* ---- A. morning: one fruit, the three hard moments that fit it, that moment's own three "I will"s ---- */
+function hardFor(code,a,all){const f=FRUIT[code],list=CT.hard(a);if(all)return list;const ms=get('morningShort');let out=null;
+  if(ms){const v=ms[f.ccode]||ms[f.name]||ms[f.name.toLowerCase()];if(Array.isArray(v))out=v.map(function(q){return typeof q==='string'?byId(list,q):q}).filter(Boolean)}
+  if(!out||!out.length){out=list.filter(function(q){return Array.isArray(q.fruits)?q.fruits.indexOf(f.ccode)>=0:q.fruit===f.ccode});
+    out.sort(function(q,r){return (r.fruit===f.ccode?1:0)-(q.fruit===f.ccode?1:0)})}
+  list.forEach(function(q){if(out.length<3&&out.indexOf(q)<0)out.push(q)});return out.slice(0,3)}
+function willsFor(hm,a){return ((hm&&hm.iWill&&hm.iWill.length)?hm.iWill:CT.resp(a)).slice(0,3)}
+function needGoal(){const s=st();return R.CONFIG.commissions.enabled&&!s.build.commission&&R.commissionChoices(s,Math.random).length>0}
+/* three goal cards for this building; the child picks one (it can be swapped until the building is sealed) */
+function drawGoal(b,f){const s=st(),cards=R.commissionChoices(s,Math.random),cur=s.build.commission;title(b,'A goal for your '+s.bp.name);
+  b.appendChild(h('p',{class:'say',text:get('commissions.intro')||'Something lovely to aim for. You choose.'}));
+  b.appendChild(h('div',{class:'grid'},cards.map(function(cd){const w=goalWords(cd);return btn([h('span',null,[w.label,h('small',{text:w.line})])],function(){const r=R.chooseCommission(s,cd.id);if(!r.ok){refuse(r.reason);return}
+    sfx('gem');ui.sheet=null;say(w.line);drawAll()},null,{'aria-pressed':String(cur===cd.id)})})))}
+function drawMorning(b,f){const k=K(),x=k.x,a=band(),m=ui.m||(ui.m={step:'fruit'}),t=k.p.tryTomorrow;
+  if(needGoal()){drawGoal(b,f);return}
+  if(t&&!m.decided&&FRUIT[t.fruit]){title(b,'Morning');
+    const nm=(NA().tomorrow&&NA().tomorrow.nextMorning)||{};b.appendChild(h('p',{class:'say',text:nm.ask||'Keep or change your plan?'}));b.appendChild(h('p',{class:'pray',text:planText(t)}));
+    f.appendChild(btn(nm.keep||'Keep my plan',function(){m.decided=true;x.plan={fruit:t.fruit,hard:t.hard,when:t.when,will:t.will};m.step='ready';sfx('tap');drawAll()},'big'));
+    f.appendChild(btn(nm.change||'Change it',function(){m.decided=true;sfx('tap');drawPanel()},'quiet'));return}
+  if(m.step==='fruit'){title(b,'Morning');b.appendChild(h('p',{class:'note',text:'Pick one fruit to ask Jesus for today.'}));
+    b.appendChild(h('div',{class:'grid three'},FRUITS.map(function(fr){return btn([h('span',{class:'dot',style:'background:'+css(fr.code)}),h('span',null,[fr.name,h('small',{text:fr.raw.kidLine||''})])],function(){sfx('tap');m.fruit=fr.code;m.step='hard';m.all=false;drawPanel()})})));return}
+  if(m.step==='hard'){title(b,FRUIT[m.fruit].name);b.appendChild(h('p',{class:'say',text:txt(get('morningPlan.intro'),a)}));
+    b.appendChild(h('div',{class:'grid'},hardFor(m.fruit,a,m.all).map(function(q){return btn(q.label,function(){sfx('tap');m.hard=q;m.step='will';drawPanel()})})));
+    if(flag('ownHardMoment',DB.month>=3)){const inp=h('input',{type:'text',maxlength:'40',placeholder:'Or write your own hard moment','aria-label':'My own hard moment'});   /* from month 3 the child may write their own */
+      b.appendChild(h('div',{class:'row'},[inp,btn('Use mine',function(){const v=inp.value.trim();if(!v)return;m.hard={id:'own',label:v,when:v.charAt(0).toLowerCase()+v.slice(1)};m.step='will';sfx('tap');drawPanel()})]))}
+    b.appendChild(h('div',{class:'row'},[m.all?null:btn('More',function(){m.all=true;drawPanel()},'link'),btn('Change fruit',function(){m.step='fruit';drawPanel()},'link')]));return}
+  if(m.step==='will'){title(b,m.hard.label);b.appendChild(h('p',{class:'say',text:'I will\u2026'}));
+    b.appendChild(h('div',{class:'grid'},willsFor(m.hard,a).map(function(q){return btn(q.label,function(){sfx('tap');x.plan={fruit:m.fruit,hard:m.hard.id,when:m.hard.when||m.hard.label,will:q.will||q.label};m.step='ready';drawAll()})})));
+    b.appendChild(h('div',{class:'row'},[btn('Change the hard moment',function(){m.step='hard';drawPanel()},'link')]));return}
+  title(b,'My plan for today');b.appendChild(h('p',{class:'say',text:planText()}));b.appendChild(h('p',{class:'pray',text:planPrayer()}));
+  const mentor=a===12&&flag('mentor',DB.month>=6)?fadeNote(/coaches/):'';if(mentor)b.appendChild(h('p',{class:'note',text:mentor}));
+  b.appendChild(h('div',{class:'row'},[btn('Change it',function(){m.step='fruit';x.plan=null;drawAll()},'link')]));
+  f.appendChild(btn('Amen. Start my day',function(){x.phase='day';k.p.tryTomorrow=null;ui.m=null;sfx('gem');say(txt(get('morningPlan.done'),a));drawAll()},'big'))}
+
+/* ---- B. the day: pretend things that happen (in the real app a grown-up taps these) ---- */
+function drawDay(b,f){const s=st(),sm=R.summary(s);
+  title(b,'Pretend things that happen today');
+  b.appendChild(h('p',{class:'note',text:'In the real app a grown-up taps these on the family iPad.'}));
+  if(sm.mortar)b.appendChild(h('p',{class:'mortar',text:mortarLine(sm)}));
+  const list=[['I saw fruit','A gem',function(){openSheet({kind:'fruit'})},'#28bea0'],['Time with God','Gold',function(){openSheet({kind:'metal',t:'G'})},css('G')],['Job done well','Silver',function(){openSheet({kind:'metal',t:'S'})},css('S')],
+    ['Straw moment','It can be fixed',function(){openSheet({kind:'straw'})},null],['Stop & Pray','Lights the lamp',function(){openSheet({kind:'pray',step:0})},'#ffd58a'],
+    [get('gospel.labels.told','gospel.actCard.label')||'I told someone about Jesus','A seed is planted',function(){openSheet({kind:'tell'})},'#bfffb0'],[get('gospel.labels.friendFollows')||'A friend says they want to follow Jesus',get('gospel.labels.friendFollowsNote')||'Grown-ups only',friendCame,'#ff9a4a'],[get('gospel.labels.prayForNoName')||'Pray for them','Praying is watering',function(){openSheet({kind:'prayFor'})},'#f8eef4']];
+  b.appendChild(h('div',{class:'grid'},list.map(function(q){return btn([h('span',{class:'dot'+(q[3]?'':' W'),style:q[3]?'background:'+q[3]:null}),h('span',null,[q[0],h('small',{text:q[1]})])],q[2])})));
+  if(flag('calmPractice',DB.month<3)){const cp=get('throughTheDay.calmPractice.intro')||fadeNote(/Stop and Pray/);if(cp)b.appendChild(h('p',{class:'note',text:'Grown-up, once today when nobody is upset: '+cp}))}
+  if(flag('lunchPrompt',false)&&get('throughTheDay.lunch.prompt'))b.appendChild(h('p',{class:'note',text:'Grown-up, at lunch: \u201c'+get('throughTheDay.lunch.prompt')+'\u201d'}));
+  if(flag('tapOnlyCostly',false)){const tc=fadeNote(/cost something/);if(tc)b.appendChild(h('p',{class:'note',text:'Grown-up: '+tc}))}
+  if(sm.canCallFire&&!R.isFireNight(s))b.appendChild(h('p',{class:'note',text:'Every space is filled and there is no straw. Tonight it can ask for its fire.'}));
+  f.appendChild(btn('It\'s night time',goNight,'big'))}
+function give(type,meta,line){if(busy())return false;undoPoint();const s=st(),r=R.addPiece(s,type,meta);if(!r.ok){ui.undo=null;refuse(r.reason,isGem(type)?'gem':type);return false}
+  sfx(isGem(type)?'gem':'tap');ui.sheet=null;say(line);drawAll();offerUndo();return true}
+/* things to spend stars on: no effect on the game, only lovely */
+const SHOP=[['flag','A flag on the pillar',1,'home',1],['flowers','A flower box',1,'home',3],['lantern','A lantern by the steps',1,'home',1],['doorRed','A red door',1,'home',9],['doorBlue','A blue door',1,'home',9],['doorGreen','A green door',1,'home',9],['banner','Bunting for the City',2,'city',1]];
+function buy(q){if(busy())return;const s=st(),r=R.spendStars(s,q[2],{kind:q[0],building:q[3]});if(!r.ok){refuse(r.reason);return}
+  sfx('seal');say(q[1]+'. Lovely.');redraw();if(q[3]==='city'){S.turnTo('city');setTimeout(function(){if(X().night!=='plot')S.turnTo('centre')},3200)}}
+const SHEETS={
+  goal:function(b,f,sh){drawGoal(b,f)},
+  decorate:function(b,f,sh){const s=st(),sm=R.summary(s);title(b,'Decorate: \u2605 '+sm.starBalance+' to spend');
+    b.appendChild(h('p',{class:'note',text:'Stars come with every sealed building. They are for making things lovely.'}));
+    b.appendChild(h('div',{class:'grid'},SHOP.map(function(q){const have=sm.purchases.filter(function(pp){return pp.kind===q[0]}).length,full=have>=q[4];
+      return btn([h('span',null,[q[1],h('small',{text:full?'You have this':'\u2605 '+q[2]})])],function(){buy(q)},null,{disabled:(full||sm.starBalance<q[2])||null})})))},
+  fruit:function(b,f,sh){title(b,sh.f?FRUIT[sh.f].name+': '+(FRUIT[sh.f].raw.kidLine||''):'I saw fruit');
+    if(!sh.f){b.appendChild(h('div',{class:'grid three'},FRUITS.map(function(fr){return btn([h('span',{class:'dot',style:'background:'+css(fr.code)}),h('span',null,[fr.name,h('small',{text:fr.raw.kidLine||''})])],function(){sfx('tap');sh.f=fr.code;drawPanel()})})));return}
+    const fr=FRUIT[sh.f],acts=fr.raw.acts&&fr.raw.acts.length?fr.raw.acts:[{label:fr.raw.kidLine||fr.name}];
+    b.appendChild(h('div',{class:'grid'},acts.map(function(a){return btn(a.label,function(){give(fr.code,{label:fr.name+': '+a.label,act:a.id},CT.praise(fr,a))})})))},
+  metal:function(b,f,sh){const o=get(sh.t==='G'?'gold':'silver')||{},acts=o.acts||[{label:o.meaning||''}];title(b,(o.name||'')+': '+(o.meaning||''));
+    b.appendChild(h('div',{class:'grid'},acts.map(function(a){return btn(a.label,function(){give(sh.t,{label:(o.name||'')+': '+a.label,act:a.id},txt(o.lines,band()))})})))},
+  straw:function(b,f,sh){const kinds=get('straw.kinds')||{};title(b,sh.own?'I want to own up':'Straw moment');
+    b.appendChild(h('p',{class:'note',text:get('straw.meaning')||''}));
+    b.appendChild(h('div',{class:'grid'},CT.strawCards().map(function(c){return btn([h('span',null,[c.label,h('small',{text:(kinds[c.kind]&&kinds[c.kind].kidWords)||''})])],function(){addStraw(c,sh.own)})})))},
+  pray:function(b,f,sh){const sp=get('stopAndPray')||{};title(b,'Stop & Pray');
+    if(!sh.step){b.appendChild(h('p',{class:'say',text:sp.open||''}));
+      b.appendChild(h('div',{class:'grid three'},CT.feelings().map(function(fe,i){return btn(fe.label,function(){sfx('tap');sh.step=1;sh.feel=fe;sh.i=i;drawPanel();speak(sh.lines.join(' '))})})));sh.lines=[];return}
+    const steps=(sp.breath&&sp.breath.steps)||[],bp=byId(get('breathPrayers')||[],sh.feel.id),old=(sp.breath&&sp.breath.prayers)||[],pr=(bp&&bp.lines)||old[sh.i%Math.max(1,old.length)]||[];
+    sh.lines=[];steps.forEach(function(stp,i){const line=fill(pr[i]||'',{feeling:(sh.feel.label||'').toLowerCase()});sh.lines.push(stp+' '+line);
+      b.appendChild(h('div',{class:'step'},[h('span',{class:'note',text:stp}),h('span',{class:'pray',text:line})]))});
+    f.appendChild(btn('Amen',function(){const x=X();x.stopPray=true;ui.sheet=null;sfx('pearl');const after=get('stopAndPray.after')||[];say((after[1]||after[0]||'')+(x.plan?' '+planText():''));redraw()},'big'))},
+  /* told someone about Jesus: who was it? (first name only, optional). A seed with their name on a little sign. */
+  tell:function(b,f,sh){const w=get('gospel.whoDidYouTell')||{};title(b,get('gospel.labels.told','gospel.actCard.label')||'I told someone about Jesus');
+    b.appendChild(h('p',{class:'say',text:w.prompt||'Who did you tell?'}));
+    const inp=h('input',{type:'text',maxlength:'14',placeholder:w.placeholder||'First name','aria-label':(w.prompt||'Who did you tell?')+' First name only'});b.appendChild(inp);
+    b.appendChild(h('p',{class:'note',text:w.note||'Only a first name is kept.'}));
+    f.appendChild(btn('Plant the seed',function(){gospelShare(inp.value.trim())},'big'));f.appendChild(btn(w.skip||'I\'d rather not say',function(){gospelShare('')},'quiet'))},
+  /* pray for them: the real prayer, with the name, and Amen BEFORE any stone lands */
+  prayFor:function(b,f,sh){const k=K(),s=k.s,a=band(),people=[];title(b,'Pray for them');
+    s.neighbours.forEach(function(n){people.push({name:n.name,nb:n.id})});
+    const seen={};s.neighbours.forEach(function(n){if(n.name)seen[n.name]=1});
+    s.seeds.forEach(function(q){const nm=q.name||k.p.seedNames[q.id];if(nm&&!seen[nm]){seen[nm]=1;people.push({name:nm})}});
+    if(!people.length&&s.seeds.length)people.push({name:''});
+    if(!people.length){b.appendChild(h('p',{class:'say',text:get('gospel.watering.line')||''}));b.appendChild(h('p',{class:'note',text:'When you have told someone about Jesus, you can pray for them here.'}));return}
+    if(!sh.who&&people.length===1)sh.who=people[0];
+    if(!sh.who){b.appendChild(h('p',{class:'say',text:get('gospel.watering.prompt')||'Who would you like to pray for?'}));
+      b.appendChild(h('div',{class:'grid'},people.map(function(q){return btn([h('span',null,[q.name||'My friend',h('small',{text:q.nb?'Building next door':'A seed is planted'})])],function(){sh.who=q;drawPanel()})})));return}
+    const prayer=fill(forAge(get(sh.who.nb?'gospel.prayerForNewBuilder':'gospel.prayerForThem'),a)||'Jesus, please look after {friend}. Amen.',{friend:sh.who.name||'my friend'});
+    if(sh.who.name&&get('gospel.prayFirst.intro'))b.appendChild(h('p',{class:'say',text:fill(get('gospel.prayFirst.intro'),{friend:sh.who.name})}));
+    b.appendChild(h('p',{class:'pray',text:prayer}));speak(prayer);
+    f.appendChild(btn(get('gospel.prayFirst.done')||'Amen',function(){prayedFor(sh.who)},'big'))},
+  /* a straw bale: sorry (free, at once), then really going and making it right, then the careful pull */
+  fix:function(b,f,sh){const s=st(),pc=R.at(s,sh.wall,sh.col,sh.row),a=band();if(!pc||pc.t!=='W'){ui.sheet=null;drawPanel();return}
+    const m=pc.m||(pc.m={}),card=byId(CT.strawCards(),m.card)||{},mir=card.makeItRight||null,six=a===6,rp=get('repair')||{};
+    title(b,card.kidWords||m.label||'A straw bale');
+    if(!pc.forgiven){const generic=forAge(get('sorry.prayers'),a)||[];
+      b.appendChild(h('p',{class:'pray',text:card.sorryPrayer||fill(generic[m.did?0:1]||generic[0]||'',{did:m.did||''})}));
+      /* age 6 never taps sorry alone: a grown-up taps after praying it with them */
+      if(six){b.appendChild(h('p',{class:'note',text:(rp.prayedTogether&&rp.prayedTogether.note)||txt(get('nightAccount.strawQuestionNote'),6)}));
+        f.appendChild(btn('Grown-up: '+((rp.prayedTogether&&rp.prayedTogether.label)||'We prayed it together'),function(){sorry(sh)},'big'))}
+      else f.appendChild(btn('Amen',function(){sorry(sh)},'big'));return}
+    b.appendChild(h('p',{class:'say',text:get('sorry.forgiveness')||''}));
+    if(!m.right){const person=!mir||mir.kind==='person';
+      b.appendChild(h('p',{class:'note',text:rp.intro||get('straw.forgivenStillBurns')||''}));
+      if(mir){b.appendChild(h('p',{class:'pray',text:fill(mir.label)}));if(mir.words)b.appendChild(h('p',{class:'note',text:'You could say: \u201c'+fill(mir.words)+'\u201d'}))}
+      else{const opts=(get('sorry.makeItRight')||{})[m.kind]||[];if(opts.length)b.appendChild(h('p',{class:'pray',text:fill(opts[0].label)}))}
+      if(!m.went){const lab=person?((rp.didIt&&rp.didIt.label)||'I went and did it'):((rp.taskDone&&rp.taskDone.label)||'I did the job');
+        f.appendChild(btn(six?'With a grown-up: '+lab:lab,function(){m.went=true;sfx('tap');drawAll()},'big'));return}
+      b.appendChild(h('p',{class:'say',text:person?'Now pass the iPad to them, or to a grown-up.':'Now ask a grown-up to look.'}));
+      const nry=rp.notReadyYet||{};
+      f.appendChild(btn(person?((rp.rightAgain&&rp.rightAgain.label)||'We\'re right again'):'A grown-up says it\'s put right',function(){
+        confirmBox(person?'For the other person, or a grown-up: '+fill((rp.rightAgain&&rp.rightAgain.ask)||'are things right again between you?',{sibling:'you two'}).replace(/^you two, /,''):'Grown-up: has it been put right?',person?'Yes, we\'re right again':'Yes, it is',function(){
+          m.right=true;if(typeof R.markMadeRight==='function')R.markMadeRight(s,sh.wall,sh.col,sh.row,person?'other':'grown-up');sfx('gem');if(person&&rp.rightAgain&&rp.rightAgain.thanks)say(rp.rightAgain.thanks);startPull(sh)},
+          person?{no:nry.label||'Not ready yet',onNo:function(){say(nry.toChild||'They are not ready yet. That\'s okay. You can try again later.')}}:null)},'big'));return}
+    if(!sh.armed){startPull(sh,true);if(!sh.armed){b.appendChild(h('p',{class:'note',text:why('pullCap')}));return}}
+    b.appendChild(h('p',{class:'say',text:'Put your finger on the glowing bale. Drag it sideways, slowly and steadily. Too fast and it slips back. Then you just try again.'}));
+    if(DB.autoPull)f.appendChild(btn('Pull it out for me',function(){S.autoPull()},'quiet'))}
+};
+
+/* ---- day events ---- */
+function addStraw(card,own){if(busy())return;undoPoint();const s=st(),m={label:card.label,card:card.id,kind:card.kind,did:card.did,sibling:!!card.sibling};
+  const r=R.addPiece(s,'W',m);if(!r.ok){ui.undo=null;refuse(r.reason,'W');return}
+  const land=r.events.filter(function(e){return e.kind==='strawLand'})[0],bump=r.events.filter(function(e){return e.kind==='bump'})[0];
+  ui.sheet=null;ui.sel=null;S.hideGhosts();draw3({loose:land?[K3(land.wall,land.col,land.row)]:[]});
+  if(land){S.faceWall(land.wall);S.dropIn(land.wall,land.col,land.row).then(function(){sfx('straw');if(land.wobble===2)setTimeout(function(){sfx('creak')},350)})}
+  let line=own?((NA().ownUp&&NA().ownUp.praise)||txt(get('straw.ownedUpFirst'),band())):txt(get('straw.parentLines','straw.parentLine'),band());
+  if(bump)line+=' The building was full, so the newest stone was bumped out to the rubble pile.';
+  else if(land&&land.wobble===2)line+=' The '+WALLNAME[land.wall]+' is leaning now.';
+  else if(land&&land.wobble===1)line+=' The '+WALLNAME[land.wall]+' has started to sway.';
+  say(line);drawAll();offerUndo()}
+function gospelShare(name){if(busy())return;clearUndo();const k=K(),s=k.s,a=band(),r=R.addGospelShare(s,{label:'Lamp',name:name||'',friend:name||''});if(!r.ok){refuse(r.reason);return}
+  if(name)k.p.seedNames[r.seed.id]=name;if(r.piece||r.lamp)k.p.lamps[r.seed.id]=true;
+  sfx('gem');ui.sheet=null;draw3();S.sprout();
+  say(name&&get('gospel.seedPlantedFor')?fill(forAge(get('gospel.seedPlantedFor'),a),{friend:name}):CT.seedOnly(a)+' '+(get('gospel.lamp.lineNoName')||''));drawAll()}
+function friendCame(){if(busy())return;const lab=get('gospel.labels.confirmFollows');
+  confirmBox((lab?fill(lab,{friend:'a friend'}):'Grown-ups only. Has a friend said they want to follow Jesus? A new builder will start next door.')+' What is their first name?','Yes, they have',function(name){
+  clearUndo();const k=K(),s=k.s,a=band(),r=R.addNeighbour(s,name||'');if(!r.ok){refuse(r.reason);return}sfx('seal');draw3();S.neighbourIn(r.neighbour.id);
+  say((name&&get('gospel.newBuilderFor')?fill(forAge(get('gospel.newBuilderFor'),a),{friend:name}):CT.neighbour(a))+' '+(get('gospel.newBuilderThanks')||''));drawAll()},{input:'name'})}
+function prayedFor(who){if(busy())return;clearUndo();const k=K(),s=k.s,a=band();ui.sheet=null;
+  if(!who.nb){sfx('pearl');say(get('gospel.watering.line')||'');drawAll();return}
+  const r=R.prayFor(s,who.nb);
+  if(r.ok){sfx('place');draw3();S.stoneIn(who.nb);say(who.name&&get('gospel.prayedFor')?fill(forAge(get('gospel.prayedFor'),a),{friend:who.name}):CT.prayed(a))}
+  else{sfx('pearl');say((get('gospel.watering.line')||'')+' '+why(r.reason))}
+  drawAll()}
+
+/* ---- C. building: tap a tile, tap a glowing space ---- */
+function pickTile(p,list){if(busy())return;const s=st();sfx('tap');S.disarm();
+  if(ui.sel&&ui.sel.id===p.id){ui.sel=null;S.hideGhosts();drawTray();return}
+  if(list==='rubble'&&R.summary(s).rubbleLeftToday<=0){refuse('rubbleCap');return}
+  ui.sel={id:p.id,list:list};const slots=showSlots();if(!slots){sfx('no');say('There is no open space right now.');drawTray();return}
+  if(!slots.some(function(q){return q.wall==='front'||q.wall==='free'||q.wall==='spire'}))S.faceWall(slots[0].wall);   /* only a side wall is open: turn to show it */
+  if(Object.keys(windowHints(s,p,slots)).length)say('The bright tags show where this gem would finish a window.',true);
+  drawTray()}
+S.onGhost=function(slot){if(busy()||!ui.sel)return;const k=K(),s=k.s,sp=get('commissions.spire')||{};
+  /* the spire is a dare: the first time on each building it asks */
+  if(slot.wall==='spire'&&!(k.p.dared||{})[s.sealed]){confirmBox(sp.dare||'Dare to build a spire? If any straw burns, the spire comes down.',sp.yes||'I dare',function(){(k.p.dared||(k.p.dared={}))[s.sealed]=true;layAt(slot)},{no:sp.no||'Not this time'});return}
+  layAt(slot)};
+function layAt(slot){if(!ui.sel)return;clearUndo();const k=K(),s=k.s,list=ui.sel.list==='tray'?s.tray:s.rubble,i=list.findIndex(function(p){return p.id===ui.sel.id});if(i<0)return;
+  const before=R.windows(s).total,was=goalDone(),r=ui.sel.list==='tray'?R.place(s,i,slot.wall,slot.col,slot.row):R.placeRubble(s,i,slot.wall,slot.col,slot.row);
+  if(!r.ok){refuse(r.reason);return}
+  const ev=r.events[0],kind=ui.sel.list,laid=ui.sel.id;ui.sel=null;
+  /* keep the flow going: pick up the next piece of the same kind */
+  const next=(kind==='tray'?trayTiles(s):s.rubble)[0];
+  if(next&&next.id!==laid&&!(kind==='rubble'&&R.summary(s).rubbleLeftToday<=0))ui.sel={id:next.id,list:kind};
+  draw3({loose:[K3(slot.wall,slot.col,slot.row)]});reGhost();
+  S.dropIn(slot.wall,slot.col,slot.row).then(function(){sfx(isGem(ev.piece.t)?'gem':'place')});
+  if(ev.windows.total>before){const relit=k.p.dark;k.p.dark=false;const ms=(get('milestones')||[]).filter(function(q){return q.id===(ev.windows.pure?'pureGlass':'firstWindow')})[0];
+    say(relit?(get('commissions.window.relit')||'The window is shining again.'):(ms?ms.line:''));sfx('pearl')}
+  else if(slot.wall==='spire')say('A gem on the spire. Keep the straw out, and it stands.');
+  cheerGoal(was);drawAll()}
+function layRest(){if(busy())return;clearUndo();const k=K(),s=k.s,was=goalDone(),r=lampsAside(s,function(){return R.autoPlace(s)});ui.sel=null;S.hideGhosts();   /* the rules never put anything on the spire here */
+  draw3({loose:r.events.map(function(e){return K3(e.wall,e.col,e.row)})});
+  r.events.forEach(function(e,i){S.dropIn(e.wall,e.col,e.row,60+i*90).then(function(){if(i<6)sfx(isGem(e.piece.t)?'gem':'place')})});
+  if(!r.events.length)say('There is no open space right now.');cheerGoal(was);drawAll()}
+
+/* ---- D. fixing straw ---- */
+S.onBale=function(wall,col,row){if(busy())return;sfx('tap');ui.sel=null;S.hideGhosts();drawTray();openSheet({kind:'fix',wall:wall,col:col,row:row})};
+function sorry(sh){clearUndo();const k=K(),s=k.s,r=R.forgive(s,sh.wall,sh.col,sh.row);if(!r.ok){refuse(r.reason);return}
+  /* age 6: the grown-up's one tap says "we prayed it together and went and made it right" */
+  if(band()===6){const pc=R.at(s,sh.wall,sh.col,sh.row);R.markMadeRight(s,sh.wall,sh.col,sh.row,'grown-up');(pc.m||(pc.m={})).went=true;pc.m.right=true}
+  sfx('pearl');draw3();S.burst(sh.wall,sh.col,sh.row,0xffe6f2,8);say(band()===6?(get('repair.prayedTogether.line')||''):txt(get('sorry.forgivenessLines','sorry.forgiveness'),band()));drawAll()}
+function startPull(sh,quiet){const k=K(),s=k.s,pc=R.at(s,sh.wall,sh.col,sh.row);
+  sh.armed=!!(pc&&pc.forgiven&&(pc.madeRight||!R.CONFIG.pullNeedsMadeRight)&&R.summary(s).pullsLeftToday>0);
+  if(sh.armed){const keys=[];for(let r=sh.row;r<s.walls[sh.wall][sh.col].length;r++)keys.push(K3(sh.wall,sh.col,r));   /* the bale and the stones resting on it will move */
+    draw3({loose:keys});S.faceWall(sh.wall);
+    S.armPull(sh.wall,sh.col,sh.row,band()===6?500:800,function(result){
+      if(result==='fast'){sfx('no');say('Too fast. It slipped back. Have another go, nice and slow.');return}
+      if(result==='slip'){sfx('no');say('It slipped back. Have another go, all the way out.');return}
+      if(result!=='done'){sh.armed=false;return}
+      const r=R.pull(s,sh.wall,sh.col,sh.row);if(!r.ok){refuse(r.reason);draw3();closeSheet();return}
+      const ev=r.events[0];sfx('pearl');
+      Promise.resolve(S.settle(sh.wall,sh.col,ev.settled)).then(function(){if(ev.settled.length)sfx('place');draw3();ui.sheet=null;say(fill(forAge(get('repair.pearlAfter'),band())||txt(get('sorry.afterMakeRight'),band())));drawAll()})})}
+  if(!quiet)drawAll()}
+
+/* ---- E. night: one question at a time, the child first; then Last look and the fire, or goodnight ---- */
+const ACCT=['open','fruit','plan','withGod','gold','ownUp','thanks','end'];
+function stepSay(id){const stp=byId(get('nightAccount.catchUp.steps')||[],id);return stp?fill(stp.say):''}
+function goNight(){if(busy())return;clearUndo();const x=X();x.phase='night';x.night='account';x.acct=0;ui.sheet=null;say(NA().open||stepSay('open'));redraw()}
+function acctNext(){const k=K(),x=k.x,s=k.s;x.acct=Math.min(ACCT.length-1,x.acct+1);sfx('tap');
+  if(ACCT[x.acct]==='gold'&&!x.goldGiven){x.goldGiven=true;   /* gold is a record that they were with Jesus: given here, never held back */
+    if(R.addPiece(s,'G',{label:(get('gold.name')||'Gold')+': '+(get('gold.meaning')||'time with God')}).ok)sfx('gem')}
+  drawAll()}
+function drawNight(b,f){const k=K(),s=k.s,x=k.x,a=band(),sm=R.summary(s),na=NA();
+  if(x.night==='account'){const id=ACCT[x.acct],next=function(){f.appendChild(btn('Next',acctNext,'big'))},hm=na.hardMoment||{},ans=function(i){return byId(hm.answers||[],i)||{}};
+    title(b,'Night: looking back with Jesus');
+    const ask={open:na.open,plan:hm.ask,withGod:na.talkedToJesus&&na.talkedToJesus.ask,ownUp:na.ownUp&&na.ownUp.prompt}[id]||(id==='ownUp'?txt(get('nightAccount.strawQuestion'),a):stepSay(id));
+    if(id!=='end')b.appendChild(h('p',{class:'say',text:ask}));
+    if(id==='open'){next();return}
+    if(id==='fruit'){if(flag('childSelfReport',DB.month>=3)){const self=fadeNote(/names their own/);if(self)b.appendChild(h('p',{class:'note',text:'Grown-up: '+self}))}
+      b.appendChild(h('div',{class:'row'},[btn('I saw fruit',function(){openSheet({kind:'fruit'})})]));next();return}
+    if(id==='plan'){if(x.plan)b.appendChild(h('p',{class:'pray',text:planText()}));
+      if(!x.plan){b.appendChild(h('p',{class:'note',text:'No plan was made this morning.'}))}
+      else if(x.planUsed==null)b.appendChild(h('div',{class:'grid'},[btn(ans('used').label||'I used my plan',function(){x.planUsed='asked';sfx('tap');drawAll()}),btn(ans('didnt').label||'It came and I didn\'t',function(){x.planUsed='didnt';sfx('tap');drawAll()}),btn(ans('notCome').label||'It didn\'t come',function(){x.planUsed='none';sfx('tap');drawAll()})]));
+      else if(x.planUsed==='asked'){const cf=na.confirm||{};b.appendChild(h('p',{class:'note',text:'Pass the iPad to a grown-up.'}));
+        /* the plan gem is given only after a grown-up's own tap */
+        b.appendChild(h('div',{class:'row'},[btn('Grown-up: '+(cf.line||'yes, they used their plan'),function(){confirmBox('Grown-up: '+(cf.parentAsk||'did they use their plan when the hard moment came?'),cf.yes||'Yes',function(){usedPlan()})}),btn('Change my answer',function(){x.planUsed=null;drawAll()},'link')]))}
+      else if(x.planUsed==='used')b.appendChild(h('p',{class:'say',text:ans('used').reply||'Jesus helped you.'}));
+      else if(x.planUsed==='none')b.appendChild(h('p',{class:'note',text:ans('notCome').reply||'Thanks for telling me.'}));
+      else if(x.planUsed==='didnt'){const tm=na.tomorrow||{};b.appendChild(h('p',{class:'note',text:ans('didnt').reply||'Thanks for telling me.'}));b.appendChild(h('p',{class:'say',text:tm.ask||'What will you try tomorrow?'}));
+        const hard=byId(CT.hard(a),x.plan.hard),t=k.p.tryTomorrow;
+        b.appendChild(h('div',{class:'grid'},willsFor(hard,a).map(function(q){const will=q.will||q.label;return btn(q.label,function(){k.p.tryTomorrow={fruit:x.plan.fruit,hard:x.plan.hard,when:x.plan.when,will:will};sfx('tap');drawAll()},null,{'aria-pressed':String(!!t&&t.will===will)})})));
+        if(t)b.appendChild(h('p',{class:'note',text:(tm.reply||'')+' Saved for the morning.'}))}
+      next();return}
+    if(id==='withGod'){const tj=na.talkedToJesus||{},acts=tj.answers||(get('gold.acts')||[]).map(function(q){return{id:q.id,label:q.label}}).concat([{id:'hard',label:'When something was hard'},{id:'forgot',label:'I forgot'}]);
+      b.appendChild(h('div',{class:'grid'},acts.map(function(q){return btn(q.label,function(){x.talked=q.id;sfx('tap');drawAll()},null,{'aria-pressed':String(x.talked===q.id)})})));
+      if(x.talked)b.appendChild(h('p',{class:'note',text:(tj.reply&&(x.talked==='forgot'?tj.reply.forgot:tj.reply.any))||'Thanks for telling me.'}));next();return}   /* no reward for any answer */
+    if(id==='gold'){next();return}
+    if(id==='ownUp'){const ou=na.ownUp||{};b.appendChild(h('p',{class:'note',text:ou.note||(a===6?txt(get('nightAccount.strawQuestionNote'),6):'')}));
+      b.appendChild(h('div',{class:'row'},[btn(ou.yes||'I want to own up',function(){openSheet({kind:'straw',own:true})})]));
+      if(R.tally(s).straw)b.appendChild(h('p',{class:'note',text:'To put a straw bale right, tap it in the picture.'}));
+      f.appendChild(btn(ou.no||'Next',acctNext,'big'));if(ou.dealtWith)f.appendChild(btn(ou.dealtWith,acctNext,'quiet'));return}
+    if(id==='thanks'){next();return}
+    b.appendChild(h('p',{class:'say',text:R.isFireNight(s)?'Tonight is fire night.':'Time to build, then bed.'}));
+    b.appendChild(h('p',{class:'note',text:'Lay today\'s pieces first if you like.'}));
+    if(R.isFireNight(s))f.appendChild(btn('Last look before the fire',function(){x.night='lastlook';say(get('fireWords.lastLook')||'');drawAll()},'big'));
+    else{if(sm.canCallFire)f.appendChild(btn('It is finished. Ask for the fire tonight',function(){const r=R.callFire(s);if(!r.ok){refuse(r.reason);return}x.night='lastlook';say(get('fireWords.lastLook')||'');drawAll()},'big'));
+      f.appendChild(btn('Goodnight',goodnight,sm.canCallFire?null:'big'))}
+    return}
+  if(x.night==='lastlook'){const fc=R.forecast(s),lines=[];title(b,'Last look');b.appendChild(h('p',{class:'say',text:get('fireWords.lastLook')||''}));
+    if(fc.seal)lines.push('Every space is filled and there is no straw. If it stands tonight it will be sealed.');
+    else if(!fc.burns)lines.push('There is no straw tonight. Everything will stand.');
+    if(fc.burns)lines.push(fc.burns+(fc.burns===1?' straw bale':' straw bales')+' will burn.');
+    if(fc.knocks)lines.push(fc.knocks+(fc.knocks===1?' stone':' stones')+' next to the straw will be knocked to the rubble pile.');
+    fc.wallFalls.forEach(function(w){lines.push('The '+WALLNAME[w]+' is leaning. It has too much straw and it will fall.')});
+    if(fc.caveIn)lines.push('Another wall is still cracked from last time, so the whole building would come down.');
+    if(fc.spireFall)lines.push('Straw is still in the walls, so the spire would come down.');
+    if(fc.windowsLost)lines.push(fc.windowsLost+(fc.windowsLost===1?' window':' windows')+' would go dark.');
+    if(sm.mercy)lines.push('After a cave-in, no wall can fall at this fire.');
+    if(sm.practiceNext)lines.push(get('commissions.practiceFire')||'This first fire is practice. Straw will burn, but nothing will fall.');
+    WALLS.forEach(function(w){if(sm.walls[w].wobble===1)lines.push('The '+WALLNAME[w]+' is swaying.')});
+    b.appendChild(h('ul',{class:'plain'},lines.map(function(l){return h('li',{text:l})})));
+    if(sm.mortar)b.appendChild(h('p',{class:'mortar',text:mortarLine(sm)}));
+    if(fc.burns)b.appendChild(h('p',{class:'note',text:'One more chance: tap a straw bale in the picture to put it right.'}));
+    f.appendChild(btn('Light the fire',runFire,'big'));f.appendChild(btn('Not tonight',function(){say('');goodnight()},'quiet'));return}
+  if(x.night==='plot'){const free=freePlots(k,3);title(b,'A place in the City');b.appendChild(h('p',{class:'say',text:x.fireWords||''}));
+    b.appendChild(h('p',{class:'note',text:'Tap a numbered plot in the picture, or one of these.'}));
+    b.appendChild(h('div',{class:'row'},free.map(function(i,n){return btn('Plot '+(n+1),function(){choosePlot(i)})})));return}
+  if(x.night==='after'){title(b,'After the fire');b.appendChild(h('p',{class:'say',text:x.fireWords||''}));
+    b.appendChild(h('p',{class:'note',text:'Grown-up: '+(get('fireWords.parentRule')||'')}));f.appendChild(btn('Goodnight',goodnight,'big'));return}
+  title(b,'Goodnight');b.appendChild(h('p',{class:'say',text:x.fireWords||''}));f.appendChild(btn('Next morning',nextMorning,'big'))}
+function usedPlan(){const s=st(),x=X();x.planUsed='used';const fr=FRUIT[x.plan.fruit],r=R.addPiece(s,fr.code,{label:fr.name+': used my plan'});if(r.ok)sfx('gem');say((NA().confirm&&NA().confirm.given)||'Jesus helped you.');drawAll()}
+function choosePlot(i){const k=K();if(k.x.phase!=='night'||k.x.night!=='plot'||ui.busy)return;k.p.plots[k.x.sealN]=i;k.x.sealN=null;k.x.night='after';sfx('seal');redraw();S.turnTo('city');S.cityPop(i);
+  const sm=R.summary(k.s);say((get('fairness.lines.city')||'')+(sm.streets&&k.s.city.length%(R.CONFIG.city.streetEvery||4)===0?' A whole street is finished. The family landmark grows.':''));
+  setTimeout(function(){if(!ui.busy&&X().night!=='plot')S.turnTo('centre')},3600)}
+S.onPlot=choosePlot;
+function goodnight(){if(busy())return;clearUndo();const k=K(),x=k.x,s=k.s;if(x.night==='plot')choosePlot(freePlots(k,1)[0]);
+  x.night='sleep';ui.sheet=null;S.disarm();S.hideGhosts();ui.sel=null;S.turnTo('centre');x.fireWords=txt(NA().blessing||get('nightAccount.goodnight'),band());
+  /* the day closes now: any pieces still in the tray are laid by the builders, so nothing can be hoarded */
+  if(!x.ended){const was=goalDone(),r=R.endDay(s);x.ended=true;const laid=r.events.filter(function(e){return e.kind==='place'});
+    if(laid.length){draw3({loose:laid.map(function(e){return K3(e.wall,e.col,e.row)})});laid.forEach(function(e,i){S.dropIn(e.wall,e.col,e.row,80+i*110).then(function(){if(i<6)sfx(isGem(e.piece.t)?'gem':'place')})});
+      x.fireWords='Your builders laid the rest: '+laid.length+(laid.length===1?' piece. ':' pieces. ')+x.fireWords;say(x.fireWords);cheerGoal(was);drawAll();return}}
+  say(x.fireWords);drawAll()}
+function resetDay(x){const n=newX();for(const key in n)x[key]=n[key]}
+function nextDay(k){if(!k.x.ended)R.endDay(k.s);const r=R.startDay(k.s,(k.s.weekday+1)%7);resetDay(k.x);return r.events||[]}
+function nextMorning(){if(busy())return;clearUndo();const ev=nextDay(K());ui.m=null;ui.sheet=null;ui.sel=null;sfx('gem');say('');redraw();
+  const fair=ev.filter(function(e){return e.kind==='fairness'})[0];if(fair)say(fair.mortar||fair.bonus>0?mortarLine(R.summary(st())):(get('fairness.mortar.kidEnds')||'Your walls are strong again.'))}
+
+/* the fire: the rules decide everything; this only plays their events in order */
+async function runFire(){if(ui.busy)return;clearUndo();const k=K(),s=k.s,x=k.x,a=band(),CW=get('commissions')||{},WW=CW.window||{},SW=CW.spire||{};
+  ui.busy=true;ui.sheet=null;ui.sel=null;S.disarm();S.hideGhosts();S.hidePlots();S.turnTo('centre');say(CT.fire('before',a));drawAll();
+  await S.wait(DB.speak?7000:2800);
+  /* look ahead with the rules, so every stone that is about to move is drawn on its own (the rest stay merged) */
+  const fc=R.forecast(s),loose=[];
+  fc.events.forEach(function(e){if(e.kind==='burn'||e.kind==='knock')loose.push(K3(e.wall,e.col,e.row));
+    if(e.kind==='wallFall')e.pieces.forEach(function(q){loose.push(K3(e.wall,q.col,q.row))});
+    if(e.kind==='caveIn')e.pieces.forEach(function(q){loose.push(K3(q.wall,q.col,q.row))})});
+  draw3({loose:loose,frameLoose:fc.caveIn});
+  const litBefore=R.windows(s).list||[],ev=R.fire(s);x.frameDown=ev.size==='caveIn';x.night='after';save();
+  sfx('fire');say('',true);await S.fireStart();
+  const of=function(kind){return ev.filter(function(e){return e.kind===kind})};
+  await Promise.all(of('burn').map(function(e,i){return S.wait(i*170).then(function(){return S.burn(e.wall,e.col,e.row)})}));
+  if(of('knock').length){of('knock').forEach(function(e){S.knock(e.wall,e.col,e.row);
+      if(e.window)litBefore.forEach(function(wd){if(wd.wall===e.wall&&wd.cells.some(function(q){return q.col===e.col&&q.row===e.row}))S.cellsFx(wd.wall,wd.cells,0x6a5a88)})});   /* that window goes dark */
+    sfx('place');await S.wait(900)}
+  for(const e of of('wallFall')){sfx('fall');await S.wallFall(e.wall)}
+  if(of('caveIn').length){sfx('fall');await S.caveIn()}
+  let words=CT.fire(ev.size==='caveIn'?'caveIn':ev.size==='wallFall'?'wallFalls':ev.size==='small'?'small':'stoodFirm',a);
+  if(ev.practice)words=(CW.practiceFire||'This first fire is practice.')+' '+words;   /* nothing but straw is lost at a first fire */
+  if(of('spireFall').length){sfx('fall');await S.spireFall();words+=' '+(SW.falls||'The spire came down. The stones are safe.')}
+  if(ev.windowsLost>0){k.p.dark=true;words+=' '+(WW.dark||'A window has gone dark. Lay the stone again and the light comes back.')}
+  if(ev.mercy&&of('burn').length)words+=' No wall could fall tonight. You are rebuilding.';
+  for(const e of of('mend')){S.mendGlow(e.wall);sfx('pearl');words+=' The '+WALLNAME[e.wall]+' stood through the fire, so it is not cracked any more.'}
+  if(of('crown').length){sfx('gem');await S.crown()}
+  const sealEv=of('seal')[0];
+  if(sealEv){const rec=sealEv.building;say(words);sfx('seal');await S.seal();words=CT.fire('sealed',a);
+    if(rec.spireDone)words=(SW.stands||'The spire stands.')+' '+words;
+    if(rec.commission&&rec.commission.done){const g=byId(get('commissions.goals')||[],GOALWORD[rec.commission.id]);if(g&&g.done)words=g.done+' '+words}
+    words+=' \u2605 '+rec.stars+(rec.stars===1?' star.':' stars.');
+    x.night='plot';x.sealN=rec.n;k.p.dark=false}   /* next: the child chooses where it stands */
+  else await S.wait(700);
+  ui.busy=false;x.fireWords=words;redraw();say(words)}
+
+/* ================= 8. grown-up tools (behind a PIN): pretend days, jump ahead, the weekly check, the month ================= */
+const TEMPER={rough:{straw:{6:2.5,8:2.0,12:1.5},repair:0.5,lastLook:0.5,silver:0.6},typical:{straw:{6:1.0,8:0.8,12:0.5},repair:0.7,lastLook:0.75,silver:0.75},steady:{straw:{6:0.4,8:0.25,12:0.14},repair:0.9,lastLook:0.95,silver:0.9}};
+function poisson(mean){const L=Math.exp(-mean);let k=0,p=1;do{k++;p*=Math.random()}while(p>L);return k-1}
+function strawSpots(s,wall){const out=[];(wall?[wall]:WALLS).forEach(function(w){s.walls[w].forEach(function(col,c){col.forEach(function(p,r){if(p&&p.t==='W')out.push({wall:w,col:c,row:r})})})});return out}
+function pullOne(s,q){R.forgive(s,q.wall,q.col,q.row);R.markMadeRight(s,q.wall,q.col,q.row,'pretend');return R.pull(s,q.wall,q.col,q.row).ok}
+function strawMeta(){const cards=CT.strawCards(),c=cards[rint(cards.length)]||{label:'Straw'};return{label:c.label,card:c.id,kind:c.kind,did:c.did,sibling:!!c.sibling}}
+function gemMeta(f){const acts=f.raw.acts||[],a=acts[rint(acts.length)];return{label:f.name+(a?': '+a.label:'')}}
+function auto(s){return lampsAside(s,function(){return R.autoPlace(s)})}
+/* one pretend day up to (not including) the fire. Returns one plain line about what happened. */
+function simDay(k,temper){const s=k.s,x=k.x,a=s.profile.age<=6?6:s.profile.age<=9?8:12,Tm=TEMPER[temper];let n,i,got=0,straw=0,fixed=0;const mine=[];
+  if(!x.plan){const f=FRUITS[rint(FRUITS.length)],hm=hardFor(f.code,a),q=hm[rint(hm.length)]||{},w=willsFor(q,a)[0]||{};x.plan={fruit:f.code,hard:q.id,when:q.when||'',will:w.will||''}}
+  n=poisson(Tm.straw[a]);for(i=0;i<n;i++){const r=R.addPiece(s,'W',strawMeta());if(r.ok){straw++;mine.push(r.piece.id)}}
+  n=poisson(2);for(i=0;i<n;i++){const f=FRUITS[rint(FRUITS.length)];if(R.addPiece(s,f.code,gemMeta(f)).ok)got++}
+  for(i=0;i<2;i++)if(Math.random()<Tm.silver&&R.addPiece(s,'S',{label:(get('silver.name')||'Silver')+': '+((get('silver.acts')||[])[i]||{label:''}).label}).ok)got++;
+  if(Math.random()<0.95&&R.addPiece(s,'G',{label:(get('gold.name')||'Gold')+': '+(get('gold.meaning')||'')}).ok){got++;x.goldGiven=true}
+  if(Math.random()<0.4){x.planUsed='used';const f=FRUIT[x.plan.fruit];if(R.addPiece(s,f.code,{label:f.name+': used my plan'}).ok)got++}
+  if(Math.random()<0.06)R.addGospelShare(s,{label:'Lamp'});
+  s.neighbours.forEach(function(nb){if(Math.random()<0.5)R.prayFor(s,nb.id)});
+  /* a goal for the building, gems laid where they finish a window (steady children do this most), and sometimes the spire dare */
+  if(R.CONFIG.commissions.enabled&&!s.build.commission){const ch=R.commissionChoices(s,Math.random);if(ch.length)R.chooseCommission(s,ch[rint(ch.length)].id)}
+  const care={rough:0.2,typical:0.5,steady:0.85}[temper],dare={rough:0.1,typical:0.3,steady:0.7}[temper];
+  for(i=s.tray.length-1;i>=0;i--){const pc=s.tray[i];if(!pc||!isGem(pc.t)||Math.random()>care)continue;const hints=windowHints(s,pc,R.legalSlots(s)),keys=Object.keys(hints);if(!keys.length)continue;
+    const q=(keys.filter(function(kk){return hints[kk]==='pure'})[0]||keys[0]).split(':');R.place(s,i,q[0],+q[1],+q[2])}
+  if(Math.random()<dare&&!strawSpots(s).length){const sl=R.spireSlots(s),gi=s.tray.findIndex(function(pp){return isGem(pp.t)});if(sl.length&&gi>=0){R.place(s,gi,'spire',sl[0].col,0);(k.p.dared||(k.p.dared={}))[s.sealed]=true}}
+  auto(s);
+  strawSpots(s).forEach(function(q){const pc=R.at(s,q.wall,q.col,q.row);if(pc&&mine.indexOf(pc.id)>=0&&Math.random()<Tm.repair&&pullOne(s,q))fixed++});auto(s);   /* only today's straw gets its chance today, as in sim.js */
+  if(R.isComplete(s)&&strawSpots(s).length&&Math.random()<Tm.lastLook){strawSpots(s).sort(function(p,q){return q.row-p.row}).forEach(function(q){if(pullOne(s,q))fixed++});auto(s)}
+  if(!R.isFireNight(s))R.callFire(s);
+  if(R.isFireNight(s)){const fallAt=R.summary(s).fallAt;WALLS.forEach(function(w){const sp=strawSpots(s,w);if(sp.length>=fallAt&&Math.random()<Tm.lastLook)while(sp.length>=fallAt&&pullOne(s,sp.pop()))fixed++})}
+  return got+' good '+(got===1?'piece':'pieces')+', '+straw+' straw, '+fixed+' put right.'}
+function temperNow(){const e=$('temper');if(e&&TEMPER[e.value])ui.temper=e.value;return ui.temper}   /* read at the moment of the tap */
+function busyNote(){if(ui.busy)out('Wait for the fire to finish, then tap again.');return ui.busy}
+function pretendDay(){if(busyNote())return;clearUndo();const k=K(),temper=temperNow();if(k.x.phase==='night'&&k.x.night!=='account')nextDay(k);
+  const line=simDay(k,temper);ui.sel=null;ui.sheet=null;k.x.phase='night';
+  if(R.isFireNight(k.s)){k.x.night='lastlook';out(WEEK[k.s.weekday]+' ('+temper+'): '+line+' It is fire night. Close the tools to watch.');redraw();hideTools();runFire()}
+  else{k.x.night='sleep';k.x.fireWords=txt(get('nightAccount.goodnight'),band());out(WEEK[k.s.weekday]+' ('+temper+'): '+line+' No fire tonight.');redraw()}}
+function pretendMany(days){if(busyNote())return;clearUndo();const k=K(),temper=temperNow(),b=JSON.parse(JSON.stringify(k.s.stats)),city0=k.s.city.length;let dark=0;
+  if(k.x.phase==='night'&&k.x.night!=='account')nextDay(k);
+  for(let d=0;d<days;d++){simDay(k,temper);if(R.isFireNight(k.s)){const ev=R.fire(k.s);dark+=ev.windowsLost||0}nextDay(k)}
+  const z=k.s.stats,sm=R.summary(k.s),built=k.s.city.slice(city0),met=built.filter(function(r){return r.commission&&r.commission.done}).length,spires=built.filter(function(r){return r.spireDone}).length;
+  ui.sel=null;ui.sheet=null;ui.m=null;say('');
+  out('Run '+(++ui.runs)+': '+days+' pretend days, '+temper+' child, age '+k.s.profile.age+' (days '+(k.s.day-days)+' to '+(k.s.day-1)+')\nBuildings sealed into the City: '+built.length+(built.length?' ('+built.map(function(r){return r.name}).join(', ')+')':'')+
+    '\nFires: '+(z.fires-b.fires)+' in all\n  clean (no straw at all): '+(z.clean-b.clean)+'\n  small (holes and a stone or two): '+(z.small-b.small)+'\n  wall fall: '+(z.wallFalls-b.wallFalls)+'\n  cave-in: '+(z.caveIns-b.caveIns)+
+    '\nWindows that went dark: '+dark+'\nSpire: stood at a seal '+spires+', fell '+((z.spireFalls||0)-(b.spireFalls||0))+'\nGoals met: '+met+' of '+built.length+'\nStars earned: '+(z.stars-b.stars)+' (\u2605 '+sm.starBalance+' to spend)\n'+
+    (z.strawLaid-b.strawLaid)+' straw laid, '+(z.pearls-b.pearls)+' put right, '+(z.strawBurned-b.strawBurned)+' burned\nNow on '+k.s.bp.name+' ('+R.tally(k.s).total+' wall spaces)'+(sm.mortar?', with extra mortar':'')+'. Streets: '+sm.streets+'.');
+  redraw()}
+function toFireNight(step){const k=K();let guard=0;if(k.x.phase==='night'&&k.s.today.fired)nextDay(k);while(!R.isFireNight(k.s)&&guard++<8)nextDay(k);
+  if(!k.x.plan){const f=FRUITS[0],q=hardFor(f.code,band())[0]||{},w=willsFor(q,band())[0]||{};k.x.plan={fruit:f.code,hard:q.id,when:q.when||'',will:w.will||''}}
+  k.x.phase='night';k.x.night=step||'account';k.x.acct=0;k.x.sealN=null;ui.sel=null;ui.sheet=null;ui.m=null}
+/* "Show me": sets up a real situation through the rules (several quiet days if the daily limits need it), then stops at Last look */
+function showMe(kind){if(busyNote())return;clearUndo();const k=K(),s=k.s;let guard=0;
+  function fallAt(){return R.summary(s).fallAt}
+  function quiet(){nextDay(k)}
+  function most(){return Math.max.apply(null,WALLS.map(function(w){return R.tally(s,w).straw}))}
+  function stones(n){for(let i=0;i<n;i++){const f=FRUITS[rint(FRUITS.length)];R.addPiece(s,f.code,gemMeta(f))}R.addPiece(s,'G',{label:'Gold: time with God'});R.addPiece(s,'S',{label:'Silver: faithful work'});auto(s)}
+  function strawTo(n){guard=0;while(most()<n&&guard++<40){if(!R.addPiece(s,'W',strawMeta()).ok)quiet()}}
+  if(s.today.fired)quiet();
+  if(kind!=='small'&&kind!=='seal'&&R.summary(s).practiceNext){stones(2);strawTo(1);R.fire(s);quiet()}   /* a new child's first fire is only practice, so that one happens quietly first */
+  if(kind==='small'){stones(4);if(most()<1)strawTo(1);stones(3);if(most()>=fallAt())out('This building already has a leaning wall, so the fire will be bigger than small.');else out('One straw bale is in a wall. Light the fire to see a small fire.')}
+  if(kind==='wall'){stones(4);strawTo(fallAt());stones(2);out('One wall has enough straw to fall.')}
+  if(kind==='cave'){const cracked=WALLS.some(function(w){return s.cracked[w]>0});
+    if(!cracked){stones(4);strawTo(fallAt());R.fire(s);quiet()}   /* first fall happens quietly, leaving a cracked wall */
+    stones(2);strawTo(fallAt());
+    out(R.forecast(s).caveIn?'One wall fell at an earlier fire and is still cracked. Now another has too much straw.':'The rules are being merciful just now (after a cave-in there is a time of grace), so this one will only be a wall fall.')}
+  if(kind==='seal'){guard=0;while(strawSpots(s).length&&guard++<60){strawSpots(s).forEach(function(q){pullOne(s,q)});if(strawSpots(s).length)quiet()}
+    function spireOne(){const sl=R.spireSlots(s);if(!sl.length)return;const f=FRUITS[rint(FRUITS.length)],r=R.addPiece(s,f.code,gemMeta(f));if(r.ok)R.place(s,s.tray.length-1,'spire',sl[0].col,0)}   /* one spire gem a day, as the rules allow */
+    guard=0;while((!R.isComplete(s)||R.summary(s).spire.filled<R.summary(s).spire.total)&&guard++<60){spireOne();stones(8);if(!R.isComplete(s)||R.summary(s).spire.filled<R.summary(s).spire.total)quiet()}
+    (k.p.dared||(k.p.dared={}))[s.sealed]=true;R.callFire(s);out('The building is finished with no straw, and its spire is dared. Light the fire to see it sealed.')}
+  toFireNight('lastlook');say(get('fireWords.lastLook')||'',true);redraw();hideTools()}
+function out(t){ui.simOut=t;const o=$('out');if(o)o.textContent=t}
+/* weekly check: growing / steady / harder for one item, from the last four checks (latest two against the two before) */
+function trendOf(hist,it){const v=hist.slice(-4).map(function(c){return c.vals[it.id]}).filter(function(n){return n!=null});if(v.length<2)return null;
+  const half=Math.ceil(v.length/2),avg=function(a){return a.reduce(function(p,q){return p+q},0)/a.length},d=(avg(v.slice(half))-avg(v.slice(0,half)))*(it.better==='lower'?-1:1);
+  return d>0.4?'growing':d<-0.4?'harder':'steady'}
+function drawTools(){const b=$('toolsBody'),W=weekly(),hist=DB.weekly[DB.cur]||[],tips=CT.tips(),fp=get('fadePlan')||[];b.textContent='';
+  /* the month: how much the grown-ups prompt, read from content fadePlan */
+  const months=fp.length?fp.map(function(m){return m.month}):[1,3,6,12],cur=fp.filter(function(m){return m.month===DB.month})[0]||stage();
+  b.appendChild(h('div',{class:'card'},[h('h2',{text:'Which month are we in?'}),h('div',{class:'row'},months.map(function(mn){return btn('Month '+mn,function(){DB.month=mn;save();drawTools();drawAll()},null,{'aria-pressed':String(DB.month===mn)})})),
+    cur&&cur.name?h('h3',{text:cur.name}):null,cur&&cur.message?h('p',{class:'pray',text:cur.message}):null,h('ul',{class:'plain note'},((cur&&cur.changes)||[]).map(function(c){return h('li',{text:c})})),
+    h('p',{class:'note',text:'On this page the month switches the grown-up prompts on and off: calm practice, the lunch question and "tap only fruit that cost something" in the day panel, the child naming their own fruit first at night, writing their own hard moment, and the mentoring note for the eldest. '+((stage().flags||{}).weeklyNotDaily?'From this month the game is opened weekly, not daily: a note only, the page has no lock. ':'')+((stage().flags||{}).fireWeeklyForAll?'Fire nights should now be once a week for everyone: a note only, the rules have no switch for it. ':'Fire nights stay as the rules set them. ')+(get('fairness.mortar.parent')||'')})]));
+  const sel=h('select',{id:'temper','aria-label':'What kind of day'},['rough','typical','steady'].map(function(t){return h('option',{value:t,text:cap1(t)+' child'})}));sel.value=ui.temper;sel.addEventListener('change',function(){ui.temper=sel.value});
+  b.appendChild(h('div',{class:'card'},[h('h2',{text:'Pretend for me (Age '+DB.cur+')'}),h('div',{class:'row'},[sel,btn('Pretend a day for me',pretendDay),btn('Pretend 30 days',function(){pretendMany(30)}),btn('Pretend 90 days',function(){pretendMany(90)})]),
+    h('div',{class:'row'},[btn('Jump to fire night',function(){if(busyNote())return;toFireNight('account');redraw();hideTools()})]),
+    h('h3',{text:'Show me\u2026'}),h('div',{class:'row'},[btn('a small fire',function(){showMe('small')}),btn('a wall falling',function(){showMe('wall')}),btn('a cave-in',function(){showMe('cave')}),btn('a sealed building',function(){showMe('seal')})]),
+    h('p',{id:'out',text:ui.simOut||'Results show here.'})]));
+  /* weekly check: parent-only, 0 to 3 taps, the parent's own "Me" question, four-week labels, a small trend line */
+  const rows=[],all=W.items.concat(W.me?[W.me]:[]);
+  all.forEach(function(it){const tr=trendOf(hist,it);
+    rows.push(h('span',null,[fill(it.ask,{name:'this child'}),tr?h('span',{class:'tag3',text:W.labels[tr]||tr}):null]));
+    rows.push(h('span',{class:'nums'},[0,1,2,3].map(function(v){return btn(String(v),function(){ui.wc[it.id]=v;drawTools()},null,{'aria-pressed':String(ui.wc[it.id]===v),'aria-label':W.scale[v]||String(v)})})))});
+  const score=function(c){let sum=0,n=0;W.items.forEach(function(it){const v=c.vals[it.id];if(v==null)return;sum+=it.better==='lower'?3-v:v;n++});return n?sum/n:0},pts=hist.map(score);
+  const svg='<svg viewBox="0 0 200 50" width="200" height="50" role="img" aria-label="Trend of the weekly checks, higher is better"><line x1="0" y1="49" x2="200" y2="49" stroke="#463a78"/>'+
+    (pts.length>1?'<polyline fill="none" stroke="#f2b93f" stroke-width="2.5" points="'+pts.map(function(v,i){return (10+i*(180/(pts.length-1))).toFixed(0)+','+(46-v/3*42).toFixed(1)}).join(' ')+'"/>':'')+
+    pts.map(function(v,i){return '<circle r="3.5" fill="#f2b93f" cx="'+(pts.length>1?10+i*(180/(pts.length-1)):100).toFixed(0)+'" cy="'+(46-v/3*42).toFixed(1)+'"/>'}).join('')+'</svg>';
+  const trend=h('div');trend.innerHTML=svg;
+  /* gentle flag: lots of gems since four checks ago, but the line is flat */
+  let flag=null;if(hist.length>=4){const l4=hist.slice(-4),flat=Math.abs((score(l4[2])+score(l4[3]))/2-(score(l4[0])+score(l4[1]))/2)<0.2,gems=gemCount(st())-(l4[0].gems||0);
+    if(flat&&gems>=12)flag=h('p',{class:'mortar',text:'A gentle flag: '+gems+' gems since four checks ago, but the line is flat. '+((W.how||[])[5]||'Tap less, talk more.')})}
+  b.appendChild(h('div',{class:'card'},[h('h2',{text:'Weekly check (parents only, Age '+DB.cur+')'}),h('p',{class:'note',text:W.intro+' '+W.look+' '+W.never}),
+    h('p',{class:'note',text:W.scale.map(function(s,i){return i+' = '+s}).join(' \u00b7 ')}),h('div',{class:'wc'},rows),
+    h('div',{class:'row'},[btn('Save this check',function(){if(!Object.keys(ui.wc).length)return;(DB.weekly[DB.cur]||(DB.weekly[DB.cur]=[])).push({day:st().day,vals:ui.wc,gems:gemCount(st())});ui.wc={};save();drawTools()}),h('span',{class:'note',text:hist.length+' saved. Up is better.'})]),
+    trend,flag,h('ul',{class:'plain note'},(W.how||[]).map(function(t){return h('li',{text:typeof t==='string'?t:(t.text||t.label||'')})}))]));
+  const tog=h('input',{type:'checkbox',checked:DB.speak||null,onchange:function(e){DB.speak=e.target.checked;save();if(DB.speak)speak($('say').textContent);else try{window.speechSynthesis.cancel()}catch(_){}}});
+  const ap=h('input',{type:'checkbox',checked:DB.autoPull||null,onchange:function(e){DB.autoPull=e.target.checked;save();drawPanel()}});
+  b.appendChild(h('div',{class:'card'},[h('h2',{text:'Settings and a tip'}),h('label',{class:'tog'},[tog,'Read the words aloud']),h('label',{class:'tog'},[ap,'Show "Pull it out for me" (for a child who cannot drag)']),
+    h('p',{class:'pray',text:tips.length?txt(tips[DB.tip%tips.length]):''}),btn('Another tip',function(){DB.tip++;save();drawTools()},'quiet'),
+    h('div',{class:'row'},[btn('Start Age '+DB.cur+' again',startAgain),btn('Change the PIN',function(){DB.pin=null;save();hideTools();openTools()},'quiet')])]))}
+function startAgain(){if(busyNote())return;confirmBox('Start Age '+DB.cur+' again from an empty foundation? Everything this pretend child has built will go.','Yes, start again',function(){
+  DB.kids[DB.cur]=fresh(DB.cur);ui.sel=null;ui.sheet=null;ui.m=null;clearUndo();say('');redraw();out('Age '+DB.cur+' has started again.')})}
+function showTools(){drawTools();$('toolsWrap').hidden=false;$('toolsWrap').scrollTop=0}
+function hideTools(){$('toolsWrap').hidden=true}
+function openTools(){
+  if(!DB.pin){confirmBox('Grown-ups: choose a 4-digit PIN. It keeps the pretend runs, the weekly check and Start again away from the children.','Set the PIN',function(v){
+    if(!/^\d{4}$/.test(v)){toast('Four numbers, please.');openTools();return}DB.pin=v;save();showTools()},{input:'pin'});return}
+  confirmBox('Grown-up PIN','Open',function(v){if(v!==DB.pin){toast('That is not the PIN.');sfx('no');return}showTools()},{input:'pin',alt:{label:'Forgot it',fn:function(){
+    const n1=6+rint(4),n2=6+rint(4);   /* a sum only a grown-up will know quickly */
+    confirmBox('Forgot the PIN? First a sum for grown-ups: what is '+n1+' x '+n2+'? Then the PIN, the weekly checks and the month setting are cleared. The children\'s buildings are kept.','Clear the tools',function(ans){
+      if(Number(ans)!==n1*n2){toast('That is not the answer.');sfx('no');return}DB.pin=null;DB.weekly={};DB.month=1;DB.autoPull=false;save();openTools()},{input:'sum'})}}})}
+
+/* ================= 9. start ================= */
+$('mute').addEventListener('click',function(){DB.mute=!DB.mute;drawBar();save();sfx('tap')});
+$('grown').addEventListener('click',openTools);
+$('stars').addEventListener('click',function(){openSheet({kind:'decorate'})});
+$('goal').addEventListener('click',function(){openSheet({kind:'goal'})});
+$('toolsClose').addEventListener('click',hideTools);
+Array.prototype.forEach.call($('views').children,function(v){v.addEventListener('click',function(){sfx('tap');S.turnTo(v.getAttribute('data-view'))})});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!$('modal').hidden)$('modal').hidden=true});
+/* a leaning wall creaks now and then */
+setInterval(function(){if(ui.busy||document.hidden)return;const w=R.wobble(st());if(WALLS.some(function(q){return w[q]>=2}))sfx('creak')},5200);
+DB.tip=(DB.tip||0)+1;
+window.RockPlay={state:st,extra:X,kid:K,scene:S,redraw:redraw,db:function(){return DB},hints:windowHints};   /* handy for checking by hand in the console */
+redraw();
+})();
+</script>
