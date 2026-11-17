@@ -197,7 +197,7 @@ async function refreshSummary() {
 const farm = createFarm({
   state, esc, kid: (id) => kid(id), todayKey: () => todayKey(), kvSet, earned: (id) => (state.sum?.coins[id] || 0) + (state.coinAdjust || []).filter((a) => a.kidId === id).reduce((n, a) => n + a.n, 0),
   speak: (...a) => speak(...a), unlockAudio: () => unlockAudio(), tone: (fn) => tone(fn), pop: (...a) => pop(...a),
-  chime: () => chime(), burst: (...a) => burst(...a), toast: (h) => toast(h), renderKid: () => renderKid(),
+  chime: () => chime(), burst: (...a) => burst(...a), toast: (h) => toast(h), renderKid: () => renderKid(), sessionText: () => sessionText(),
   stars: (id) => state.sum?.stars?.[id] || 0, worked: (id) => workedToday(kid(id), state.days?.[id]),
 });
 // "Your animals work as hard as you do": the farm only produces on days a routine is finished
@@ -261,6 +261,7 @@ const sessions = readJSON('sessions', {});
 const nowMs = () => clock.now().getTime();
 const visitsLeft = (id) => { const f = farm.farmOf(id); return FARM_VISITS_PER_DAY - (f.visitDay === todayKey() ? f.visits || 0 : 0); };
 const sessionLeft = (id) => Math.max(0, SESSION_MS - (sessions[id]?.used || 0));
+const sessionText = () => (state.farmUnlimited ? '👨‍👩‍👧 Grown-up ∞' : sessionPaused() ? '⏸ Paused' : `⏳ ${clock.fmtDuration(sessionLeft(state.farmKid))}`);
 // Farm time doesn't tick while praying, while a grown-up has the farm open, or while the mine is open.
 const sessionPaused = () => !!state.prayer || state.farmUnlimited || state.mineOpen;
 
@@ -279,9 +280,9 @@ function sessionTick() {
   s.lastSeen = n;
   if (!sessionPaused()) s.used += dt;
   writeJSON('sessions', sessions);
-  const chip = app.querySelector('.session-chip');
-  if (chip) {
-    chip.textContent = state.farmUnlimited ? '👨‍👩‍👧 Grown-up ∞' : sessionPaused() ? '⏸ Paused' : `⏳ ${clock.fmtDuration(sessionLeft(state.farmKid))}`;
+  // (two chips while the painted farm is full screen: the header's and the one in the corner)
+  for (const chip of app.querySelectorAll('.session-chip')) {
+    chip.textContent = sessionText();
     chip.classList.toggle('low', sessionLeft(state.farmKid) <= 30000);
   }
   if (s.used >= SESSION_MS) return timesUp();

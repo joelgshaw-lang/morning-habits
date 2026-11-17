@@ -3,7 +3,8 @@
 // It only draws and arranges: coins, stars, the shop, feeding and selling all stay in farm.js.
 //
 // Saved on each farm as f.world (the old flat farm ignores it, so switching back loses nothing):
-//   n        grid size (6 to 10 squares a side; grows as the farm fills up, never shrinks)
+//   n        grid size (6 to 10 squares a side on the starter land; grows as the farm fills up, never shrinks)
+//   land     which land the child has bought: 0 or missing = starter land, 1 = bigger land, 2 = biggest land (see LAND)
 //   at       { pieceId: [i, j] } where each piece sits (its back corner square)
 //   beds     [{ id, crop, growth }] garden beds; crop is null (bare soil) or a key of CROPS
 //   movesDay / movesUsed   build moves used today
@@ -24,6 +25,21 @@ export const CROP_GOODS = {
   sunflower: { icon: '🌻', name: 'Sunflower', price: 10 },
 };
 export const BED = { price: 40, stars: 4 };
+
+// Land (Nov 2026): the starter land grows by itself up to 10 squares a side. After that, bigger land is bought in the shop.
+// Buying it makes the paddock bigger straight away. Every square keeps its number, so everything stays exactly where
+// it was (the new squares are added along the front edges, where there is the most room).
+export const LAND = [
+  { name: 'Starter land', max: 10 },
+  { name: 'Bigger land', max: 13 },
+  { name: 'Biggest land', max: 16 },
+];
+export const landMax = (w) => LAND[Math.min(LAND.length - 1, w?.land || 0)].max;
+/** Buys the next land: the paddock grows to its full size at once. */
+export function growLand(w) {
+  w.land = Math.min(LAND.length - 1, (w.land || 0) + 1);
+  w.n = Math.max(w.n, landMax(w));
+}
 export const maxBeds = (level) => level + 1;   // 2 beds on a Little Coop farm, up to 5 on a Dream Farm
 
 // img: picture · s: squares along each side · w: picture width in squares · dy: how far the foot sits below the front corner
@@ -79,10 +95,10 @@ const homeFor = (type, KINDS, built) => {
 const HERD_SPOTS = { 1: [[0.6, 0.6]], 2: [[0.6, 0.6], [1.5, 0.75], [0.75, 1.5], [1.6, 1.65]] };
 
 // ---------- painted animal pictures ----------
-const BABY = { chicken: 'chick', duck: 'duckling', sheep: 'lamb', cow: 'calf', lizard: 'lizardbaby', croc: 'crocbaby', snake: 'snakebaby', dino: 'dinobaby' };
+const BABY = { pig: 'piglet', chicken: 'chick', duck: 'duckling', sheep: 'lamb', cow: 'calf', lizard: 'lizardbaby', croc: 'crocbaby', snake: 'snakebaby', dino: 'dinobaby' };
 const IMG = { chicken: 'hen', roo: 'roojoey' };
 // How wide each grown animal is on the farm, in squares.
-const WIDE = { chicken: 0.4, duck: 0.4, sheep: 0.62, cow: 0.85, lizard: 0.55, snake: 0.5, croc: 0.85, dino: 0.8, koala: 0.5, roo: 0.55, wombat: 0.62,
+const WIDE = { pig: 0.62, chicken: 0.4, duck: 0.4, sheep: 0.62, cow: 0.85, lizard: 0.55, snake: 0.5, croc: 0.85, dino: 0.8, koala: 0.5, roo: 0.55, wombat: 0.62,
   platypus: 0.62, kookaburra: 0.42, echidna: 0.55, crab: 0.5, squid: 0.42, turtle: 0.6, puffer: 0.45, octopus: 0.52, manta: 0.7 };
 
 /** Same call as animalArt() in farm-art.js, so the farm can swap one for the other. */
@@ -149,7 +165,7 @@ export function layout(f, KINDS) {
       pieces.push({ ...p, i: at[0], j: at[1] });
     }
     // Keep the farm roomy (at least 4 squares in 10 free) so there is always somewhere to move things: the land grows as it fills up.
-    if ((!ok || used.size > w.n * w.n * 0.6) && w.n < 10) { w.n++; continue; }
+    if ((!ok || used.size > w.n * w.n * 0.6) && w.n < landMax(w)) { w.n++; continue; }
     for (const p of pieces) w.at[p.id] = [p.i, p.j];
     return { w, pieces, used };
   }
@@ -271,15 +287,26 @@ export function worldHTML(env) {
   }
   const glow = targets(env, w, pieces, used).map(([i, j]) => `<i class="w2-tile" data-action="farm-tile" data-i="${i}" data-j="${j}" style="${g.at(i + 0.5, j + 0.5)}"></i>`).join('');
   const ready = ripeBeds(f).length;
+  const view = env.view || { u: 1, x: 0, y: 0 };
+  const nextLand = LAND[(w.land || 0) + 1];
+  const tight = !mode.on && nextLand && w.n >= landMax(w) && used.size > w.n * w.n * 0.5;
   return `
     <div class="field w2${mode.on ? ' building' : ''}">
-      <div class="w2-stage" style="--n:${w.n}">
+      <div class="w2-stage" style="--n:${w.n};transform:translate(${view.x}px,${view.y}px) scale(${view.u})">
         ${html}${glow}
         ${env.broken ? `<img class="w2-fox" src="${ART}fox.webp" alt="A fox at the broken fence">` : ''}
       </div>
       ${!f.animals.length ? '<div class="field-empty w2-empty">Your farm is waiting!<br>Get a 🥚 mystery egg from the 🛒 shop.</div>' : ''}
       ${mode.on ? '' : `<div class="w2-hud">
         <button class="w2-btn${w.setupDone ? '' : ' ready'}" data-action="farm-build">🔨 ${w.setupDone ? `Build <small>${Math.max(0, env.movesLeft)} move${env.movesLeft === 1 ? '' : 's'}</small>` : 'Set up my farm'}</button>
-        ${ready ? `<button class="w2-btn ready" data-action="farm-bed" data-bed="all">🧺 Pick ${ready > 1 ? 'everything' : 'it'}</button>` : ''}</div>`}
+        ${ready ? `<button class="w2-btn ready" data-action="farm-bed" data-bed="all">🧺 Pick ${ready > 1 ? 'everything' : 'it'}</button>` : ''}
+        ${tight ? `<button class="w2-btn w2-hint" data-action="farm-shop">🌾 Getting crowded! ${nextLand.name} is in the 🛒 shop</button>` : ''}</div>`}
+      <div class="w2-view">
+        <button class="w2-round" data-action="farm-full" aria-label="${env.full ? 'Leave full screen' : 'Full screen'}">${env.full ? '✕' : '⛶'}</button>
+      </div>
+      <div class="w2-zoom">
+        <button class="w2-round" data-action="farm-zoom" data-z="in" aria-label="Zoom in">➕</button>
+        <button class="w2-round" data-action="farm-zoom" data-z="out" aria-label="Zoom out" ${view.u <= 1.01 ? 'disabled' : ''}>➖</button>
+      </div>
     </div>${mode.on ? trayHTML(env, w) : ''}`;
 }

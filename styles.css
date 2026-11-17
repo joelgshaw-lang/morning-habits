@@ -1010,7 +1010,7 @@ svg.bld.stand { width: 74px; height: 66px; }
 @keyframes breath-swell { 0% { transform: scale(1); } 40% { transform: scale(1.4); } 70% { transform: scale(1.4); } 100% { transform: scale(1); } }
 
 /* ---------- the painted farm (js/farm-world.js): a tilted grid of squares on a painted paddock ---------- */
-.field.w2 { border: 0; background: #7fa35a url(farm-art/ground.jpg) center / cover; container-type: size; }
+.field.w2 { border: 0; background: #7fa35a url(farm-art/ground.jpg) center / cover; container-type: size; touch-action: none; }
 /* --tw is one square's width: as big as fits the field both ways. The first line is a fallback for old iPads without container units. */
 .w2-stage { position: absolute; inset: 0; --cy: 61%; --tw: calc((100vw - 430px) * 0.9 / var(--n)); user-select: none; -webkit-user-select: none; }
 @supports (width: 1cqw) { .w2-stage { --tw: min(calc(94cqw / var(--n)), calc(70cqh / (0.55 * var(--n)))); } }
@@ -1069,7 +1069,22 @@ button.w2-it { pointer-events: auto; cursor: pointer; }
 .pa-b { position: absolute; right: -6%; top: -8%; font-style: normal; font-size: 18px; line-height: 1; }
 .animal .pa-hungry .pa-b { display: none; }
 .w2 .animal .pa.pa-small img { width: 100%; height: auto; margin: 0; }
-@media (prefers-reduced-motion: reduce) { .w2 .animal, .w2 .animal .pa img, .w2 .animal .body, .w2-it img, .w2-tile, .w2-btn.ready { animation: none !important; } }
+/* Zoom and full screen (Nov 2026). The stage is scaled with one transform from its top-left corner; while a finger
+   is moving it (.moving) it becomes its own layer so the old iPad only slides a picture, then it is redrawn sharp. */
+.w2-stage { transform-origin: 0 0; transition: transform 0.25s ease; }
+.w2-stage.moving { transition: none; will-change: transform; }
+.w2-view { position: absolute; right: 12px; top: 12px; z-index: 10; }
+.w2-zoom { position: absolute; right: 12px; bottom: 12px; z-index: 10; display: flex; flex-direction: column; gap: 8px; }
+.w2-round { width: 54px; height: 54px; border: 0; border-radius: 50%; padding: 0; font: inherit; font-size: 24px; font-weight: 900; line-height: 1;
+  background: rgba(255, 253, 242, 0.95); color: #26321f; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.2); cursor: pointer; }
+.w2-round:disabled { opacity: 0.45; }
+.w2-hint { font-size: 16px; background: #fff3c4; }
+.farm.w2-full { position: fixed; inset: 0; z-index: 15; display: flex; gap: 0; background: #7fa35a; }
+.farm.w2-full .farm-left { flex: 1; gap: 0; }
+.farm.w2-full .field { border-radius: 0; }
+.farm.w2-full .w2-tray { border-radius: 0; }
+.w2-time { position: fixed; right: 78px; top: 12px; z-index: 16; font-size: 18px; padding: 8px 14px; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .w2-stage { transition: none; } .w2 .animal, .w2 .animal .pa img, .w2 .animal .body, .w2-it img, .w2-tile, .w2-btn.ready { animation: none !important; } }
 
 /* The app version, tiny in the corner of every screen (see showVersion in js/app.js). */
 #ver { position: fixed; right: 6px; bottom: 3px; z-index: 5; font-size: 11px; font-weight: 800; color: rgba(60, 50, 40, 0.45); pointer-events: none; }
