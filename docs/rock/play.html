@@ -42,6 +42,8 @@ button:disabled{opacity:.45;cursor:default}
 .candle::before{content:"";position:absolute;left:50%;bottom:calc(var(--left,50%) - 1px);width:7px;height:9px;margin-left:-3.5px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:var(--ember);box-shadow:0 0 8px 2px rgba(255,154,74,.7)}
 .chip.fire{background:#5a2414;border-color:var(--ember)}
 .bar .sp{flex:1}
+/* live mode (inside the family app): a clear way out, top left */
+#close{background:#f3eefc;color:#15122e;border-color:#b9afd8;font-size:18px;font-weight:600;padding:6px 16px;min-height:48px}
 #plan{flex:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:5px 12px;font-size:15px;display:flex;gap:9px;align-items:center}
 .dot{width:14px;height:14px;border-radius:4px;flex:none;border:1px solid rgba(255,255,255,.3)}
 .dot.W{background:repeating-linear-gradient(0deg,#6f6a3c 0 3px,#4d4a2a 3px 5px)}
@@ -293,6 +295,7 @@ button.both{width:100%;min-height:52px;font-size:17px}
 
 <div class="app">
   <div class="bar" id="bar">
+    <button type="button" id="close" hidden aria-label="Close the game">&#x2715; Close</button>
     <h1>Build on the Rock</h1>
     <div class="seg" role="group" aria-label="Whose turn" id="kids"></div>
     <span class="chip" id="dayChip"></span>
@@ -373,6 +376,8 @@ const FRUITS=(function(){const src=RC.fruits||{},list=Array.isArray(src)?src:(RC
   if(!out.length)Object.keys(R.CONFIG.gems).forEach(function(k){out.push({code:k,ccode:k,name:cap1(R.CONFIG.gems[k]),raw:{}})});return out})();
 const FRUIT={},CFRUIT={};FRUITS.forEach(function(f){FRUIT[f.code]=f;CFRUIT[f.ccode]=f});
 function isGem(t){return !!R.CONFIG.gems[t]}
+/* live mode: straw from the app says what it is made of. The rules keep one straw type 'W'; only the look changes. */
+function strawLook(p){const m=p&&p.m&&p.m.material;return m==='wood'||m==='stubble'?m:'hay'}
 function css(t){if(isGem(t)){const c=GEMRGB[R.CONFIG.gems[t]];return 'rgb('+c.join(',')+')'}return {G:'#ecaa28',S:'#d0daec',W:'repeating-linear-gradient(0deg,#6f6a3c 0 3px,#4d4a2a 3px 5px)',P:'#f8eef4',L:'#ffd58a'}[t]||'#999'}
 const CT={
   hard:function(age){return forAge(get('hardMoments','morningPlan.hardMoments'),age)||[]},
@@ -417,13 +422,33 @@ function pic(key,which,cls){if(!ART||!key)return null;const src=which==='friend'
 /* this round's rules switches: real blueprint shapes, and a bale only comes out once it has been made right in real life */
 R.CONFIG.shapes.enabled=true;R.CONFIG.pullNeedsMadeRight=true;
 R.CONFIG.commissions.enabled=false;   /* v5: the goal cards are off the screen */
-const KEY='rock-play-v4';let DB=null;
+/* LIVE MODE: play.html?live=1&kid=<id>&name=<name>&age=<age>, opened full screen by the family app (in a frame).
+   One real child, saved under 'rock-live.<kid>' (the pretend children keep 'rock-play-v4', untouched). Real days follow the
+   calendar (a new day starts at 3am, as in the app). Pieces arrive from the app through 'rock.inbox.<kid>' (see section 10). */
+const QS=new URLSearchParams(location.search),LIVE=QS.get('live')==='1';
+const LKID=String(QS.get('kid')||'child').replace(/[^\w-]/g,'').slice(0,40)||'child';
+const LNAME=String(QS.get('name')||'').slice(0,20),LAGE=Math.max(3,Math.min(18,parseInt(QS.get('age'),10)||6));
+const KEY=LIVE?'rock-live.'+LKID:'rock-play-v4';let DB=null;
+if(LIVE)R.CONFIG.autoLayAtNight=false;   /* live: pieces the child has not seen yet wait in the tray for them, nobody lays them overnight */
+/* the real day: the local date of (now - 3 hours), so 1am still counts as yesterday */
+function rockDate(d){const t=new Date((d||new Date()).getTime()-3*3600e3);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')}
+function dayNum(ds){const q=String(ds).split('-');return Math.round(Date.UTC(+q[0],+q[1]-1,+q[2])/864e5)}
+function realWeekday(){return new Date(Date.now()-3*3600e3).getDay()}
+function freshLive(){const s=R.newChild({name:LNAME,age:LAGE});R.chooseDesign(s,'cottage');R.startDay(s,realWeekday());const x=newX();x.phase='day';return{s:s,x:x,p:newP()}}
+function loadLive(){try{DB=JSON.parse(localStorage.getItem(KEY))}catch(e){DB=null}
+  const k=DB&&DB.kids&&DB.kids.me;
+  if(!DB||typeof DB!=='object'||!k||!k.s||!k.s.walls||!k.s.today||!k.s.bp||!k.s.bp.walls||!k.x||!k.p||!k.p.week){
+    DB={live:true,kid:LKID,cur:'me',kids:{me:freshLive()},lastDate:rockDate(),isNew:true,weekly:{},mute:false,speak:false,tip:0,pin:null,month:1,autoPull:false,cardsOn:{truth:false},joelLine:false};return}
+  DB.cur='me';DB.isNew=false;if(!DB.weekly)DB.weekly={};if(!DB.cardsOn)DB.cardsOn={truth:false};if(!DB.month)DB.month=1;if(!/^\d{4}-\d\d-\d\d$/.test(DB.lastDate||''))DB.lastDate=rockDate();
+  const n=newP();for(const q in n)if(k.p[q]==null)k.p[q]=n[q];
+  /* the app is the source of truth for the name and age (a birthday moves the age band on) */
+  if(LNAME)k.s.profile.name=LNAME;if(QS.get('age'))k.s.profile.age=LAGE}
 /* x = today only: phase, the night step, tonight's answers (ans), the Tomorrow moment (tm), last night's late gems (late) */
 function newX(){return{phase:'morning',night:'account',ans:{},acct:0,acctDone:false,confirmed:false,nightStraw:0,goldGiven:false,stopPray:false,frameDown:false,fireWords:'',ended:false,sealN:null,tm:null,late:null}}
 /* p = lasts: this week's three, tomorrow's focus and example, building names, the day sums (hist) and last review's stars */
 function newP(){return{week:{cards:['calm','kind','peace'],lastReview:null},focus:null,example:null,names:{},hist:[],stars:{},seedNames:{},lamps:{},plots:{},dared:{},dark:false}}
 function fresh(age){const s=R.newChild({name:'',age:age});R.chooseDesign(s,'cottage');R.startDay(s,1);return{s:s,x:newX(),p:newP()}}
-function load(){try{DB=JSON.parse(localStorage.getItem(KEY))}catch(e){DB=null}
+function load(){if(LIVE){loadLive();return}try{DB=JSON.parse(localStorage.getItem(KEY))}catch(e){DB=null}
   if(!DB||typeof DB!=='object'||!DB.kids)DB={cur:6,kids:{},weekly:{},mute:false,speak:false,tip:0,pin:null,month:1,autoPull:false,cardsOn:{truth:false},joelLine:false};
   if(!DB.weekly)DB.weekly={};if(!DB.cardsOn)DB.cardsOn={truth:false};if(AGES.indexOf(DB.cur)<0)DB.cur=6;if(!DB.month)DB.month=1;
   AGES.forEach(function(a){const k=DB.kids[a];if(!k||!k.s||!k.s.walls||!k.s.today||!k.s.bp||!k.s.bp.walls||!k.x||!k.p||!k.p.week)DB.kids[a]=fresh(a);
@@ -713,7 +738,7 @@ function buildCity(s,p){const sm=R.summary(s),plots=p.plots||{},key=JSON.stringi
     /* nearby extras, folded into the same batch: wings beside the ends, a porch in front, chimneys on top */
     (rec.extras||[]).slice(0,30).forEach(function(xq){const fr=xq.wall==='front',n=fr?cols:3,rr=rec.rows||3,cw=(fr?w:2.2)/n,ch=hh/rr,sg=xq.wall==='left'?-1:1;
       const al=(xq.col<0?-0.5:xq.col>=n?n+0.5:xq.col+0.5)-n/2,yy=y+ch*(xq.row+0.5),bm=M[xq.t]||(isGem(xq.t)?PANE[xq.t]:M.S);
-      if(fr)b.box(cw*0.9,ch*0.9,0.5,bm||M.S,q[0]+al*cw,yy,q[2]+1.1+(xq.out?0.45:0));else b.box(0.5,ch*0.9,cw*0.9,bm||M.S,q[0]+sg*(w/2+(xq.out?0.45:0)),yy,q[2]-al*cw)});
+      if(fr)b.box(cw*0.9,ch*0.9,0.5,bm||M.S,q[0]+al*cw,yy,q[2]+1.1+(xq.out||0)*0.45);else b.box(0.5,ch*0.9,cw*0.9,bm||M.S,q[0]+sg*(w/2+(xq.out||0)*0.45),yy,q[2]-al*cw)});
     (rec.animals||[]).forEach(function(kd,j){animalInto(b,kd,q[0]-w/2+0.2+j*0.7,y,q[2]+1.75,0.42)});
     const nm=(p.names||{})[rec.n];if(nm&&signs<8){sign(cityG,nm,2.6,q[0],y+hh+2.4,q[2]+1.3);signs++}
     const gems=front.join('').split('').filter(isGem).slice(0,3);gems.forEach(function(k,j){b.box(0.5,0.6,0.16,PANE[k],q[0]+(j-(gems.length-1)/2)*0.75,y+hh*0.55,q[2]+1.12,true)});
@@ -744,6 +769,10 @@ function pieceInto(b,wall,o,p,lit){const w=wallW(wall),f=w/2,t=p.t,H=G.bh,k=H/2;
   if(isGem(t)){wbox(b,wall,o,w,H,1,M.trim,0,0);wbox(b,wall,o,w*0.92,0.92*H,1.1,lit||(p.m&&p.m.glass)?GEMLIT[t]:GEM[t],0,0,true)}
   else if(t==='P'){wbox(b,wall,o,w,H,1,M.P,0,0);wbox(b,wall,o,w*0.6,1.2*k,1.12,M.seam,0,0.12*k);wbox(b,wall,o,w*0.3,0.5*k,1.16,M.lamp,-0.12*w,0.32*k)}   /* a pearl: soft sheen and a bright glint, lovelier than a plain stone */
   else if(t==='G'){wbox(b,wall,o,w,H,1,M.G,0,0);wbox(b,wall,o,w*1.01,0.3*k,1.1,M.G,0,0.85*k);wbox(b,wall,o,0.6*f,0.6*k,1.16,M.G,0,-0.1*k)}
+  else if(t==='W'&&strawLook(p)==='wood'){wbox(b,wall,o,w*1.02,1.02*H,1.03,M.wood,0,0);wbox(b,wall,o,w*1.04,0.2*k,1.1,M.trim,0.05*f,0.45*k);wbox(b,wall,o,w*0.96,0.2*k,1.1,M.trim,-0.04*f,-0.5*k);   /* live: rough brown planks, two crooked battens */
+    if(p.forgiven)wbox(b,wall,o,0.8*f,0.8*k,1.2,M.P,0,0)}
+  else if(t==='W'&&strawLook(p)==='stubble'){wbox(b,wall,o,w*0.98,0.96*H,1.03,M.trim,0,-0.02*k);[-0.7,-0.25,0.2,0.62].forEach(function(dx,i){wbox(b,wall,o,0.1*f,(1.12+(i%2)*0.14)*H,1.08,M.W,dx*f,0.06*k)});   /* live: dull dark stalks with pale tips */
+    wbox(b,wall,o,w*1.0,0.18*k,1.12,M.band,0,-0.2*k);if(p.forgiven)wbox(b,wall,o,0.8*f,0.8*k,1.2,M.P,0,0)}
   else if(t==='W'){wbox(b,wall,o,w*1.02,1.02*H,1.03,M.W,0,0);wbox(b,wall,o,w*1.03,0.24*k,1.1,M.band,0,0.5*k);wbox(b,wall,o,w*1.03,0.24*k,1.1,M.band,0,-0.5*k);   /* thatch with rope binding, no shine */
     wbox(b,wall,o,0.22*f,1.03*H,1.1,M.band,0.6*f,0);wbox(b,wall,o,0.22*f,1.03*H,1.1,M.band,-0.6*f,0);if(p.forgiven)wbox(b,wall,o,0.8*f,0.8*k,1.2,M.P,0,0)}
   else if(t==='L'){wbox(b,wall,o,w,H,1,M.plinth,0,0);wbox(b,wall,o,0.9*f,1.1*k,1.16,M.lamp,0,0)}
@@ -751,9 +780,12 @@ function pieceInto(b,wall,o,p,lit){const w=wallW(wall),f=w/2,t=p.t,H=G.bh,k=H/2;
 /* one stone as its own mesh, for the moment it moves (kept simple: one or two draws) */
 function makeLoose(wall,p,lit){const side=wall==='left'||wall==='right',w=side?G.colW:(wall==='front'?G.bw:2),t=p.t,H=(side||wall==='front')?G.bh:2,k=H/2;let m;
   if(isGem(t))m=new THREE.Mesh(side?plain(1.06,0.95*H,w*0.96):plain(w*0.96,0.95*H,1.06),lit?GEMLIT[t]:GEM[t]);
-  else m=new THREE.Mesh(side?geo(1,H,w):geo(w,H,1),M[t]||M.S);
+  else m=new THREE.Mesh(side?geo(1,H,w):geo(w,H,1),t==='W'&&strawLook(p)==='wood'?M.wood:t==='W'&&strawLook(p)==='stubble'?M.trim:(M[t]||M.S));
   m.castShadow=true;m.userData={wall:wall,t:t,flat:side?'z':'x',loose:true};
-  if(t==='W'){const b=new Batch(),o=[0,0,0],wl=side?'left':'front',f=w/2;const band=function(al,h,da,up){if(side)b.box(1.1,h,al,M.band,0,up,da,true);else b.box(al,h,1.1,M.band,da,up,0,true)};
+  if(t==='W'&&strawLook(p)!=='hay'){const b=new Batch(),f=w/2,wood=strawLook(p)==='wood';const bx=function(al,h,da,up,mm){if(side)b.box(1.1,h,al,mm,0,up,da,true);else b.box(al,h,1.1,mm,da,up,0,true)};
+    if(wood){bx(w*1.04,0.2*k,0.05*f,0.45*k,M.trim);bx(w*0.96,0.2*k,-0.04*f,-0.5*k,M.trim)}else{[-0.7,-0.25,0.2,0.62].forEach(function(dx,i){bx(0.1*f,(1.12+(i%2)*0.14)*H,dx*f,0.06*k,M.W)});bx(w,0.18*k,0,-0.2*k,M.band)}
+    if(p.forgiven){if(side)b.box(1.2,0.8,0.8*f,M.P,0,0,0,true);else b.box(0.8*f,0.8,1.2,M.P,0,0,0,true)}b.into(m);m.scale.set(1.03,1.03,1.03)}
+  else if(t==='W'){const b=new Batch(),o=[0,0,0],wl=side?'left':'front',f=w/2;const band=function(al,h,da,up){if(side)b.box(1.1,h,al,M.band,0,up,da,true);else b.box(al,h,1.1,M.band,da,up,0,true)};
     band(w*1.03,0.24*k,0,0.5*k);band(w*1.03,0.24*k,0,-0.5*k);band(0.22*f,1.03*H,0.6*f,0);band(0.22*f,1.03*H,-0.6*f,0);if(p.forgiven){if(side)b.box(1.2,0.8,0.8*f,M.P,0,0,0,true);else b.box(0.8*f,0.8,1.2,M.P,0,0,0,true)}b.into(m);m.scale.set(1.03,1.03,1.03)}
   if(t==='L')m.add(halo(0xffc060,4,0.6));
   return m}
@@ -1131,7 +1163,7 @@ function showSlots(){const s=st(),piece=trayPiece(),slots=piece?openSlots(s,piec
 function reGhost(){if(ui.sel)showSlots()}
 function drawAll(){drawBar();drawTray();drawPanel();save()}
 function drawBar(){const s=st(),x=X(),kids=$('kids');kids.textContent='';
-  AGES.forEach(function(a){kids.appendChild(btn('Age '+a,function(){askSwitch(a)},null,{'aria-pressed':String(DB.cur===a)}))});
+  if(!LIVE)AGES.forEach(function(a){kids.appendChild(btn('Age '+a,function(){askSwitch(a)},null,{'aria-pressed':String(DB.cur===a)}))});
   $('dayChip').textContent=WEEK[s.weekday]+' \u00b7 Day '+s.day;
   const n=nightsToFire();$('fireTxt').textContent=n===0?(s.today.fired?'Fire is over':'Fire tonight'):n===1?'Fire tomorrow night':'Fire in '+n+' nights';
   $('fireChip').className='chip'+(n===0&&!s.today.fired?' fire':'');$('candle').style.setProperty('--left',Math.max(12,Math.round(n/7*100))+'%');
@@ -1177,6 +1209,7 @@ function groupTile(g,list){const p=g.items[0],n=g.items.length,sel=ui.sel&&ui.se
 function drawPanel(){const b=$('pbody'),f=$('pfoot'),x=X();b.textContent='';f.textContent='';b.scrollTop=0;
   if(ui.busy){b.appendChild(h('p',{class:'say',text:'Watch the fire.'}));return}
   if(ui.sheet){SHEETS[ui.sheet.kind](b,f,ui.sheet);return}
+  if(LIVE&&(x.phase!=='night'||['lastlook','plot','after'].indexOf(x.night)<0)){drawLive(b,f);return}   /* live: one simple panel; the night steps are only the fire (Last look, plot, after) */
   ({morning:drawMorning,day:drawDay,night:drawNight})[x.phase](b,f)}
 function openSheet(o){if(busy())return;S.disarm();ui.sheet=o;drawPanel()}
 function closeSheet(){S.disarm();ui.sheet=null;drawPanel()}
@@ -1440,7 +1473,7 @@ function prayedFor(who){if(busy())return;clearUndo();const k=K(),s=k.s,a=band();
 function pickTile(p,list){if(busy())return;const s=st();sfx('tap');S.disarm();
   if(ui.sel&&ui.sel.id===p.id){ui.sel=null;S.hideGhosts();drawTray();return}
   if(list==='rubble'&&R.summary(s).rubbleLeftToday<=0){refuse('rubbleCap');return}
-  ui.sel={id:p.id,list:list};const slots=showSlots();if(!slots){sfx('no');say('There is no open space right now.');drawTray();return}
+  ui.sel={id:p.id,list:list};if(LIVE&&p.m&&p.m.app)say(pieceLabel(p),true);const slots=showSlots();if(!slots){sfx('no');say('There is no open space right now.');drawTray();return}
   if(!slots.some(function(q){return q.wall==='front'||q.wall==='free'||q.wall==='spire'}))S.faceWall(slots[0].wall);   /* only a side wall is open: turn to show it */
   if(Object.keys(windowHints(s,p,slots)).length)say('The bright tags show where this gem would finish a window.',true);
   drawTray()}
@@ -1587,6 +1620,8 @@ function choosePlot(i,quiet){const k=K();if(k.x.phase!=='night'||k.x.night!=='pl
   setTimeout(function(){if(!ui.busy&&X().night!=='plot')S.turnTo('centre')},3600)}
 S.onPlot=choosePlot;
 function goodnight(){if(busy())return;clearUndo();const k=K(),x=k.x,s=k.s;if(x.night==='plot')choosePlot(freePlots(k,1)[0],true);
+  /* live: back to the building. The real calendar closes the day (section 10), not a button, and the app does the night check. */
+  if(LIVE){x.phase='day';x.night='account';ui.sheet=null;S.disarm();S.hideGhosts();ui.sel=null;S.turnTo('centre');drawAll();return}
   ui.sheet=null;S.disarm();S.hideGhosts();ui.sel=null;S.turnTo('centre');
   /* the day closes now: any pieces still in the tray are laid by the builders, so nothing can be hoarded */
   let laidLine='';
@@ -1720,6 +1755,7 @@ function trendOf(hist,it){const v=hist.slice(-4).map(function(c){return c.vals[i
   const half=Math.ceil(v.length/2),avg=function(a){return a.reduce(function(p,q){return p+q},0)/a.length},d=(avg(v.slice(half))-avg(v.slice(0,half)))*(it.better==='lower'?-1:1);
   return d>0.4?'growing':d<-0.4?'harder':'steady'}
 function drawTools(){const b=$('toolsBody'),W=weekly(),hist=DB.weekly[DB.cur]||[],tips=CT.tips(),fp=get('fadePlan')||[];b.textContent='';
+  if(LIVE){drawLiveTools(b,tips);return}   /* live: no pretend days, jump ahead, Show me, temper, week cards or Start again */
   /* v5: the eight cards (on or off for everyone), this child's three for the week, the Tomorrow words, the review */
   const wk=week();const jl=h('input',{type:'checkbox',checked:DB.joelLine||null,onchange:function(e){DB.joelLine=e.target.checked;save()}});
   b.appendChild(h('div',{class:'card'},[h('h2',{text:'The picture cards'}),h('p',{class:'note',text:'A card that is off is never offered. "Tell the truth" starts off; lying can still be added as straw on any day.'}),
@@ -1772,6 +1808,106 @@ function openTools(){
     confirmBox('Forgot the PIN? First a sum for grown-ups: what is '+n1+' x '+n2+'? Then the PIN, the weekly checks and the month setting are cleared. The children\'s buildings are kept.','Clear the tools',function(ans){
       if(Number(ans)!==n1*n2){toast('That is not the answer.');sfx('no');return}DB.pin=null;DB.weekly={};DB.month=1;DB.autoPull=false;save();openTools()},{input:'sum'})}}})}
 
+/* ================= 10. live mode: one real child inside the family app =================
+   The app writes what happened in real life to localStorage 'rock.inbox.<kid>' (a JSON array, the app only appends):
+     { t: ISO time, kind: 'gold'|'silver'|'gem'|'straw', fruit?: gem code, material?: 'wood'|'hay'|'stubble', label: short words }
+   This page takes every item, empties the inbox and turns each one into pieces through the rules (daily caps apply).
+   Good pieces go to the tray for the child to lay; straw lands by itself (the rules' own straw 'W', its material kept in the meta).
+
+   REAL DAYS. The day follows the calendar (local date, new day at 3am). When the page opens on a later real day, each missed day
+   is closed and opened the same way the pretend "Next morning" does (nextDay: endDay then startDay), with the inbox items stamped
+   on that day fed in first, so each day's caps stay that day's. Fires are NEVER run during catch-up. The rules already carry a
+   missed fire night as ONE owed fire (state.fireOwed is a yes/no, not a count), so however long the child was away there is at most
+   one fire waiting, and the child gets their Last look (a chance to put straw right) before they light it. Nothing is laid for
+   them overnight (autoLayAtNight is off in live mode), so pieces they never saw wait in the tray. */
+const LINBOX='rock.inbox.'+LKID,FIRE_HOUR=17,MAXCATCH=400;
+const LIVEW={title:'{name}\'s building',titleNoName:'My building',hello:'Hello {name}! Choose your design.',none:'Your pieces come from real life. They show up here.',todayHead:'Today\'s pieces',
+  place:'Tap a piece, then tap a glowing space.',arrived:'New pieces: {list}.',strawLanded:'Straw landed: {list}. Tap a bale to put it right.',strawHint:'There is straw in your walls. Tap a bale to put it right before the fire.',
+  newDay:'A new day!',fireOwed:'Last night was fire night. Have a last look, then light the fire.',fireLater:'Fire tonight. You can light it after 5 o\'clock.',fireButton:'Last look before the fire',fireDone:'The fire is over for today.'};
+function LW(key,vars){const v=get('live.'+key);return fill(typeof v==='string'?v:(LIVEW[key]||''),vars)}
+function takeInbox(){let a=null;try{const raw=localStorage.getItem(LINBOX);if(raw==null)return [];localStorage.removeItem(LINBOX);a=JSON.parse(raw)}catch(e){a=null}
+  return Array.isArray(a)?a.filter(function(o){return o&&typeof o==='object'}):[]}
+const DEFLABEL={gold:'Time with God',silver:'Jobs done well',gem:'A good moment',straw:'Straw'};
+/* one inbox item -> rules pieces. Returns null for an item this page does not understand (it is dropped). */
+function feedOne(s,it){const kind=it.kind,meta={label:String(it.label||DEFLABEL[kind]||'').slice(0,48),at:String(it.t||''),app:kind};let type;
+  if(kind==='gold')type='G';else if(kind==='silver')type='S';
+  else if(kind==='gem')type=isGem(it.fruit)?it.fruit:'l';
+  else if(kind==='straw'){type='W';meta.material=it.material==='wood'||it.material==='stubble'?it.material:'hay'}
+  else return null;
+  return{type:type,kind:kind,label:meta.label,material:meta.material||null,r:R.addPiece(s,type,meta)}}
+function strawOnWalls(s){let n=0;WALLS.forEach(function(w){s.walls[w].forEach(function(col){col.forEach(function(p){if(p&&p.t==='W')n++})})});return n}
+function canSync(){return LIVE&&!ui.busy&&$('modal').hidden&&!(ui.sheet&&ui.sheet.kind==='fix'&&ui.sheet.armed)}
+function liveSync(){if(!canSync())return;
+  const k=K(),today=rockDate(),items=takeInbox(),done=items.map(function(){return false}),got=[],straw=[];let moved=0;
+  function itemDay(it){const d=new Date(it.t);return isNaN(d.getTime())?today:rockDate(d)}
+  function feed(upTo){items.forEach(function(it,i){if(done[i]||(upTo!=null&&dayNum(itemDay(it))>upTo))return;done[i]=true;
+    let o=null;try{o=feedOne(k.s,it)}catch(e){o=null}if(!o||!o.r.ok)return;   /* over the daily cap: the rules say no, the piece is not given */
+    (k.p.arrivals||(k.p.arrivals=[])).push({day:k.s.day,kind:o.kind,t:o.type,label:o.label,material:o.material});
+    if(o.type==='W')o.r.events.forEach(function(e){if(e.kind==='strawLand')straw.push(e)});else got.push(o)})}
+  if(dayNum(DB.lastDate)<dayNum(today)){
+    let d=dayNum(DB.lastDate);const end=dayNum(today);
+    while(d<end&&moved<MAXCATCH){feed(d);nextDay(k);d++;moved++}   /* a day the page never saw is still closed, quietly: no fire */
+    k.s.weekday=realWeekday();DB.lastDate=today;ui.sheet=null;ui.sel=null;S.hideGhosts()}
+  feed(null);   /* today's items (and any stamped later by a clock that is ahead) */
+  if(k.p.arrivals&&k.p.arrivals.length>40)k.p.arrivals=k.p.arrivals.slice(-40);
+  if(!got.length&&!straw.length&&!moved)return;
+  const keys=straw.filter(function(e){const q=R.at(k.s,e.wall,e.col,e.row);return q&&q.id===e.piece.id}).map(function(e){return K3(e.wall,e.col,e.row)});
+  redraw({loose:keys});
+  if(keys.length){S.faceWall(straw[straw.length-1].wall);straw.forEach(function(e,i){if(keys.indexOf(K3(e.wall,e.col,e.row))<0)return;S.dropIn(e.wall,e.col,e.row,i*450).then(function(){sfx('straw');if(e.wobble===2)setTimeout(function(){sfx('creak')},350)})})}
+  else if(got.length)sfx('gem');
+  const uniq=function(list){const out=[];list.forEach(function(q){if(q&&out.indexOf(q)<0)out.push(q)});return out.join(', ')},words=[];
+  if(moved)words.push(LW('newDay'));
+  if(got.length)words.push(LW('arrived',{list:uniq(got.map(function(o){return o.label}))}));
+  if(straw.length)words.push(LW('strawLanded',{list:uniq(straw.map(function(e){return e.piece.m&&e.piece.m.label}))}));
+  if(moved&&k.s.fireOwed&&!k.s.today.fired)words.push(LW('fireOwed'));
+  say(words.join(' '))}
+function fireReady(s){return R.isFireNight(s)&&!s.today.fired&&(!!s.fireOwed||!!s.today.called||new Date().getHours()>=FIRE_HOUR)}
+function toLastLook(){if(busy())return;const x=X();x.phase='night';x.night='lastlook';ui.sheet=null;say(get('fireWords.lastLook')||'');drawAll()}
+/* the live panel: today's pieces, the page's own prayer and gospel buttons, and the fire when it is time */
+function drawLive(b,f){const k=K(),s=k.s,sm=R.summary(s),tiles=trayTiles(s),nm=s.profile.name;
+  title(b,nm?LW('title',{name:nm}):LW('titleNoName'));
+  if(sm.mortar)b.appendChild(h('p',{class:'mortar',text:mortarLine(sm)}));
+  if(R.isEmptyBuilding(s))b.appendChild(h('div',{class:'row'},[h('span',{class:'note',text:'A new building: '+designName(s.bp)+'.'}),btn(V('designs.title')||'Choose your design',function(){openSheet({kind:'design'})},'link')]));
+  if(reviewDue(k))b.appendChild(btn('★ '+(V('review.title')||'This week with Jesus'),function(){openSheet({kind:'review',step:'fruit',i:0})},'link'));
+  const todays=(k.p.arrivals||[]).filter(function(a){return a.day===s.day});
+  b.appendChild(h('h3',{text:LW('todayHead')}));
+  if(!todays.length)b.appendChild(h('p',{class:'note',text:LW('none')}));
+  else b.appendChild(h('div',{class:'chips'},todays.map(function(a){return h('span',null,[h('span',{class:'dot'+(a.t==='W'?' W':''),style:a.t==='W'?null:'background:'+css(a.t)}),' '+a.label+(a.t==='W'&&a.material&&a.material!=='hay'?' ('+((get('live.materials')||{})[a.material]||a.material)+')':'')])})));
+  if(tiles.length)b.appendChild(h('p',{class:'note',text:LW('place')}));
+  if(strawOnWalls(s))b.appendChild(h('p',{class:'note',text:LW('strawHint')}));
+  const list=[['Stop & Pray','Lights the lamp',function(){openSheet({kind:'pray'})},'#ffd58a'],
+    [get('gospel.labels.told','gospel.actCard.label')||'I told someone about Jesus','A seed is planted',function(){openSheet({kind:'tell'})},'#bfffb0'],
+    [get('gospel.labels.friendFollows')||'A friend says they want to follow Jesus',get('gospel.labels.friendFollowsNote')||'Grown-ups only',friendCame,'#ff9a4a'],
+    [get('gospel.labels.prayForNoName')||'Pray for them','Praying is watering',function(){openSheet({kind:'prayFor'})},'#f8eef4']];
+  b.appendChild(h('div',{class:'grid'},list.map(function(q){return btn([h('span',{class:'dot',style:'background:'+q[3]}),h('span',null,[q[0],h('small',{text:q[1]})])],q[2])})));
+  b.appendChild(candles(sm.prayers));
+  animalButton(b);
+  if(fireReady(s))f.appendChild(btn(LW('fireButton'),toLastLook,'big'));
+  else if(R.isFireNight(s)&&!s.today.fired)b.appendChild(h('p',{class:'note',text:LW('fireLater')}));
+  else if(s.today.fired)b.appendChild(h('p',{class:'note',text:k.x.fireWords||LW('fireDone')}));
+  if(sm.canCallFire&&!R.isFireNight(s))f.appendChild(btn('It is finished. Ask for the fire tonight',function(){const r=R.callFire(s);if(!r.ok){refuse(r.reason);return}toLastLook()},'big'))}
+/* grown-up tools in live mode: only settings (read aloud, pull for me) and the design */
+function drawLiveTools(b,tips){const tog=h('input',{type:'checkbox',checked:DB.speak||null,onchange:function(e){DB.speak=e.target.checked;save();if(DB.speak)speak($('say').textContent);else try{window.speechSynthesis.cancel()}catch(_){}}});
+  const ap=h('input',{type:'checkbox',checked:DB.autoPull||null,onchange:function(e){DB.autoPull=e.target.checked;save();drawPanel()}});
+  b.appendChild(h('div',{class:'card'},[h('h2',{text:'Settings and a tip'}),h('label',{class:'tog'},[tog,'Read the words aloud']),h('label',{class:'tog'},[ap,'Show "Pull it out for me" (for a child who cannot drag)']),
+    h('p',{class:'pray',text:tips.length?txt(tips[DB.tip%tips.length]):''}),btn('Another tip',function(){DB.tip++;save();drawTools()},'quiet'),
+    h('div',{class:'row'},[btn('Choose the design',function(){hideTools();openSheet({kind:'design'})},'quiet'),btn('Change the PIN',function(){DB.pin=null;save();hideTools();openTools()},'quiet')])]))}
+const inFrame=(function(){try{return window.parent&&window.parent!==window}catch(e){return true}})();
+function tellParent(type){if(!inFrame)return;try{window.parent.postMessage({type:type},location.origin)}catch(e){}}
+function liveStart(){
+  $('close').hidden=false;$('kids').hidden=true;
+  $('close').addEventListener('click',function(){save();if(inFrame)tellParent('rock-close');else history.back()});
+  /* keep the app awake while the child plays: at most one message every 2 seconds */
+  let lastAct=0;document.addEventListener('pointerdown',function(){const n=Date.now();if(n-lastAct<2000)return;lastAct=n;tellParent('rock-activity')},true);
+  window.addEventListener('focus',liveSync);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)liveSync()});
+  window.addEventListener('storage',function(e){if(e.key===LINBOX&&e.newValue)liveSync()});
+  setInterval(function(){if(!document.hidden)liveSync()},5000);
+  const isNew=DB.isNew;DB.isNew=false;
+  liveSync();
+  if(isNew&&R.isEmptyBuilding(st())){openSheet({kind:'design'});say(LW('hello',{name:st().profile.name}))}
+  save()}
+
 /* ================= 9. start ================= */
 $('mute').addEventListener('click',function(){DB.mute=!DB.mute;drawBar();save();sfx('tap')});
 $('grown').addEventListener('click',openTools);
@@ -1786,6 +1922,7 @@ setInterval(function(){if(ui.busy||document.hidden||!K())return;const w=R.wobble
 DB.tip=(DB.tip||0)+1;
 window.RockPlay={state:st,extra:X,kid:K,scene:S,redraw:redraw,db:function(){return DB},hints:windowHints,art:function(){return artState},simDay:function(t){return simDay(K(),t||'typical')}};   /* handy for checking by hand in the console */
 redraw();
+if(LIVE)liveStart();
 /* the pictures come after the first paint, so the page is never held up by them */
 requestAnimationFrame(function(){setTimeout(loadArt,30)});setTimeout(loadArt,700);   /* the timer also covers a page opened in the background, where frames wait */
 })();

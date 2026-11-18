@@ -1646,6 +1646,26 @@
     capLamp: 'One lamp a day. The seed is still planted.'
   };
 
+  /* live mode: the game inside the family app. Pieces come from real life through the app
+     (prayer timer = gold, morning/night jobs = silver, good moments a grown-up saw = gems, confirmed bad moments = straw). */
+  var live = {
+    title: '{name}\'s building',
+    titleNoName: 'My building',
+    hello: 'Hello {name}! Choose your design. Then the good things you do in real life come here as pieces to build with.',
+    none: 'Your pieces come from real life: time with God, jobs done well, and good things a grown-up saw. They show up here.',
+    todayHead: 'Today\'s pieces',
+    place: 'Tap a piece, then tap a glowing space.',
+    arrived: 'New pieces: {list}. Tap a piece, then a glowing space.',
+    strawLanded: 'Straw landed: {list}. Straw can\'t last in the fire. Tap a bale to put it right.',
+    strawHint: 'There is straw in your walls. Tap a bale to put it right before the fire.',
+    newDay: 'A new day!',
+    fireOwed: 'Last night was fire night. Have a last look, then light the fire.',
+    fireLater: 'Fire tonight. You can light it after 5 o\'clock.',
+    fireButton: 'Last look before the fire',
+    fireDone: 'The fire is over for today.',
+    materials: { wood: 'wood', hay: 'hay', stubble: 'stubble' }
+  };
+
   return {
     version: '1.0.0',
     fill: fill,
@@ -1696,6 +1716,8 @@
     /* v5 */
     cards: cards,
     strawKinds: strawKinds,
-    v5: v5
+    v5: v5,
+    /* live mode */
+    live: live
   };
 });

@@ -1145,28 +1145,33 @@ test('v7 pile: unchecked burns-up taps never become straw; unchecked seen arrive
 
 /* ---- nearby extras: one space out from the template ---- */
 function give(s, n) { for (var i = 0; i < n; i++) s.tray.push({ id: s.nextId++, t: 'S' }); }
-test('extras: only one space out, never inside, and only with support under them', function () {
-  var s = kid(6); give(s, 3);
+test('extras: free building up to two spaces out, never inside, and only with support under them', function () {
+  var s = kid(6); give(s, 6);
   var xs = R.extraSlots(s);
   assert(xs.length > 0, 'some nearby spots on an empty plot');
   xs.forEach(function (q) {
     assert.equal(q.row, 0, 'on an empty plot only ground-level spots have support');
-    var C2 = s.walls[q.wall].length, out = (q.col < 0 || q.col >= C2 ? 1 : 0) + (q.row >= s.walls[q.wall][0].length ? 1 : 0) + q.out;
-    assert.equal(out, 1, 'exactly one space out: ' + JSON.stringify(q));
-    assert(q.col >= -1 && q.col <= C2);
+    var C2 = s.walls[q.wall].length, oc = q.col < 0 ? -q.col : (q.col >= C2 ? q.col - C2 + 1 : 0), out = oc + q.out;
+    assert(out >= 1 && out <= 2, 'one or two spaces out: ' + JSON.stringify(q));
   });
-  assert(!xs.some(function (q) { return q.wall === 'front' && q.out === 1 && q.col === 2; }), 'the doorway stays clear');
-  assert(!R.place(s, 0, 'front', -2, 0, 0).ok, 'two spaces out is refused');
+  assert(xs.some(function (q) { return q.out === 2; }), 'two spaces in front is open');
+  assert(xs.some(function (q) { return q.col === -2; }), 'two spaces beside is open');
+  assert(!xs.some(function (q) { return q.wall === 'front' && q.out > 0 && q.col === 2; }), 'the doorway stays clear');
+  assert(!R.place(s, 0, 'front', -3, 0, 0).ok, 'three spaces out is refused');
+  assert(!R.place(s, 0, 'front', -1, 0, 2).ok, 'one beside plus two in front is too far');
   assert(!R.place(s, 0, 'front', 1, 1, 0).ok, 'a template slot is not an extra');
   assert(!R.place(s, 0, 'front', 0, 1, 1).ok, 'no floating porch stone');
   assert(!R.place(s, 0, 'front', 0, 3, 0).ok, 'nothing above an empty column');
   assert(R.place(s, 0, 'front', 0, 0, 1).ok, 'porch stone on the ground');
   assert(R.place(s, 0, 'front', 0, 1, 1).ok, 'and one on top of it');
-  assert(R.place(s, 0, 'left', 3, 0, 0).ok, 'widen the left wall at the back');
-  assert.equal(s.extras.length, 3);
+  assert(R.place(s, 0, 'front', 0, 0, 2).ok, 'a second row out front');
+  assert(R.place(s, 0, 'left', 4, 0, 0).ok, 'widen the left wall two spaces at the back');
   assert.equal(R.summary(s).slots.filled, 0, 'extras are not template slots');
   set(s, 'front', 0, 0, 'S'); set(s, 'front', 0, 1, 'S'); set(s, 'front', 0, 2, 'S');
-  assert(R.extraSlots(s).some(function (q) { return q.wall === 'front' && q.col === 0 && q.row === 3 && q.out === 0; }), 'a chimney spot once the column is full');
+  assert(!R.place(s, 0, 'front', 0, 4, 0).ok, 'no floating stone two above the top');
+  assert(R.place(s, 0, 'front', 0, 3, 0).ok, 'a chimney stone on the full column');
+  assert(R.place(s, 0, 'front', 0, 4, 0).ok, 'and a second on top of it');
+  assert(!R.place(s, 0, 'front', 0, 5, 0).ok, 'but not three high');
 });
 test('extras: straw never lands on an extra, and an extra cannot take straw', function () {
   var s = kid(6); give(s, 2);
@@ -1206,9 +1211,9 @@ test('extras: sealing needs only the template; extras go to the City copy', func
   var t = kid(6); fillAll(t); t.free = t.free.map(function () { return { id: t.nextId++, t: 'S' }; });
   assert(R.fire(t).some(function (e) { return e.kind === 'seal'; }), 'and without any extras');
 });
-test('extras: capped at about a quarter of the template', function () {
+test('extras: capped at about 60% of the template', function () {
   var s = kid(6), cap = R.summary(s).extras.cap;
-  assert.equal(cap, Math.floor(32 * 0.25));
+  assert.equal(cap, Math.floor(32 * 0.6));
   give(s, cap + 1);
   for (var i = 0; i < cap; i++) { var q = R.extraSlots(s)[0]; assert(R.place(s, 0, q.wall, q.col, q.row, q.out).ok); }
   assert.equal(R.extraSlots(s).length, 0, 'no more spots at the cap');
@@ -1224,6 +1229,37 @@ test('extras: an old save with no extras still loads and plays', function () {
   o2.walls.left[0][0].forgiven = true; o2.walls.left[0][0].madeRight = true;
   R.pull(o2, 'left', 0, 0); R.fire(o2);
   assert(Array.isArray(o2.extras));
+});
+
+/* live mode (play.html?live=1): the page leans on these rules behaviours, so they are pinned here */
+test('live: straw from the app keeps its material and label in the meta, and still burns', function () {
+  var s = kid(8);
+  ['wood', 'hay', 'stubble'].forEach(function (m) { var r = R.addPiece(s, 'W', { label: 'Unkind words', material: m, app: 'straw' }); assert(r.ok); assert.equal(r.piece.t, 'W'); });
+  var seen = [];
+  ['front', 'left', 'right'].forEach(function (w) { s.walls[w].forEach(function (col) { col.forEach(function (p) { if (p && p.t === 'W') seen.push(p.m.material); }); }); });
+  assert.deepEqual(seen.sort(), ['hay', 'stubble', 'wood']);
+  var copy = JSON.parse(JSON.stringify(s));   // survives the localStorage round trip
+  var ev = R.fire(copy);
+  assert.equal(ev.filter(function (e) { return e.kind === 'burn'; }).length, 3);
+});
+
+test('live: many missed fire nights leave only ONE fire owed', function () {
+  var s = kid(6), wd = 1;
+  R.addPiece(s, 'W', { material: 'hay' });
+  for (var i = 0; i < 14; i++) { wd = (wd + 1) % 7; newDay(s, wd); }   // two weeks away, six fire nights missed
+  assert.strictEqual(s.fireOwed, true);
+  assert(R.isFireNight(s));
+  R.fire(s);
+  assert.strictEqual(s.fireOwed, false);
+  assert.equal(s.stats.fires, 1);
+});
+
+test('live: with autoLayAtNight off, unseen tray pieces wait across days', function () {
+  var s = kid(6); C.autoLayAtNight = false;
+  R.addPiece(s, 'G', { label: 'Prayer time' }); R.addPiece(s, 'k', { label: 'Kind to Judah' });
+  newDay(s, 2); newDay(s, 3);
+  assert.equal(s.tray.length, 2);
+  assert.equal(R.addPiece(s, 'G', { label: 'Prayer time' }).ok, true);   // a new day's cap
 });
 
 console.log(passed + ' tests passed' + (process.exitCode ? ', SOME FAILED' : ''));

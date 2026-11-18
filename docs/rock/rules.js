@@ -28,7 +28,8 @@
     gems: { l: 'love', j: 'joy', p: 'peace', t: 'patience', k: 'kindness', b: 'goodness',
             f: 'faithfulness', e: 'gentleness', r: 'self-control' },
     blocksPerPiece: 2,
-    extraShare: 0.25,                               // "nearby" extra blocks: one space out from the template, at most this share of its slots                              // each good act (gold, silver, a gem, bonus) gives a small stack of this many blocks.
+    extraShare: 0.6,
+    extraReach: 2,                                  // free building: up to this many spaces out from the outline (beside, in front, above, or a mix)                               // "nearby" extra blocks: one space out from the template, at most this share of its slots                              // each good act (gold, silver, a gem, bonus) gives a small stack of this many blocks.
                                                     // Straw, pearls and lamps stay one block. Daily caps count ACTS, not blocks.
     knocksPerBurn: 2,                               // blocks a burning bale knocks out (= one act's worth, so straw costs what it did)
     dailyCap: { G: 1, S: 2, gem: 6, L: 1 },         // v5: gems 9 -> 6 (3 night cards + 2 seen + 1 twin)
@@ -231,7 +232,7 @@
     if (r === 0 || !isSlot(state, w, c, r - 1) || state.walls[w][c][r - 1]) return true;
     return hasAbove(state, w, c, r);
   }
-  /* ---- extras: blocks laid one space out from the template ("nearby"). Each is {wall, col, row, out, p}.
+  /* ---- extras: blocks laid up to extraReach spaces out from the template ("nearby", free building). Each is {wall, col, row, out, p}.
      out 0 = in the wall's own plane: col -1 or col = cols (beside an end, widening it), or row = rows (one row above the top).
      out 1 = one space out in front of the wall face (bay, porch, buttress). Never inside the house, never two spaces out.
      An extra belongs to its wall for every rule: it falls with it, goes to rubble, is knocked by the straw under it.
@@ -242,18 +243,18 @@
     return x ? x.p : null;
   }
   function isExtraCell(state, w, c, r, o) {
-    if (WALLS.indexOf(w) < 0 || (o !== 0 && o !== 1) || r < 0) return false;
-    var C = cols(state, w), Rr = rowsOf(state, w), inC = c >= 0 && c < C, inR = r < Rr, outs = 0;
-    if (c < -1 || c > C || r > Rr) return false;
-    if (!inC) outs++; if (!inR) outs++; if (o) outs++;
-    if (outs !== 1) return false;                   // exactly one space out, along one direction
+    var X = CONFIG.extraReach || 1;
+    if (WALLS.indexOf(w) < 0 || o < 0 || o > X || o !== Math.floor(o) || r < 0) return false;
+    var C = cols(state, w), Rr = rowsOf(state, w);
+    var oc = c < 0 ? -c : (c >= C ? c - C + 1 : 0), orow = r >= Rr ? r - Rr + 1 : 0, outs = oc + orow + o;
+    if (outs < 1 || outs > X) return false;         // outside the outline, at most extraReach spaces out in all
     var d = doorOf(state);
     if (o && w === d.wall && c === d.col) return false;   // keep the doorway clear
     return true;
   }
   function extraSupported(state, w, c, r, o) {
     if (r === 0) return true;                       // on the ground / foundation
-    if (o === 0 && c >= 0 && c < cols(state, w)) {  // above the top: rests on the top template block (or the door)
+    if (o === 0 && c >= 0 && c < cols(state, w) && r === rowsOf(state, w)) {  // just above the top: rests on the top template block (or the door)
       return !isSlot(state, w, c, r - 1) || !!state.walls[w][c][r - 1];   // (a door below counts as support)
     }
     return !!extraAt(state, w, c, r - 1, o);
@@ -265,7 +266,8 @@
     if (state.extras.length >= extraCap(state)) return out;
     WALLS.forEach(function (w) {
       var C = cols(state, w), Rr = rowsOf(state, w);
-      for (var o = 0; o <= 1; o++) for (var c = -1; c <= C; c++) for (var r = 0; r <= Rr; r++)
+      var X = CONFIG.extraReach || 1;
+      for (var o = 0; o <= X; o++) for (var c = -X; c < C + X; c++) for (var r = 0; r < Rr + X; r++)
         if (isExtraCell(state, w, c, r, o) && !extraAt(state, w, c, r, o) && extraSupported(state, w, c, r, o))
           out.push({ wall: w, col: c, row: r, out: o, extra: true });
     });
