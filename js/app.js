@@ -327,7 +327,7 @@ function farmLocked(k, d) {
 }
 const farmLockText = () => {
   const r = defaultTab();
-  return r === 'night' ? '🌙 Farm again tomorrow' : r === 'extras' ? '🔒 Farm after your morning jobs or an extra job' : '🔒 Farm after your jobs';
+  return r === 'night' ? '🌙 Farm tomorrow' : r === 'extras' ? '🔒 Farm after a job' : '🔒 Farm after jobs';
 };
 
 async function openFarm(id, { grown = false } = {}) {
@@ -732,8 +732,7 @@ function windowBarHTML(r = 'morning') {
     const phase = now < open ? 'before' : now < by ? 'open' : 'closed';
     const pct = (left * 100).toFixed(1);
     const fill = phase === 'open' ? `hsl(${Math.round(120 * left)}, 80%, 50%)` : '';
-    const label = phase === 'closed' ? `🌞 Keep going! Jobs still earn ⭐ · if we have to ask, −${-COINS.asked}`
-      : `Start by ${startByText()} · if we have to ask, −${-COINS.asked}`;
+    const label = phase === 'closed' ? '🌞 Keep going!' : `Start by ${startByText()}`;
     return `
     <div class="window-bar ${phase}" data-routine="morning" role="progressbar" aria-valuenow="${Math.round(left * 100)}" aria-valuemin="0" aria-valuemax="100">
       <div class="window-fill" style="width:${pct}%;${fill ? `background:${fill}` : ''}"></div>
@@ -816,7 +815,7 @@ const nextJob = (k, d, r) => listFor(k, r).find((h) => !mapFor(d, r)[h.id]);
 // Under "Ready, set, go!": before 7:15 the rule, after it a kind word (jobs still earn stars).
 function earlyOffer() {
   return clock.now() <= clock.atTime(state.settings.startBy || '07:15', state.settings.dayStartHour)
-    ? `Start by ${startByText()}!` : 'Jobs still earn ⭐ stars';
+    ? '' : 'Jobs still earn ⭐ stars';
 }
 
 // On a child's own column, when a grown-up had to ask this routine: which job, and a grace line.
@@ -875,13 +874,9 @@ function columnHTML(k, d, r) {
     main = `${r === 'night' && d.nightStartedAt ? nightTimerHTML(k, d) : ''}
       ${r === 'night' ? '<div class="part-label">🍽️ After-dinner job</div>' : ''}
       ${tileHTML(k, big, d, null, r).replace('class="tile', 'class="tile next-tile')}
-      ${r === 'night' ? '' : `<div class="next-hint">${big.type === 'timer' ? 'Tap to start your prayer timer' : big.type === 'practice' ? (d.done[big.id] ? `Bonus coins up to ${big.bonusTo} min · ⏹ Stop when you finish` : d.practice?.[big.id]?.start ? 'Tap to pause' : 'Tap to start the timer') : 'Do it, then hold here ✓'}</div>`}
       <div class="job-row">${list.map((h) => tileHTML(k, h, d, null, r).replace('class="tile', `class="tile mini-tile ${h === big ? 'is-next' : ''}`)).join('')}</div>`;
   }
   if (r !== 'extras') main += askedNoteHTML(d, r);
-  // Morning: a grown-up says how bedtime went last night (PIN), which pays the bedtime bonus.
-  const lastNight = r === 'morning' && lastNightDue(d)
-    ? '<button class="last-night" data-action="last-night">🛏️ Last night <small>👨‍👩‍👧 grown-up</small></button>' : '';
   const left = visitsLeft(k.id);
   const farmBtn = farmLocked(k, d)
     ? `<div class="farm-lock">${farmLockText()}</div>`
@@ -898,17 +893,14 @@ function columnHTML(k, d, r) {
       <div class="col-head">
         <span class="face">${k.avatar || '🙂'}</span><b>${esc(k.name)}</b>
         ${fruitBadgeHTML(k)}
-        ${(() => { const w = Object.keys(d.claims || {}).reduce((t, id) => t + (listFor(k, 'extras').find((c) => c.id === id)?.coins || 2), 0); return w ? `<span class="col-waiting" title="Coins waiting for a grown-up to check">⏳ +${w}</span>` : ''; })()}
-        ${quick.chipHTML(k)}
+        ${parentCoinsHTML(k, d)}
         ${showCoins ? coinChipHTML(k.id) : ''}
       </div>
-      ${lastNight}
       <div class="col-main">${main}</div>
       ${fruitRow}
-      <div class="col-farm-line">${farm.tallyHTML(k.id)}<span class="col-goal">${farm.goalText(k.id, coinsOf(k.id))}</span></div>
+      ${r === 'extras' ? `<div class="col-farm-line">${farm.tallyHTML(k.id)}<span class="col-goal">${farm.goalText(k.id, coinsOf(k.id))}</span></div>` : ''}
       <div class="col-foot">
         <button class="star-btn" data-action="extras-sheet" aria-label="Extra jobs">⭐</button>
-        <button class="star-btn qk-btn" data-action="quick-add" aria-label="Add or take off coins (grown-ups)">🪙<small>±</small></button>
         <button class="breath-btn" aria-label="Hold for a breath prayer" ${breaths >= BREATHS_PER_DAY ? 'disabled' : ''}>🙏<small>${breaths >= BREATHS_PER_DAY ? '💛' : 'Hold'}</small></button>
         ${farmBtn}
       </div>
@@ -931,7 +923,18 @@ function coinTarget(id) {
   return null;
 }
 
-const pendingCount = () => state.settings.kids.reduce((n, k) => n + Object.keys(state.days[k.id]?.claims || {}).length, 0);
+const pendingCount = () => state.settings.kids.reduce((n, k) => n + Object.keys(state.days[k.id]?.claims || {}).length, 0) + quick.waitingAll().length;
+
+// The grown-ups' coin button on each column (no PIN): tap to add or take off coins. It shows the points
+// waiting for a grown-up's check (jobs the child says they did, and front-board moments), so they're visible at a glance.
+function parentCoinsHTML(k, d) {
+  const claimed = Object.keys(d.claims || {}).reduce((t, id) => t + (listFor(k, 'extras').find((c) => c.id === id)?.coins || 2), 0);
+  const w = quick.waitingFor(k.id);
+  const plus = claimed + w.filter((q) => q.n > 0).reduce((a, q) => a + q.n, 0);
+  const minus = w.filter((q) => q.n < 0).reduce((a, q) => a - q.n, 0);
+  return `<button class="col-parent ${plus || minus ? 'has' : ''}" data-action="quick-add" aria-label="Grown-ups: add or take off coins">
+    ${plus || minus ? `${plus ? `<b class="up">+${plus}</b>` : ''}${minus ? `<b class="down">−${minus}</b>` : ''}` : '🪙 ±'}</button>`;
+}
 
 function renderBoard() {
   const r = defaultTab();
@@ -940,10 +943,10 @@ function renderBoard() {
     <section class="screen board tab-${r}">
       <header class="top">
         <h1>${r === 'morning' ? '☀️ Morning jobs' : r === 'night' ? '🌙 Night jobs' : '⭐ Extra jobs'}</h1>
-        ${dinnerBtn ? '<button class="btn dinner-btn" data-action="dinner">🍽️ Dinner\'s finished</button>' : ''}
+        ${r === 'morning' && state.settings.kids.some((k) => lastNightDue(state.days[k.id])) ? '<button class="btn last-night-btn" data-action="last-night">🛏️ Last night</button>' : ''}
+        ${dinnerBtn ? '<button class="btn dinner-btn" data-action="dinner">🍽️ Dinner done</button>' : ''}
         <button class="btn extras-btn ${dinnerBtn ? '' : 'alone'}" data-action="portal" aria-label="Grown-ups">👨‍👩‍👧 Grown-ups${pendingCount() ? ` <span class="badge">${pendingCount()}</span>` : ''}</button>
         <button class="btn remind-btn" data-action="reminders" aria-label="Reminders (grown-ups)">🔔</button>
-        ${r === 'night' && quick.waitingAll().length ? `<button class="btn qk-check-btn" data-action="quick-check">🌙 Check coins <span class="badge">${quick.waitingAll().length}</span></button>` : ''}
         ${clockHTML()}
       </header>
       ${r === 'extras' ? '' : windowBarHTML(r)}
@@ -1755,7 +1758,7 @@ document.addEventListener('click', async (e) => {
     case 'portal': return portal.open();
     case 'claim': return claimJob(el.dataset.job);
     case 'going-up': return goingUp(col.dataset.col);
-    case 'last-night': return openLastNight(col.dataset.col);
+    case 'last-night': return openLastNight(col?.dataset.col || state.settings.kids[0].id);
     case 'extras-sheet': return extrasSheet();
     case 'quick-add': return quick.openAdd(col?.dataset.col || state.kidId);
     case 'quick-check': return quick.openCheck();

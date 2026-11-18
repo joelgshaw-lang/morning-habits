@@ -71,18 +71,17 @@ export function createPortal(ctx) {
 
   const waitingOf = (id) => Object.keys(state.days[id]?.claims || {}).length;
 
-  // Front page: one big card per child.
+  // Front page: a card per child. Everything waiting for a grown-up is listed right on the card with ✓ Yes / ✕ No,
+  // so the night check is this one screen. Tap the top of a card for that child's page (farm, building, coins, jobs).
   function homeView() {
-    return `<p>Tap a child to check their jobs, give or take coins, see their fruit, or open their farm.</p>
-      <div class="gk-cards">${kids().map((k) => {
-        const n = waitingOf(k.id), asked = (state.days[k.id]?.reminders || []).length;
-        return `<button class="gk-card" style="--kid:${k.color}" data-kid="${k.id}">
-          <span class="gk-av">${k.avatar}</span><b>${esc(k.name)}</b>
-          <span class="gk-coins">🪙 ${ctx.coinsOf(k.id)}</span>
-          ${n ? `<span class="gk-note wait">⏳ ${n} job${n === 1 ? '' : 's'} to check</span>` : '<span class="gk-note">No jobs to check</span>'}
-          ${ctx.quickWaiting(k.id) ? `<span class="gk-note wait">🌙 ${ctx.quickWaiting(k.id)} coin moment${ctx.quickWaiting(k.id) === 1 ? '' : 's'} to check</span>` : ''}
-          ${asked ? `<span class="gk-note">🔔 Asked ${asked}× today</span>` : ''}
-        </button>`;
+    return `<div class="gk-cards">${kids().map((k) => {
+        const asked = (state.days[k.id]?.reminders || []).length;
+        return `<div class="gk-card" style="--kid:${k.color}">
+          <button class="gk-open" data-kid="${k.id}"><span class="gk-av">${k.avatar}</span><b>${esc(k.name)}</b>
+            <span class="gk-coins">🪙 <span data-coins-of="${k.id}">${ctx.coinsOf(k.id)}</span></span><span class="gk-more">Open ›</span></button>
+          <div class="gk-list">${waitingSection(k, true)}${ctx.quickSection(k)}
+            ${asked ? `<div class="gk-note">🔔 Asked ${asked}× today</div>` : ''}</div>
+        </div>`;
       }).join('')}</div>`;
   }
 
@@ -93,17 +92,16 @@ export function createPortal(ctx) {
         <span class="gk-coins">🪙 <span class="coin-num" data-coins-of="${k.id}">${ctx.coinsOf(k.id)}</span></span>
         <button class="farm-btn gk-farm" data-open-farm="${k.id}">🐔 Open farm</button>
         <button class="farm-btn gk-farm gk-rock" data-open-rock="${k.id}">🏰 Open building</button></div>
-      <p class="pf-note">Opening the farm here gives 3 minutes and doesn't use up their farm visits.</p>
-      ${waitingSection(k)}${ctx.quickSection(k)}${coinsSection(k)}${tickSection(k)}
+      ${waitingSection(k)}${ctx.quickSection(k)}${coinsSection(k)}${tickSection(k)}${recentHTML(k)}
       <h3>🍓 Fruit</h3>${fruitPortalHTML(k, esc)}`;
   }
 
-  function waitingSection(k) {
+  function waitingSection(k, short = false) {
     const claims = state.days[k.id]?.claims || {};
     const pending = ctx.listFor(k, 'extras').filter((h) => claims[h.id]);
-    return pending.length ? `<h3>⏳ ${esc(k.name)} says they did these</h3>
+    return pending.length ? `<h3>${short ? 'Says they did' : `${esc(k.name)} says they did these`}</h3>
         ${pending.map((h) => `<div class="claim-row"><span>${h.icon}</span><b>${esc(h.name)}</b><small>🪙 ${h.coins || 2}</small>
-          <button class="farm-btn small ok" data-confirm="${h.id}">✓ Done</button><button class="farm-btn small" data-reject="${h.id}">✕ Not yet</button></div>`).join('')}` : '';
+          <button class="farm-btn small ok" data-confirm="${h.id}" data-for="${k.id}">✓ Yes</button><button class="farm-btn small" data-reject="${h.id}" data-for="${k.id}">✕ No</button></div>`).join('')}` : '';
   }
 
   function tickSection(k) {
@@ -117,23 +115,22 @@ export function createPortal(ctx) {
   }
 
   // Add or take away coins by hand (a missed job, a kindness, a correction). Saved as a list, so it shows its history.
-  const WHY = ['⭐ Extra job', '💛 Kindness', '🧾 Owed from before', '↩️ Correction'];
-  let why = WHY[0];
+  // (Plus is saved as "⭐ Bonus", minus as "↩️ Taken off". Good and hard moments with a reason go through 🪙± on the board.)
   function coinsSection(k) {
-    const mine = (state.coinAdjust || []).filter((a) => a.kidId === k.id).slice(-8).reverse();
-    return `<h3>🪙 Give or take coins</h3>
+    return `<h3>Give or take coins</h3>
       <div class="coin-adjust" style="--kid:${k.color}">
-        <div class="ca-balance">${k.avatar} ${esc(k.name)} has <b>🪙 <span class="coin-num">${ctx.coinsOf(k.id)}</span></b></div>
-        <div class="ca-why">${WHY.map((w) => `<button class="${w === why ? 'on' : ''}" data-why="${esc(w)}">${w}</button>`).join('')}</div>
         <div class="ca-btns">${[-10, -5, -1].map((n) => `<button class="ca minus" data-adj="${n}">− ${-n}</button>`).join('')}${[1, 5, 10].map((n) => `<button class="ca plus" data-adj="${n}">+ ${n}</button>`).join('')}</div>
       </div>
-      ${askedHTML(k)}
-      ${mine.length ? `<h3>Recent changes for ${esc(k.name)}</h3>${mine.map((a) => `<div class="claim-row"><span>${a.n > 0 ? '➕' : '➖'}</span><b>${a.n > 0 ? '+' : '−'}🪙 ${Math.abs(a.n)}</b><small>${esc(a.why)} · ${new Date(a.t).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}</small></div>`).join('')}` : ''}`;
+      ${askedHTML(k)}`;
+  }
+  function recentHTML(k) {
+    const mine = (state.coinAdjust || []).filter((a) => a.kidId === k.id).slice(-3).reverse();
+    return `${mine.length ? `<h3>Recent coin changes</h3>${mine.map((a) => `<div class="claim-row"><span>${a.n > 0 ? '➕' : '➖'}</span><b>${a.n > 0 ? '+' : '−'}🪙 ${Math.abs(a.n)}</b><small>${esc(a.why)} · ${new Date(a.t).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}</small></div>`).join('')}` : ''}`;
   }
   // 🔔 Today's asks for this child (only shown here, never on the family board).
   function askedHTML(k) {
     const list = state.days[k.id]?.reminders || [];
-    if (!list.length) return `<p>🔔 Nobody had to ask ${esc(k.name)} today.</p>`;
+    if (!list.length) return '';
     return `<h3>🔔 Had to ask ${esc(k.name)} today: ${list.length}</h3>${list.map((x) => `<div class="claim-row"><span>${x.icon || '🔔'}</span><b>${esc(x.who || 'A grown-up')} asked${x.name ? ` about ${esc(x.name)}` : ''}</b><small>${x.routine} · ${new Date(x.t).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' })}</small></div>`).join('')}
       <p class="pf-note">The first ask in the morning and the first at night are −🪙 20 each. A day never goes below zero.</p>`;
   }
@@ -142,13 +139,13 @@ export function createPortal(ctx) {
     const before = ctx.coinsOf(kidId);
     if (n < 0) n = Math.max(n, -before); // never below zero
     if (!n) return ctx.toast(`${esc(k.name)} has no coins to take away.`);
-    state.coinAdjust = [...(state.coinAdjust || []), { kidId, n, why, t: ctx.clock.now().toISOString() }];
+    state.coinAdjust = [...(state.coinAdjust || []), { kidId, n, why: n > 0 ? '⭐ Bonus' : '↩️ Taken off', t: ctx.clock.now().toISOString() }];
     await ctx.kvSet('coinAdjust', state.coinAdjust);
     await ctx.refreshSummary();
     draw();
     if (n > 0) {
       await new Promise((r) => setTimeout(r, 60));
-      ctx.flyCoins(n, fromRect, el?.querySelector('.ca-balance .coin-num'), before);
+      ctx.flyCoins(n, fromRect, el?.querySelector(`[data-coins-of="${kidId}"]`), before);
       ctx.speak(`${n} coin${n === 1 ? '' : 's'} for ${k.name}!`, true);
     } else ctx.toast(`➖ Took away 🪙 ${-n} from ${esc(k.name)}.`);
   }
@@ -228,7 +225,7 @@ export function createPortal(ctx) {
     const left = view === 'home' ? '<h2>👨‍👩‍👧 Grown-ups</h2>' : '<button class="farm-btn small gk-back" data-home>← All children</button>';
     const html = `<div class="farm-sheet portal">
       <div class="portal-head">${left}<span class="portal-time" title="Grown-up time left">🔒 ${GROWN_MINUTES}:00</span>
-        ${view === 'home' ? '<button class="farm-btn small" data-settings>⚙️ Settings</button>' : ''}<button class="farm-btn small" data-lock>🔒 Lock</button><button class="farm-btn small" data-close>Done</button></div>
+        ${view === 'home' ? '<button class="farm-btn small" data-settings>⚙️ Settings</button>' : ''}<button class="farm-btn small" data-close>Done</button></div>
       ${view === 'settings' ? `<nav class="portal-tabs">${TABS.map(([id, name]) => `<button class="${id === tab ? 'on' : ''}" data-tab="${id}">${name}</button>`).join('')}</nav>` : ''}
       <div class="portal-body">${body}</div></div>`;
     if (!el) {
@@ -315,14 +312,14 @@ export function createPortal(ctx) {
     if (ds.voiceRate) { saveVoiceSettings({ ...voiceSettings(), rate: Number(ds.voiceRate) }); draw(); return sayWith(voiceSettings().uri); }
     if (ds.kid) { kidId = ds.kid; if (view === 'home') view = 'kid'; return draw(); }
     if (ds.icon && t.closest('.icon-pick')) { t.parentElement.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b === t)); return; }
-    if (ds.confirm) return confirmClaim(kidId, ds.confirm, t.getBoundingClientRect());
-    if (ds.why) { why = ds.why; return draw(); }
+    if (ds.confirm) return confirmClaim(ds.for || kidId, ds.confirm, t.getBoundingClientRect());
     if (ds.adj) return adjustCoins(Number(ds.adj), t.getBoundingClientRect());
     if (ds.reject) {
-      const d = await ctx.loadDay(kidId);
+      const id = ds.for || kidId;
+      const d = await ctx.loadDay(id);
       if (d.claims) delete d.claims[ds.reject];
       await ctx.dayPut(d);
-      state.days[kidId] = d;
+      state.days[id] = d;
       return draw();
     }
     if (ds.job) return toggleJob(ds.job, t.getBoundingClientRect());

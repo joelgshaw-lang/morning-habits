@@ -46,6 +46,7 @@ export function createQuick(ctx) {
   // The front-board sheet: pick an amount and a moment. No PIN; it waits for the night check.
   function openAdd(id) {
     const k = ctx.kid(id);
+    amount = 2; // never carry an amount over from another child
     const draw = () => `<h2>${k.avatar} ${esc(k.name)}: coins</h2>
       <p class="pf-note">A grown-up checks these tonight with the PIN.</p>
       <div class="qk-amounts">${AMOUNTS.map((a) => `<button class="${a === amount ? 'on' : ''}" data-amt="${a}">🪙 ${a}</button>`).join('')}</div>
@@ -65,6 +66,8 @@ export function createQuick(ctx) {
           n: ds.good ? amount : -amount, t: ctx.clock.now().toISOString(), status: 'waiting' });
         await save();
         ctx.toast(`${m.icon} ${signed(ds.good ? amount : -amount)} for ${esc(k.name)}, waiting for tonight's check`);
+        el.remove(); // logged: close straight away (reopen to remove it)
+        return ctx.renderKid();
       }
       if (ds.undoQuick) { state.quickLog = list().filter((q) => q.id !== ds.undoQuick); await save(); }
       el.querySelector('.farm-sheet').innerHTML = draw();
@@ -76,7 +79,7 @@ export function createQuick(ctx) {
   // One waiting row. check = true shows ✓ Keep / ✕ Not quite (night check); false shows a remove button (front board).
   const rowHTML = (check) => (q) => `<div class="claim-row qk-row"><span>${q.icon}</span><b>${esc(q.label)}</b>
     <small>🪙 ${signed(q.n)}${q.material ? ` · ${MATERIAL[q.material]}` : ''} · ${new Date(q.t).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' })}</small>
-    ${check ? `<button class="farm-btn small ok" data-keep="${q.id}">✓ Keep</button><button class="farm-btn small" data-drop="${q.id}">✕ Not quite</button>`
+    ${check ? `<button class="farm-btn small ok" data-keep="${q.id}">✓ Yes</button><button class="farm-btn small" data-drop="${q.id}">✕ No</button>`
       : `<button class="farm-btn small" data-undo-quick="${q.id}">✕ Remove</button>`}</div>`;
 
   // For the Grown-ups child page: this child's waiting moments with Keep / Not quite.
