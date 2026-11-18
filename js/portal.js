@@ -80,6 +80,7 @@ export function createPortal(ctx) {
           <span class="gk-av">${k.avatar}</span><b>${esc(k.name)}</b>
           <span class="gk-coins">🪙 ${ctx.coinsOf(k.id)}</span>
           ${n ? `<span class="gk-note wait">⏳ ${n} job${n === 1 ? '' : 's'} to check</span>` : '<span class="gk-note">No jobs to check</span>'}
+          ${ctx.quickWaiting(k.id) ? `<span class="gk-note wait">🌙 ${ctx.quickWaiting(k.id)} coin moment${ctx.quickWaiting(k.id) === 1 ? '' : 's'} to check</span>` : ''}
           ${asked ? `<span class="gk-note">🔔 Asked ${asked}× today</span>` : ''}
         </button>`;
       }).join('')}</div>`;
@@ -90,9 +91,10 @@ export function createPortal(ctx) {
     const k = ctx.kid(kidId);
     return `<div class="gk-head" style="--kid:${k.color}"><span class="gk-av">${k.avatar}</span><b>${esc(k.name)}</b>
         <span class="gk-coins">🪙 <span class="coin-num" data-coins-of="${k.id}">${ctx.coinsOf(k.id)}</span></span>
-        <button class="farm-btn gk-farm" data-open-farm="${k.id}">🐔 Open ${esc(k.name)}'s farm</button></div>
-      <p class="pf-note">Opening the farm here has no time limit and doesn't use up their farm visits.</p>
-      ${waitingSection(k)}${coinsSection(k)}${tickSection(k)}
+        <button class="farm-btn gk-farm" data-open-farm="${k.id}">🐔 Open farm</button>
+        <button class="farm-btn gk-farm gk-rock" data-open-rock="${k.id}">🏰 Open building</button></div>
+      <p class="pf-note">Opening the farm here gives 3 minutes and doesn't use up their farm visits.</p>
+      ${waitingSection(k)}${ctx.quickSection(k)}${coinsSection(k)}${tickSection(k)}
       <h3>🍓 Fruit</h3>${fruitPortalHTML(k, esc)}`;
   }
 
@@ -188,7 +190,7 @@ export function createPortal(ctx) {
         <button class="farm-btn small" data-update-now="1">Update now</button></div>
       <div class="job-row-edit"><span class="ji">🔨</span><b>Farm set-up<small> Each child gets one free set-up of their farm (move anything, as often as they like). Give everyone another one here.</small></b>
         <button class="farm-btn small" data-farm-setup="1">Give again</button></div>
-      <div class="job-row-edit"><span class="ji">🏰</span><b>Build on the Rock (try-out)<small> A pretend-day test of the new building game. Needs internet. It does not touch jobs, coins or farms.</small></b>
+      <div class="job-row-edit"><span class="ji">🏰</span><b>Build on the Rock (pretend try-out)<small> The pretend-day test page. Each child's real building opens from their page. Needs internet.</small></b>
         <a class="farm-btn small" href="docs/rock/play.html" target="_blank" rel="noopener" style="text-decoration:none">Open</a></div>`;
   }
 
@@ -382,6 +384,8 @@ export function createPortal(ctx) {
       return draw();
     }
     if (ds.openFarm) { el.remove(); el = null; return ctx.openFarm(ds.openFarm); }
+    if (ds.openRock) { el.remove(); el = null; return ctx.openRock(ds.openRock); }
+    if (ds.keep || ds.drop) { if (await ctx.quickHandle(t)) draw(); return; }
   }
 
   return { open, confirmClaim };

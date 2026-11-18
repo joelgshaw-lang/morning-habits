@@ -1005,7 +1005,7 @@ svg.bld.stand { width: 74px; height: 66px; }
 @keyframes breath-swell { 0% { transform: scale(1); } 40% { transform: scale(1.4); } 70% { transform: scale(1.4); } 100% { transform: scale(1); } }
 
 /* ---------- the painted farm (js/farm-world.js): a tilted grid of squares on a painted paddock ---------- */
-.field.w2 { border: 0; background: #7fa35a url(farm-art/ground.jpg) center / cover; container-type: size; touch-action: none; }
+.field.w2 { border: 0; background: #7fa35a; overflow: hidden; container-type: size; touch-action: none; }
 /* --tw is one square's width: as big as fits the field both ways. The first line is a fallback for old iPads without container units. */
 .w2-stage { position: absolute; inset: 0; --cy: 61%; --tw: calc((100vw - 430px) * 0.9 / var(--n)); user-select: none; -webkit-user-select: none; }
 @supports (width: 1cqw) { .w2-stage { --tw: min(calc(94cqw / var(--n)), calc(70cqh / (0.55 * var(--n)))); } }
@@ -1101,3 +1101,23 @@ button.w2-it { pointer-events: auto; cursor: pointer; }
 /* ---------- 🎤 Singing / 🎹 Keyboard practice timers (18 Nov 2026) ---------- */
 .tile.done.practising { box-shadow: 0 0 0 4px #fde68a, var(--shadow); }
 .tile.done.practising .tile-sub { font-size: 22px; font-weight: 900; }
+
+/* The painted ground zooms with the farm (it used to stay still behind the animals). */
+.w2-ground { position: absolute; inset: 0; background: #7fa35a url(farm-art/ground.jpg) center / cover; pointer-events: none; }
+
+/* ---------- 🪙± coins from the front board, checked at night (18 Nov 2026) ---------- */
+.qk-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; background: #ecfccb; }
+.qk-btn small { font-size: 16px; font-weight: 900; }
+.qk-amounts { display: flex; gap: 8px; margin: 8px 0; }
+.qk-amounts button { min-height: 52px; min-width: 80px; border: 0; border-radius: 14px; font: inherit; font-size: 19px; font-weight: 900; background: #f6f3ee; }
+.qk-amounts button.on { background: #1f2430; color: #fff; }
+.qk-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.qk-grid button { min-height: 76px; border: 0; border-radius: 16px; font-size: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; box-shadow: var(--shadow); }
+.qk-grid button small { font-size: 14px; font-weight: 800; }
+.qk-grid.good button { background: #dcfce7; }
+.qk-grid.hard button { background: #fee2e2; }
+.qk-ov .farm-sheet { max-height: 92vh; overflow-y: auto; text-align: left; }
+.qk-check-btn { background: #312e81; color: #fff; }
+.gk-rock { margin-left: 8px !important; }
+.rock-frame { position: fixed; inset: 0; z-index: 50; background: #0b0820; }
+.rock-frame iframe { width: 100%; height: 100%; border: 0; display: block; }

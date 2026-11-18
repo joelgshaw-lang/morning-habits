@@ -293,7 +293,7 @@ export function worldHTML(env) {
   return `
     <div class="field w2${mode.on ? ' building' : ''}">
       <div class="w2-stage" style="--n:${w.n};transform:translate(${view.x}px,${view.y}px) scale(${view.u})">
-        ${html}${glow}
+        <div class="w2-ground"></div>${html}${glow}
         ${env.broken ? `<img class="w2-fox" src="${ART}fox.webp" alt="A fox at the broken fence">` : ''}
       </div>
       ${!f.animals.length ? '<div class="field-empty w2-empty">Your farm is waiting!<br>Get a 🥚 mystery egg from the 🛒 shop.</div>' : ''}

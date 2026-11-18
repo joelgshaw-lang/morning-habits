@@ -3,6 +3,7 @@ import * as clock from './clock.js';
 import { DEFAULT_SETTINGS, GROWN_PIN, BREATHS_PER_DAY, BREATH_MS } from './config.js';
 import { summarize, startOffer, startCoins, fmtMinutes, nightFinishedAt, morningStart, houseJobsFor, planFor, COINS, EXTRAS_DAY_CAP, startByMs, bedtimeBonus, practiceMs } from './family.js';
 import { createPortal } from './portal.js';
+import { createQuick } from './quick.js';
 import { createFarm } from './farm.js';
 import { askPin } from './pinpad.js';
 import { utterance } from './voice.js';
@@ -126,6 +127,7 @@ async function refreshSummary() {
   const all = await dayAll();
   state.sum = summarize(state.settings, all, state.dinners, todayKey());
   state.coinAdjust = (await kvGet('coinAdjust')) || []; // coins a grown-up added or took away in the portal
+  if (!state.quickLog) state.quickLog = (await kvGet('quickLog')) || []; // 🪙± moments from the front board (quick.js)
   if (!state.farms) state.farms = (await kvGet('farms')) || {};
 }
 const farm = createFarm({
@@ -149,6 +151,44 @@ const portal = createPortal({
   openFarm: (id) => openFarm(id, { grown: true }),
   endGrace: () => { grownUntil = 0; }, coinTarget: (id) => coinTarget(id),
   version: () => state.appVersion || '', updateNow: () => updateNow(),
+  quickSection: (k) => quick.sectionHTML(k), quickHandle: (b) => quick.handle(b), quickWaiting: (id) => quick.waitingFor(id).length,
+  openRock: (id) => openRock(id),
+});
+const quick = createQuick({
+  state, esc, kid: (id) => kid(id), clock, kvGet, kvSet, toast: (h) => toast(h), sheet: (...a) => sheet(...a), grownUp: (...a) => grownUp(...a),
+  coinsOf: (id) => coinsOf(id), refreshSummary: () => refreshSummary(), renderKid: () => renderKid(), sendToRock: (...a) => sendToRock(...a),
+});
+
+// ---------- Build on the Rock (docs/rock/play.html in live mode, shown in a frame) ----------
+// Real life sends it pieces through a small inbox in localStorage (the page collects them):
+// gold = a finished prayer timer, silver = a finished morning or night routine (once each a day),
+// a gem or wood / hay / stubble = a front-board moment a grown-up kept at night (quick.js).
+function sendToRock(kidId, item) {
+  try { const key = `rock.inbox.${kidId}`, list = JSON.parse(localStorage.getItem(key) || '[]'); list.push({ t: clock.now().toISOString(), ...item }); localStorage.setItem(key, JSON.stringify(list)); } catch {}
+}
+function openRock(id) {
+  const k = kid(id);
+  state.rockOpen = true;
+  state.kidId = id;
+  state.day = state.days[id];
+  state.autoHomeAt = 0;
+  state.lastTouch = Date.now();
+  const el = document.createElement('div');
+  el.className = 'rock-frame';
+  const q = new URLSearchParams({ live: '1', kid: id, name: k.name, age: String(k.age || 8) });
+  el.innerHTML = `<iframe src="./docs/rock/play.html?${q}" title="Build on the Rock" allow="autoplay"></iframe>`;
+  document.body.appendChild(el);
+}
+function closeRock() {
+  state.rockOpen = false;
+  document.querySelector('.rock-frame')?.remove();
+  state.lastTouch = Date.now();
+  renderKid();
+}
+window.addEventListener('message', (e) => {
+  if (e.origin !== location.origin) return;
+  if (e.data?.type === 'rock-activity') state.lastTouch = Date.now();
+  if (e.data?.type === 'rock-close') closeRock();
 });
 
 // ---------- app version and updates ----------
@@ -195,9 +235,9 @@ const sessions = readJSON('sessions', {});
 const nowMs = () => clock.now().getTime();
 const visitsLeft = (id) => { const f = farm.farmOf(id); return FARM_VISITS_PER_DAY - (f.visitDay === todayKey() ? f.visits || 0 : 0); };
 const sessionLeft = (id) => Math.max(0, SESSION_MS - (sessions[id]?.used || 0));
-const sessionText = () => (state.farmUnlimited ? '👨‍👩‍👧 Grown-up ∞' : sessionPaused() ? '⏸ Paused' : `⏳ ${clock.fmtDuration(sessionLeft(state.farmKid))}`);
-// Farm time doesn't tick while praying or while a grown-up has the farm open.
-const sessionPaused = () => !!state.prayer || state.farmUnlimited;
+const sessionText = () => (sessionPaused() ? '⏸ Paused' : `${state.farmByGrown ? '👨‍👩‍👧 ' : ''}⏳ ${clock.fmtDuration(sessionLeft(state.farmKid))}`);
+// Farm time doesn't tick while praying. A farm a grown-up opened has 3 minutes too (18 Nov 2026).
+const sessionPaused = () => !!state.prayer;
 
 function beginSession(id) {
   const s = (sessions[id] ||= {});
@@ -233,9 +273,10 @@ function timesUp() {
   const el = document.createElement('div');
   el.className = 'all-done-moment times-up';
   el.style.setProperty('--kid', k.color);
-  el.innerHTML = `<div><div class="big-emoji">⏰</div><h2>Farm time's up, ${esc(k.name)}!</h2><p>${visitsLeft(k.id) ? 'You have one more farm visit today.' : 'See your animals again tomorrow!'}</p></div>`;
+  const more = state.farmByGrown ? 'A grown-up can open it again with the PIN.' : visitsLeft(k.id) ? 'You have one more farm visit today.' : 'See your animals again tomorrow!';
+  el.innerHTML = `<div><div class="big-emoji">⏰</div><h2>Farm time's up, ${esc(k.name)}!</h2><p>${more}</p></div>`;
   document.body.appendChild(el);
-  speak(`Farm time's up, ${k.name}! ${visitsLeft(k.id) ? 'You have one more farm visit today.' : 'See your animals again tomorrow.'}`, true);
+  speak(`Farm time's up, ${k.name}! ${more}`, true);
   setTimeout(() => { el.remove(); timesUpShown = false; goHome(); }, 4000);
 }
 
@@ -309,16 +350,16 @@ async function openFarm(id, { grown = false } = {}) {
   enterFarm(k, false);
 }
 
-// A grown-up opening the farm has no time limit and doesn't use up a visit.
+// A grown-up opening the farm gets 3 minutes too (then the PIN again), and it doesn't use up a visit.
 function enterFarm(k, grown) {
   const id = k.id;
-  state.farmUnlimited = grown;
+  state.farmByGrown = grown;
   beginSession(id);
   state.farmKid = id;
   state.kidId = id;
   state.day = state.days[id];
   state.autoHomeAt = 0;
-  speak(grown ? `${k.name}'s farm!` : `${k.name}'s farm! You have 3 minutes.`);
+  speak(`${k.name}'s farm! You have 3 minutes.`);
   renderKid();
   farm.opened(k);
 }
@@ -858,6 +899,7 @@ function columnHTML(k, d, r) {
         <span class="face">${k.avatar || '🙂'}</span><b>${esc(k.name)}</b>
         ${fruitBadgeHTML(k)}
         ${(() => { const w = Object.keys(d.claims || {}).reduce((t, id) => t + (listFor(k, 'extras').find((c) => c.id === id)?.coins || 2), 0); return w ? `<span class="col-waiting" title="Coins waiting for a grown-up to check">⏳ +${w}</span>` : ''; })()}
+        ${quick.chipHTML(k)}
         ${showCoins ? coinChipHTML(k.id) : ''}
       </div>
       ${lastNight}
@@ -866,6 +908,7 @@ function columnHTML(k, d, r) {
       <div class="col-farm-line">${farm.tallyHTML(k.id)}<span class="col-goal">${farm.goalText(k.id, coinsOf(k.id))}</span></div>
       <div class="col-foot">
         <button class="star-btn" data-action="extras-sheet" aria-label="Extra jobs">⭐</button>
+        <button class="star-btn qk-btn" data-action="quick-add" aria-label="Add or take off coins (grown-ups)">🪙<small>±</small></button>
         <button class="breath-btn" aria-label="Hold for a breath prayer" ${breaths >= BREATHS_PER_DAY ? 'disabled' : ''}>🙏<small>${breaths >= BREATHS_PER_DAY ? '💛' : 'Hold'}</small></button>
         ${farmBtn}
       </div>
@@ -900,6 +943,7 @@ function renderBoard() {
         ${dinnerBtn ? '<button class="btn dinner-btn" data-action="dinner">🍽️ Dinner\'s finished</button>' : ''}
         <button class="btn extras-btn ${dinnerBtn ? '' : 'alone'}" data-action="portal" aria-label="Grown-ups">👨‍👩‍👧 Grown-ups${pendingCount() ? ` <span class="badge">${pendingCount()}</span>` : ''}</button>
         <button class="btn remind-btn" data-action="reminders" aria-label="Reminders (grown-ups)">🔔</button>
+        ${r === 'night' && quick.waitingAll().length ? `<button class="btn qk-check-btn" data-action="quick-check">🌙 Check coins <span class="badge">${quick.waitingAll().length}</span></button>` : ''}
         ${clockHTML()}
       </header>
       ${r === 'extras' ? '' : windowBarHTML(r)}
@@ -1002,7 +1046,7 @@ function tick() {
     el.classList.toggle('fast', took < 20 * 60000);
   });
   app.querySelectorAll('[data-race]').forEach((el) => { el.textContent = fmtMinutes(nowMs() - new Date(el.dataset.race).getTime()); });
-  const idle = Date.now() - state.lastTouch > IDLE_MS && state.prayer?.phase !== 'confirm';
+  const idle = Date.now() - state.lastTouch > (state.rockOpen ? 3 * IDLE_MS : IDLE_MS) && state.prayer?.phase !== 'confirm';
   const away = (state.kidId || state.prayer || state.farmKid) && !document.querySelector('.fr-ov'); // not during Fruit time
   // The automatic trip home waits while the child is still tapping (e.g. feeding their animals).
   const autoHome = state.autoHomeAt && Date.now() > state.autoHomeAt && Date.now() - state.lastTouch > 4000 && !document.querySelector('.farm-ov');
@@ -1017,6 +1061,8 @@ function goHome() {
   state.kidId = null;
   state.day = null;
   state.farmKid = null;
+  state.farmByGrown = false;
+  if (state.rockOpen) { state.rockOpen = false; document.querySelector('.rock-frame')?.remove(); }
   state.autoHomeAt = 0;
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   if (state.reloadPending) return location.reload();
@@ -1050,6 +1096,7 @@ function afterDone(id, habitId, allowUndo, r = 'morning') {
   const d = state.days[id];
   const h = listFor(k, r).find((x) => x.id === habitId);
   const all = r !== 'extras' && doneCount(k, d, r) === listFor(k, r).length;
+  if (all && !(d.rockSent ||= {})[r]) { d.rockSent[r] = true; dayPut(d); sendToRock(k.id, { kind: 'silver', label: r === 'night' ? 'Night jobs done' : 'Morning jobs done' }); }
   if (allowUndo) {
     clearTimeout(state.undos[k.id]?.timer);
     state.undos[k.id] = { habitId, routine: r, timer: setTimeout(() => { delete state.undos[k.id]; if (!state.prayer && !state.farmKid) renderKid(); }, UNDO_MS) };
@@ -1479,6 +1526,7 @@ async function endRun(kidId, completed) {
   if (completed) {
     day.done.pray = end;
     day.log.push({ t: end, habit: 'pray', action: 'done' });
+    sendToRock(kidId, { kind: 'gold', label: 'Prayer time' }); // time with God
   }
   await dayPut(day);
   return day;
@@ -1709,6 +1757,8 @@ document.addEventListener('click', async (e) => {
     case 'going-up': return goingUp(col.dataset.col);
     case 'last-night': return openLastNight(col.dataset.col);
     case 'extras-sheet': return extrasSheet();
+    case 'quick-add': return quick.openAdd(col?.dataset.col || state.kidId);
+    case 'quick-check': return quick.openCheck();
     case 'start-night': return startNight();
     case 'home': return goHome();
     case 'go': return readySetGo();
