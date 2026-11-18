@@ -27,7 +27,46 @@
     rowsByAge: { 6: 3, 8: 4, 12: 5 },               // (old tier blueprints only)
     gems: { l: 'love', j: 'joy', p: 'peace', t: 'patience', k: 'kindness', b: 'goodness',
             f: 'faithfulness', e: 'gentleness', r: 'self-control' },
-    dailyCap: { G: 1, S: 2, gem: 9, L: 1 },
+    blocksPerPiece: 2,
+    extraShare: 0.25,                               // "nearby" extra blocks: one space out from the template, at most this share of its slots                              // each good act (gold, silver, a gem, bonus) gives a small stack of this many blocks.
+                                                    // Straw, pearls and lamps stay one block. Daily caps count ACTS, not blocks.
+    knocksPerBurn: 2,                               // blocks a burning bale knocks out (= one act's worth, so straw costs what it did)
+    dailyCap: { G: 1, S: 2, gem: 6, L: 1 },         // v5: gems 9 -> 6 (3 night cards + 2 seen + 1 twin)
+    /* v5 "This week's three": eight picture cards, each one fruit (rules gem code). Words live in content.js. */
+    cards: [ { id: 'calm', fruit: 't' }, { id: 'kind', fruit: 'k' }, { id: 'peace', fruit: 'p' }, { id: 'work', fruit: 'j' },
+             { id: 'gentle', fruit: 'e' }, { id: 'first', fruit: 'l' }, { id: 'truth', fruit: 'b' }, { id: 'wait', fruit: 'r' } ],
+    seenPerDay: 2,                                  // "I saw it!" gems a day
+    twinPerDay: 1,                                  // the focus card seen gives a second gem, once a day
+    pearlPerOwnUp: 0,                               // (old) new pearl pieces for owning up. Now the sorry prayer's pearl brings back ONE fallen block
+    /* Quick log: taps anyone can make in the day. Nothing is given until a grown-up checks them at night. */
+    quick: { good: ['seen', 'cooled', 'great'], bad: ['tantrum', 'disobeyed', 'rude', 'fight', 'negative', 'lie', 'other'], cooledFruit: 'r', greatFruit: 'j',
+             cooledPerDay: 1, greatPerDay: 2, nightStrawByAge: { 6: 1, 8: 3, 12: 3 } },
+    prayer: { perDay: 5, perLantern: 10 },          // prayers counted a day; every 10 hangs a lantern (never burns)
+    bonusPerReview: 3,                              // pieces chosen from the shelf after the weekly review
+    /* v5 designs: the child picks one while the building is empty. Shapes per age band:
+       [frontCols, frontRows, sideCols, sideRows, free, doorCol]. 3 open at the start, one more every 2 sealed buildings,
+       then the named blueprints (content.js) one every 2 more, each a design grown by 0-2 rows. */
+    designs: { enabled: true, open: 3, sealsPerUnlock: 2,
+      order: ['cottage', 'tower', 'barn', 'chapel', 'lighthouse', 'castle'],
+      names: { cottage: 'Cottage', tower: 'Tower', barn: 'Barn', chapel: 'Chapel', lighthouse: 'Lighthouse', castle: 'Castle' },
+      shapes: {
+        /* v6: twice the slots of v5 (28/40/60 -> ~56/80/120) because each good act now gives blocksPerPiece blocks.
+           v5 was cottage 6:[5,3,2,3,2,2] 8:[5,4,2,4,5,2] 12:[5,5,3,5,6,2] (and so on). */
+        cottage:    { 6: [7, 4, 3, 4, 4, 3], 8: [7, 5, 3, 6, 10, 3], 12: [7, 7, 5, 6, 12, 3] },
+        tower:      { 6: [5, 5, 3, 5, 2, 2], 8: [5, 7, 3, 7, 4, 2],  12: [5, 10, 3, 10, 10, 2] },
+        barn:       { 6: [9, 3, 4, 3, 6, 4], 8: [9, 5, 4, 4, 4, 4],  12: [9, 7, 4, 7, 2, 4] },
+        chapel:     { 6: [7, 4, 4, 3, 4, 3], 8: [7, 5, 5, 4, 6, 3],  12: [9, 7, 5, 5, 8, 4] },
+        lighthouse: { 6: [5, 7, 1, 7, 8, 2], 8: [5, 10, 1, 10, 11, 2], 12: [5, 13, 2, 13, 4, 2] },
+        castle:     { 6: [6, 4, 3, 5, 2, 2], 8: [6, 5, 3, 7, 10, 2], 12: [6, 8, 4, 8, 10, 2] }
+      },
+      growRows: 1.5,                                // a named blueprint's `grow` is in v5 rows; with smaller blocks each counts this many rows (rounded)
+      spire: { cottage: 2, tower: 3, barn: 1, chapel: 4, lighthouse: 3, castle: 2 },
+      /* the 12 named blueprints from content.js (seasons), unlocked after all six designs */
+      named: [ { id: 'bp1', style: 'lighthouse', grow: 1 }, { id: 'bp2', style: 'cottage', grow: 0 }, { id: 'bp3', style: 'castle', grow: 1 },
+               { id: 'bp4', style: 'chapel', grow: 0 }, { id: 'bp5', style: 'barn', grow: 2 }, { id: 'bp6', style: 'tower', grow: 1 },
+               { id: 'bp7', style: 'cottage', grow: 1 }, { id: 'bp8', style: 'barn', grow: 2 }, { id: 'bp9', style: 'cottage', grow: 0 },
+               { id: 'bp10', style: 'castle', grow: 1 }, { id: 'bp11', style: 'lighthouse', grow: 2 }, { id: 'bp12', style: 'barn', grow: 0 } ] },
+    animals: { kinds: ['lamb', 'cat', 'dog', 'rabbit', 'bird', 'hen'], perBuilding: 3 },
     strawCapByAge: { 6: 2, 8: 3, 12: 3 },
     fallAt: { 6: 2, 8: 2, 12: 2 },                  // straw in one wall that makes it fall at a fire
     swayBelow: 1,                                   // sway starts this many straw below fallAt
@@ -36,10 +75,10 @@
     pullNeedsForgive: true,                         // the bale must carry the pearl mark first
     pullNeedsMadeRight: false,                      // true: markMadeRight() must be called before pull() works
     pullMode: 'settle',                             // 'settle' (wall drops, pearl seam) | 'pearlSlot'
-    rubblePerDay: { 6: 2, 8: 2, 12: 2 },            // fallen stones a child may re-lay each day
-    rubbleBigPile: { over: 8, perDay: 6 },          // while the pile is bigger than `over`, re-lay this many a day
+    rubblePerDay: { 6: 4, 8: 4, 12: 4 },            // (v6: x2 blocks) fallen stones a child may re-lay each day
+    rubbleBigPile: { over: 16, perDay: 12 },          // while the pile is bigger than `over`, re-lay this many a day
     autoLayAtNight: true,                           // endDay lays any tray pieces left over (no hoarding)
-    carryOverMax: 6,                                // tray pieces carried into the next building; the rest go to the family landmark
+    carryOverMax: 12,                               // tray blocks carried into the next building; the rest go to the family landmark
     missedFireNextNight: true,                      // a fire night that was not held is held the next night
     practiceFirstFire: true,                        // a new child's first fire burns straw but knocks and fells nothing
     mercyAfterCaveIn: true,                         // at the very next fire after a cave-in no wall can fall
@@ -112,6 +151,11 @@
     if (!state.purchases) state.purchases = [];
     if (state.starBalance == null) state.starBalance = state.stats ? state.stats.stars || 0 : 0;
     if (!state.family) state.family = { stones: 0, sets: 0 };
+    if (!state.prayers) state.prayers = { n: 0, lanterns: 0 };
+    if (!state.waiting) state.waiting = [];
+    if (!state.extras) state.extras = [];           // old saves: no extra blocks yet
+    if (state.build && !state.build.animals) { state.build.animals = []; state.build.animalPeak = 0; }
+    if (state.build && !state.build.look) state.build.look = { roof: 'teal', door: 'wood' };
     return state;
   }
   function fairOf(state) { return ensure(state).fair; }
@@ -187,15 +231,68 @@
     if (r === 0 || !isSlot(state, w, c, r - 1) || state.walls[w][c][r - 1]) return true;
     return hasAbove(state, w, c, r);
   }
+  /* ---- extras: blocks laid one space out from the template ("nearby"). Each is {wall, col, row, out, p}.
+     out 0 = in the wall's own plane: col -1 or col = cols (beside an end, widening it), or row = rows (one row above the top).
+     out 1 = one space out in front of the wall face (bay, porch, buttress). Never inside the house, never two spaces out.
+     An extra belongs to its wall for every rule: it falls with it, goes to rubble, is knocked by the straw under it.
+     Straw never goes on an extra. Sealing needs only the template. */
+  function extraCap(state) { return Math.max(1, Math.floor(tally(state).total * CONFIG.extraShare)); }
+  function extraAt(state, w, c, r, o) {
+    var x = (state.extras || []).filter(function (e) { return e.wall === w && e.col === c && e.row === r && e.out === o; })[0];
+    return x ? x.p : null;
+  }
+  function isExtraCell(state, w, c, r, o) {
+    if (WALLS.indexOf(w) < 0 || (o !== 0 && o !== 1) || r < 0) return false;
+    var C = cols(state, w), Rr = rowsOf(state, w), inC = c >= 0 && c < C, inR = r < Rr, outs = 0;
+    if (c < -1 || c > C || r > Rr) return false;
+    if (!inC) outs++; if (!inR) outs++; if (o) outs++;
+    if (outs !== 1) return false;                   // exactly one space out, along one direction
+    var d = doorOf(state);
+    if (o && w === d.wall && c === d.col) return false;   // keep the doorway clear
+    return true;
+  }
+  function extraSupported(state, w, c, r, o) {
+    if (r === 0) return true;                       // on the ground / foundation
+    if (o === 0 && c >= 0 && c < cols(state, w)) {  // above the top: rests on the top template block (or the door)
+      return !isSlot(state, w, c, r - 1) || !!state.walls[w][c][r - 1];   // (a door below counts as support)
+    }
+    return !!extraAt(state, w, c, r - 1, o);
+  }
+  /* extraSlots(state) -> [{wall,col,row,out,extra:true}] open nearby spots right now (none once the cap is reached). */
+  function extraSlots(state) {
+    ensure(state);
+    var out = [];
+    if (state.extras.length >= extraCap(state)) return out;
+    WALLS.forEach(function (w) {
+      var C = cols(state, w), Rr = rowsOf(state, w);
+      for (var o = 0; o <= 1; o++) for (var c = -1; c <= C; c++) for (var r = 0; r <= Rr; r++)
+        if (isExtraCell(state, w, c, r, o) && !extraAt(state, w, c, r, o) && extraSupported(state, w, c, r, o))
+          out.push({ wall: w, col: c, row: r, out: o, extra: true });
+    });
+    return out;
+  }
+  function isLegalExtra(state, w, c, r, o) {
+    ensure(state);
+    return isExtraCell(state, w, c, r, o) && !extraAt(state, w, c, r, o) && extraSupported(state, w, c, r, o) && state.extras.length < extraCap(state);
+  }
+  function takeExtra(state, w, c, r, o) {
+    ensure(state);
+    for (var i = 0; i < state.extras.length; i++) { var e = state.extras[i];
+      if (e.wall === w && e.col === c && e.row === r && e.out === o) { state.extras.splice(i, 1); return e.p; } }
+    return null;
+  }
+
   function wallsFull(state) { var t = tally(state); return t.filled === t.total; }
   /* isComplete(state): every wall slot and free slot is filled (straw counts as filled; the spire is optional). */
   function isComplete(state) { return wallsFull(state) && state.free.every(Boolean); }
 
   /* Which blueprint comes after `sealed` sealed buildings. Returns the bp object stored on state.bp:
      { tier (step number), id, name, rows (tallest wall), sideCols, free, spire, door, walls:{front,left,right:{cols,rows}} } */
-  function blueprintFor(age, sealed) {
+  function blueprintFor(age, sealed, pickId) {
     var b = band(age), L = CONFIG.ladder, def, step, left = 0;
-    if (L.enabled) {
+    var dz = pickId && CONFIG.designs.enabled ? designDef(pickId, age) : null;
+    if (dz) { def = dz; step = dz.grow; left = 0; }
+    else if (L.enabled) {
       var plan = CONFIG.shapes.enabled ? L.shapedPlan : L.plan, n = sealed;
       step = Math.min(plan.length - 1, L.startStep[b] || 0);
       while (step < plan.length - 1 && n >= (L.sealsPerStep[step] || 1)) { n -= L.sealsPerStep[step] || 1; step++; }
@@ -209,23 +306,79 @@
       def = { id: t.name.toLowerCase(), name: t.name, free: t.free, walls: { front: { cols: CONFIG.frontCols, rows: rows, door: CONFIG.door.col }, left: { cols: t.sideCols, rows: rows }, right: { cols: t.sideCols, rows: rows } } };
     }
     var w = def.walls;
-    return { tier: step, id: def.id, name: def.name, rows: Math.max(w.front.rows, w.left.rows, w.right.rows), sideCols: w.left.cols, free: def.free,
+    return { tier: step, id: def.id, name: def.name, style: def.style || null, rows: Math.max(w.front.rows, w.left.rows, w.right.rows), sideCols: w.left.cols, free: def.free,
       spire: CONFIG.spire.enabled ? (def.spire != null ? def.spire : CONFIG.spire.slots) : 0, nextIn: left,
       door: { wall: 'front', col: w.front.door, row: 0 },
       walls: { front: { cols: w.front.cols, rows: w.front.rows }, left: { cols: w.left.cols, rows: w.left.rows }, right: { cols: w.right.cols, rows: w.right.rows } } };
   }
-  function layBlueprint(state) {
-    var bp = state.bp = blueprintFor(state.profile.age, state.sealed);
+  /* designDef(id, age) -> a blueprint definition for a design ('cottage' ...) or a named blueprint ('bp1' ...), or null. */
+  function designDef(id, age) {
+    var D = CONFIG.designs, style = id, grow = 0, named = null;
+    D.named.forEach(function (n) { if (n.id === id) named = n; });
+    if (named) { style = named.style; grow = named.grow; }
+    var sh = D.shapes[style] && D.shapes[style][band(age)];
+    if (!sh) return null;
+    var gr = Math.round(grow * (D.growRows || 1));
+    return { id: id, style: style, grow: grow, name: named ? id : D.names[style], free: sh[4], spire: D.spire[style],
+      walls: { front: { cols: sh[0], rows: sh[1] + gr, door: sh[5] }, left: { cols: sh[2], rows: sh[3] + gr }, right: { cols: sh[2], rows: sh[3] + gr } } };
+  }
+  /* designs(state) -> every design and named blueprint with {id, style, grow, open, sealsToOpen, slots}. */
+  function designs(state) {
+    var D = CONFIG.designs, out = [], per = D.sealsPerUnlock, n = state.sealed;
+    D.order.forEach(function (id, i) {
+      var need = i < D.open ? 0 : (i - D.open + 1) * per;
+      out.push({ id: id, style: id, grow: 0, named: false, open: n >= need, sealsToOpen: Math.max(0, need - n) });
+    });
+    var base = (D.order.length - D.open) * per;
+    D.named.forEach(function (x, i) {
+      var need = base + (i + 1) * per;
+      out.push({ id: x.id, style: x.style, grow: x.grow, named: true, open: n >= need, sealsToOpen: Math.max(0, need - n) });
+    });
+    out.forEach(function (d) { var def = designDef(d.id, state.profile.age), w = def.walls;
+      d.slots = w.front.cols * w.front.rows - 1 + 2 * w.left.cols * w.left.rows + def.free; });
+    return out;
+  }
+  function isEmptyBuilding(state) {
+    var t = tally(state);
+    return t.filled === 0 && !state.free.some(Boolean) && !(state.spire || []).some(Boolean) && !(state.extras || []).length;
+  }
+  /* chooseDesign(state, id): pick the design of the building, only while it is empty and the design is open. */
+  function chooseDesign(state, id) {
+    ensure(state);
+    if (!CONFIG.designs.enabled) return fail('off');
+    var d = designs(state).filter(function (x) { return x.id === id; })[0];
+    if (!d) return fail('noDesign');
+    if (!d.open) return fail('locked');
+    if (!isEmptyBuilding(state)) return fail('notEmpty');
+    var keep = state.build;
+    state.design = id;
+    layBlueprint(state, id);
+    state.build.startDay = keep.startDay; state.build.look = keep.look || state.build.look;
+    state.build.animals = keep.animals || []; state.build.animalPeak = 0;
+    return { ok: true, events: [{ kind: 'design', id: id, bp: state.bp }] };
+  }
+  /* setLook(state, {roof, door}): the colours of this building (kept in the City when it is sealed). Any time. */
+  function setLook(state, look) {
+    ensure(state);
+    if (look && look.roof) state.build.look.roof = String(look.roof);
+    if (look && look.door) state.build.look.door = String(look.door);
+    return { ok: true, events: [{ kind: 'look', look: state.build.look }] };
+  }
+  function layBlueprint(state, pickId) {
+    var prevLook = state.build && state.build.look;
+    var bp = state.bp = blueprintFor(state.profile.age, state.sealed, pickId || state.design);
     function grid(d) { var g = []; for (var c = 0; c < d.cols; c++) { g.push([]); for (var r = 0; r < d.rows; r++) g[c].push(null); } return g; }
     function row(n) { var a = []; for (var i = 0; i < n; i++) a.push(null); return a; }
     state.walls = { front: grid(bp.walls.front), left: grid(bp.walls.left), right: grid(bp.walls.right) };
-    state.free = row(bp.free); state.spire = row(bp.spire);
+    state.free = row(bp.free); state.spire = row(bp.spire); state.extras = [];
     state.cracked = { front: 0, left: 0, right: 0 };
     state.seams = [];                               // pearl lines left by pull-outs: {wall, col, row}
-    state.build = { startDay: state.day, falls: 0, caveIns: 0, pearls: 0, choices: null, commission: null, spireFell: false };
+    state.build = { startDay: state.day, falls: 0, caveIns: 0, pearls: 0, choices: null, commission: null, spireFell: false,
+      look: prevLook ? { roof: prevLook.roof, door: prevLook.door } : { roof: 'teal', door: 'wood' }, animals: [], animalPeak: 0 };
   }
 
-  function freshDay() { return { G: 0, S: 0, L: 0, gem: 0, W: 0, pulls: 0, rubble: 0, placed: 0, spire: 0, fired: false, called: false }; }
+  function freshDay() { return { G: 0, S: 0, L: 0, gem: 0, W: 0, P: 0, pulls: 0, rubble: 0, placed: 0, spire: 0, fired: false, called: false,
+    seen: 0, twin: 0, prayers: 0, bonus: 0, cooled: 0 }; }
   /* newChild({name, age}) -> fresh state with an empty first blueprint. */
   function newChild(profile) {
     var state = { v: 2, profile: { name: profile.name || '', age: profile.age }, day: 0, weekday: 0,
@@ -241,10 +394,15 @@
      Events: {kind:'dayStart', day, weekday, fireNight} and sometimes {kind:'fairness', bonus, fallAt, mortar}. */
   function startDay(state, weekday) {
     ensure(state);
+    var late = [];
+    if (state.pendingNight) { late = giveNight(state, true); state.pendingNight = null; }   // gems no grown-up confirmed arrive anyway, on yesterday's count
+    late = late.concat(quickMorning(state));        // unchecked quick taps: good ones arrive, bad ones are dropped (straw needs a grown-up)
     state.day++; state.weekday = weekday;
     state.today = freshDay();
     var fair = fairnessReview(state);
-    return { ok: true, events: [{ kind: 'dayStart', day: state.day, weekday: weekday, fireNight: isFireNight(state) }].concat(fair) };
+    var ev = [{ kind: 'dayStart', day: state.day, weekday: weekday, fireNight: isFireNight(state) }];
+    if (late.length) ev.push({ kind: 'lateGems', pieces: late });
+    return { ok: true, events: ev.concat(fair) };
   }
 
   function strawCount(state, wall) { return tally(state, wall).straw; }
@@ -273,24 +431,35 @@
     piece.seq = ++state.seq;
     put(state, spot.wall, spot.col, spot.row, piece);
     state.stats.strawLaid++;
+    animalPeak(state);
     ev.push({ kind: 'strawLand', wall: spot.wall, col: spot.col, row: spot.row, piece: piece, wobble: wobble(state)[spot.wall] });
     return ev;
   }
 
   /* addPiece(state, type, meta): a real-life act gives a piece. Gold/silver/gems/pearls go to the tray.
      Straw ('W') lands on its wall at once. Daily caps apply -> { ok:false, reason:'cap' }. */
+  /* stack(state, type, meta, n): n blocks from one act. They share the meta and a stack id `st` (setColour recolours the stack). */
+  function stack(state, type, meta, n) {
+    var out = [];
+    for (var i = 0; i < Math.max(1, n || 1); i++) {
+      var piece = { id: state.nextId++, t: type };
+      if (isGem(type)) piece.f = CONFIG.gems[type];
+      if (meta != null) piece.m = meta;
+      if (n > 1) piece.st = out.length ? out[0].id : piece.id;
+      out.push(piece);
+    }
+    return out;
+  }
   function addPiece(state, type, meta) {
     var key = type === 'W' ? 'W' : isGem(type) ? 'gem' : type;
     if (key !== 'G' && key !== 'S' && key !== 'W' && key !== 'gem' && key !== 'P' && key !== 'L') return fail('type');
     var cap = key === 'W' ? CONFIG.strawCapByAge[band(state.profile.age)] : CONFIG.dailyCap[key];
-    if (cap != null && state.today[key] >= cap) return fail('cap');
-    var piece = { id: state.nextId++, t: type };
-    if (isGem(type)) piece.f = CONFIG.gems[type];
-    if (meta != null) piece.m = meta;
-    if (key !== 'P') state.today[key]++;
-    if (type === 'W') return { ok: true, piece: piece, events: landStraw(state, piece) };
-    state.tray.push(piece);
-    return { ok: true, piece: piece, events: [{ kind: 'tray', piece: piece }] };
+    if (cap != null && (state.today[key] || 0) >= cap) return fail('cap');
+    state.today[key] = (state.today[key] || 0) + 1;    // caps count acts, not blocks
+    var pieces = stack(state, type, meta, key === 'W' || key === 'P' || key === 'L' ? 1 : CONFIG.blocksPerPiece);
+    if (type === 'W') return { ok: true, piece: pieces[0], pieces: pieces, events: landStraw(state, pieces[0]) };
+    state.tray = state.tray.concat(pieces);
+    return { ok: true, piece: pieces[0], pieces: pieces, events: pieces.map(function (p) { return { kind: 'tray', piece: p }; }) };
   }
 
   /* legalSlots(state) -> [{wall,col,row,hole}] every wall / free slot a stone may go in right now.
@@ -314,29 +483,35 @@
     state.spire.forEach(function (p, i) { if (!p) out.push({ wall: 'spire', col: i, row: 0 }); });
     return out;
   }
-  function isLegal(state, wall, col, row) {
+  function isLegal(state, wall, col, row, out) {
+    if (out != null) return isLegalExtra(state, wall, col, row, out);
     if (wall === 'free') return isSlot(state, wall, col, row) && !state.free[col] && (!CONFIG.freeNeedsFullWalls || wallsFull(state));
     if (wall === 'spire') return spireSlots(state).some(function (s) { return s.col === col && row === 0; });
     return isLegalWall(state, wall, col, row);
   }
-  function lay(state, list, index, wall, col, row, fromRubble) {
+  function lay(state, list, index, wall, col, row, fromRubble, out) {
     var piece = list[index];
     if (!piece) return fail('noPiece');
-    if (!isLegal(state, wall, col, row)) return fail('slot');
+    if (!isLegal(state, wall, col, row, out)) return fail(out != null && state.extras.length >= extraCap(state) ? 'extraCap' : 'slot');
     if (wall === 'spire' && CONFIG.spire.gemsOnly && !isGem(piece.t)) return fail('gemsOnly');
+    if (out != null && piece.t === 'W') return fail('strawNotExtra');
     list.splice(index, 1);
     piece.seq = ++state.seq;
-    put(state, wall, col, row, piece);
+    if (out != null) state.extras.push({ wall: wall, col: col, row: row, out: out, p: piece });
+    else put(state, wall, col, row, piece);
     state.today.placed++;
     if (wall === 'spire') state.today.spire = (state.today.spire || 0) + 1;
-    return { ok: true, events: [{ kind: 'place', wall: wall, col: col, row: row, piece: piece, fromRubble: !!fromRubble, windows: windows(state), complete: isComplete(state) }] };
+    animalPeak(state);
+    var e = { kind: 'place', wall: wall, col: col, row: row, piece: piece, fromRubble: !!fromRubble, windows: windows(state), complete: isComplete(state) };
+    if (out != null) { e.out = out; e.extra = true; }
+    return { ok: true, events: [e] };
   }
   /* place(state, trayIndex, wall, col, row): lay a tray piece (wall may also be 'free' or 'spire'). Never limited. */
-  function place(state, trayIndex, wall, col, row) { return lay(state, state.tray, trayIndex, wall, col, row, false); }
+  function place(state, trayIndex, wall, col, row, out) { return lay(state, state.tray, trayIndex, wall, col, row, false, out); }
   /* placeRubble(state, rubbleIndex, wall, col, row): re-lay a fallen stone; at most summary().rubbleLeftToday a day. */
-  function placeRubble(state, rubbleIndex, wall, col, row) {
+  function placeRubble(state, rubbleIndex, wall, col, row, out) {
     if (state.today.rubble >= rubbleCap(state)) return fail('rubbleCap');
-    var res = lay(state, state.rubble, rubbleIndex, wall, col, row, true);
+    var res = lay(state, state.rubble, rubbleIndex, wall, col, row, true, out);
     if (res.ok) state.today.rubble++;
     return res;
   }
@@ -397,6 +572,8 @@
         if (column[r]) ev.settled.push({ from: r + 1, to: r, piece: column[r] });
       }
       column[top] = null;
+      var cap = takeExtra(state, wall, col, top + 1, 0);    // a chimney stone on top settles into the column
+      if (cap) { column[top] = cap; ev.settled.push({ from: top + 1, to: top, piece: cap, fromExtra: true }); }
       state.seams.push({ wall: wall, col: col, row: row });
     }
     ev.wobble = wobble(state)[wall];
@@ -532,6 +709,7 @@
     var win = windows(state), counts = { G: 0, S: 0, P: 0, L: 0, gem: 0 }, layout = {};
     function see(p) { if (p) counts[isGem(p.t) ? 'gem' : p.t]++; }
     eachSlot(state, function (w, c, r, p) { see(p); }); state.free.forEach(see); state.spire.forEach(see);
+    (state.extras || []).forEach(function (x) { see(x.p); });
     WALLS.forEach(function (w) {
       layout[w] = state.walls[w].map(function (col) { return col.map(function (p) { return p ? p.t : '.'; }).join(''); });
     });
@@ -543,7 +721,11 @@
       gold: counts.G, silver: counts.S, gems: counts.gem, lamps: counts.L, pearls: state.build.pearls + counts.P,
       falls: state.build.falls, layout: layout, free: state.free.map(function (p) { return p.t; }),
       spire: state.spire.map(function (p) { return p ? p.t : '.'; }), spireDone: spireDone,
-      commission: com ? { id: com.id, done: com.done } : null, gifted: 0, street: false };
+      commission: com ? { id: com.id, done: com.done } : null, gifted: 0, street: false,
+      style: state.bp.style || null, look: { roof: state.build.look.roof, door: state.build.look.door },
+      animals: (state.build.animals || []).slice(0, CONFIG.animals.perBuilding),
+      animalOwed: Math.max(0, CONFIG.animals.perBuilding - (state.build.animals || []).length), lanterns: 0,
+      extras: (state.extras || []).map(function (x) { return { wall: x.wall, col: x.col, row: x.row, out: x.out, t: x.p.t }; }) };
     state.city.push(rec); state.sealed++; state.stats.stars += stars; state.starBalance += stars;
     if (CONFIG.city.streetEvery && state.sealed % CONFIG.city.streetEvery === 0) { state.family.sets++; rec.street = true; }
     state.tray = state.tray.concat(state.rubble); state.rubble = [];
@@ -586,7 +768,15 @@
       burned++; state.walls[w][c][r] = null;
       ev.push({ kind: 'burn', wall: w, col: c, row: r, forgiven: !!p.forgiven });
       if (practice || falling.indexOf(w) >= 0) return;
+      for (var kb = 0; kb < (CONFIG.knocksPerBurn || 1); kb++) knockFor(w, c, r);
+    });
+    function knockFor(w, c, r) {
       var spots = [[c, r + 1]].concat(CONFIG.knockBesideIfBare ? [[c - 1, r], [c + 1, r]] : []);
+      if (r + 1 === rowsOf(state, w) && !at(state, w, c, r + 1)) {   // the top row: an extra stone sitting on it is "on top"
+        var cap = extraAt(state, w, c, r + 1, 0);
+        if (cap && cap.t !== 'W') { takeExtra(state, w, c, r + 1, 0); state.rubble.push(cap);
+          return ev.push({ kind: 'knock', wall: w, col: c, row: r + 1, out: 0, extra: true, piece: cap }); }
+      }
       for (var i = 0; i < spots.length; i++) {              // the stone on top, else (optional) the one beside
         var up = at(state, w, spots[i][0], spots[i][1]);
         if (!up || up.t === 'W') continue;
@@ -599,13 +789,19 @@
         if (q && q.t !== 'W' && (!near || dist < near.d)) near = { c: cc, r: rr, d: dist, p: q };
       }, w);
       if (near) knock(w, near.c, near.r, near.p);
-    });
+    }
     function drop(w, list, tagWall) {
       eachSlot(state, function (ww, c, r, p) {
         if (!p) return;
         state.walls[ww][c][r] = null; state.rubble.push(p);
         list.push(tagWall ? { wall: ww, col: c, row: r, piece: p } : { col: c, row: r, piece: p });
       }, w);
+      state.extras = state.extras.filter(function (x) {      // its extra blocks fall with it
+        if (x.wall !== w) return true;
+        state.rubble.push(x.p);
+        var q = { col: x.col, row: x.row, out: x.out, extra: true, piece: x.p }; if (tagWall) q.wall = w;
+        list.push(q); return false;
+      });
       state.seams = state.seams.filter(function (s) { return s.wall !== w; });
     }
     falling.forEach(function (w) {
@@ -704,6 +900,233 @@
     return { ok: true, events: [{ kind: 'neighbourStone', id: id, stones: n.stones, complete: n.stones >= CONFIG.gospel.neighbourHouse }] };
   }
 
+  /* --- v5: cards, the night account, seen gems, pearls for owning up, prayers, bonus pieces, colours, animals --- */
+  function cardDef(id) { return CONFIG.cards.filter(function (c) { return c.id === id; })[0] || null; }
+  /* seen(state, cardId, focusId): "I saw it!" -> a gem from that card's fruit (at most seenPerDay a day).
+     If it is the child's focus card, a twin: a second gem, once a day. The twin is two ordinary pieces. */
+  function seen(state, cardId, focusId) {
+    ensure(state);
+    var c = cardDef(cardId);
+    if (!c) return fail('noCard');
+    if (state.today.seen >= CONFIG.seenPerDay) return fail('seenCap');
+    var r = addPiece(state, c.fruit, { card: cardId, seen: true });
+    if (!r.ok) return r;
+    state.today.seen++;
+    var pieces = r.pieces.slice(), ev = r.events;
+    if (focusId === cardId && state.today.twin < CONFIG.twinPerDay) {
+      var r2 = addPiece(state, c.fruit, { card: cardId, seen: true, twin: true });
+      if (r2.ok) { state.today.twin++; r.piece.m.twin = true; pieces = pieces.concat(r2.pieces); ev = ev.concat(r2.events); }
+    }
+    return { ok: true, pieces: pieces, twin: !!(r.piece.m && r.piece.m.twin), events: ev };
+  }
+  /* nightAccount(state, answers): answers = {cardId: 'good' | 'both' | 'not'}. Nothing is given yet:
+     'good' cards wait for a grown-up's confirmNight (or arrive next morning anyway); 'not' cards may be owned up
+     with ownUp() after the sorry prayer. An honest 'not' NEVER adds straw. 'both' gains and loses nothing. */
+  function nightAccount(state, answers) {
+    ensure(state);
+    var good = [], not = [];
+    Object.keys(answers || {}).forEach(function (id) {
+      if (!cardDef(id)) return;
+      if (answers[id] === 'good') good.push(id); else if (answers[id] === 'not') not.push(id);
+    });
+    if (state.accountDay === state.day) return { ok: false, reason: 'already', events: [] };   /* one night account a day */
+    state.accountDay = state.day;
+    state.pendingNight = { day: state.day, cards: good, owned: [], not: not };
+    return { ok: true, good: good.length, not: not.slice(), events: [{ kind: 'nightAccount', good: good, not: not }] };
+  }
+  function giveNight(state, late) {
+    var pn = state.pendingNight, out = [];
+    if (!pn) return out;
+    pn.cards.forEach(function (id) {
+      var r = addPiece(state, cardDef(id).fruit, { card: id, night: true, late: !!late });
+      if (r.ok) out = out.concat(r.pieces);
+    });
+    pn.cards = []; pn.given = true;
+    return out;
+  }
+  /* confirmNight(state): the grown-up's one tap ("Yes, I saw that too") gives the night's gems. */
+  function confirmNight(state) {
+    if (!state.pendingNight || state.pendingNight.given) return fail('nothingPending');
+    var given = giveNight(state, false);
+    return { ok: true, pieces: given, events: given.map(function (p) { return { kind: 'tray', piece: p }; }) };
+  }
+  /* ownUp(state, cardId): after the sorry prayer for a card answered 'not' tonight. Never straw, never a new piece:
+     the pearl brings back ONE block lost to fire (the newest in the rubble) into the tray, pearl-marked, to be laid next
+     (outside the daily rubble limit). Empty rubble -> the pearl just shines on the Rock (restored: null, shine: true). */
+  function ownUp(state, cardId) {
+    ensure(state);
+    var pn = state.pendingNight;
+    if (!pn || pn.not.indexOf(cardId) < 0) return fail('notOwned');
+    if (pn.owned.indexOf(cardId) >= 0) return fail('alreadyOwned');
+    pn.owned.push(cardId);
+    var pieces = [];
+    for (var i = 0; i < CONFIG.pearlPerOwnUp; i++) { var r = addPiece(state, 'P', { card: cardId, ownUp: true }); if (r.ok) pieces.push(r.piece); }
+    var back = state.rubble.length ? state.rubble.pop() : null;
+    if (back) { back.pearl = true; state.tray.push(back); state.stats.pearls++; state.build.pearls++; }
+    return { ok: true, pieces: pieces, restored: back, shine: !back,
+      events: [back ? { kind: 'pearlRestore', piece: back } : { kind: 'pearlShine' }] };
+  }
+  /* --- Quick log: "I prayed", "I cooled down", and "Tell about today" (great attitude / tantrum / disobeyed / negative).
+     quickLog(state, kind, by, at): kind as in CONFIG.quick or 'prayer'; by 'me' | 'sibling' | 'grownup'; at = a time label.
+     A prayer is counted at once (prayers are never taken away). Everything else waits for a grown-up's quickCheck. */
+  function quickKind(k) { var Q = CONFIG.quick; return Q.good.indexOf(k) >= 0 ? 'good' : Q.bad.indexOf(k) >= 0 ? 'bad' : k === 'prayer' ? 'prayer' : null; }
+  /* 'seen' (a precious-stones card): opt = { card, focus } -> it waits like the rest; seenPerDay and the twin are applied
+     when the pile is turned into blocks (quickCheck, or next morning). */
+  function quickLog(state, kind, by, at, opt) {
+    ensure(state);
+    if (!quickKind(kind)) return fail('kind');
+    if (kind === 'seen' && !cardDef(opt && opt.card)) return fail('noCard');
+    var e = { id: state.nextId++, kind: kind, by: by || 'me', at: at || '', day: state.day };
+    if (kind === 'seen') { e.card = opt.card; e.focus = opt.focus === opt.card; }
+    var ev = [];
+    if (kind === 'prayer') { var pr = addPrayer(state); e.counted = pr.counted; e.lantern = pr.lantern; ev = pr.events; }
+    state.waiting.push(e);
+    return { ok: true, entry: e, events: ev.concat([{ kind: 'quick', entry: e }]) };
+  }
+  /* waitingFor(state) -> today's waiting entries a grown-up still has to check (prayers come too, as thanks). */
+  function waitingFor(state) { ensure(state); return state.waiting.filter(function (e) { return e.day === state.day; }); }
+  /* A cooled-down gem never comes on a day with a tantrum that a grown-up has not set aside as "not quite",
+     so a tantrum then cooling down never pays better than a calm day. */
+  function giveQuickGood(state, list, late) {
+    var Q = CONFIG.quick, out = [];
+    list.forEach(function (e) {
+      var r;
+      var qd = state.quickDays = state.quickDays || {}, d = qd[e.day] = qd[e.day] || { tantrum: 0, cooled: 0, great: 0 };
+      if (e.kind === 'seen') {
+        d.seen = d.seen || 0; d.twin = d.twin || 0;
+        if (d.seen >= CONFIG.seenPerDay) return;
+        var fr = cardDef(e.card).fruit;
+        r = addPiece(state, fr, { card: e.card, seen: true, quick: 'seen', by: e.by, late: !!late });
+        if (r.ok) {
+          d.seen++; state.today.seen = (state.today.seen || 0) + 1;
+          if (e.focus && d.twin < CONFIG.twinPerDay) {
+            var r2 = addPiece(state, fr, { card: e.card, seen: true, twin: true, quick: 'seen', by: e.by, late: !!late });
+            if (r2.ok) { d.twin++; r.piece.m.twin = true; out = out.concat(r2.pieces); }
+          }
+        }
+      } else if (e.kind === 'cooled') {
+        /* counted per day the tap was made, so a later check or the morning arrival can't pay it twice,
+           and never on a day with a kept tantrum (whichever order they were checked in) */
+        if (e.tantrumDay || d.tantrum || d.cooled >= Q.cooledPerDay) return;
+        r = addPiece(state, Q.cooledFruit, { quick: 'cooled', by: e.by, label: 'Cooled down', late: !!late });
+        if (r.ok) { d.cooled++; state.today.cooled = (state.today.cooled || 0) + 1; }
+      } else if (e.kind === 'great') {
+        if (d.great >= Q.greatPerDay) return;
+        r = addPiece(state, Q.greatFruit, { quick: 'great', by: e.by, label: 'Great attitude', colour: true, late: !!late });
+        if (r.ok) d.great++;
+      }
+      if (r && r.ok) out = out.concat(r.pieces);
+    });
+    return out;
+  }
+  function markTantrumDays(state, entries, keptOrWaiting) {
+    var days = {};
+    keptOrWaiting.forEach(function (e) { if (e.kind === 'tantrum') days[e.day] = true; });
+    entries.forEach(function (e) { if (e.kind === 'cooled') e.tantrumDay = !!days[e.day]; });
+  }
+  /* quickCheck(state, keep): the grown-up check at night. keep = {entryId: true | false}; a missing id counts as kept.
+     Kept bad -> straw (daily straw cap, and at most quick.nightStrawByAge from this check). Kept good -> gems (daily gem cap;
+     the cooled-down gem once a day). Prayers are already counted. Every checked entry leaves the list. */
+  function quickCheck(state, keep, strawUsed) {
+    ensure(state);
+    keep = keep || {};
+    var list = waitingFor(state), kept = list.filter(function (e) { return keep[e.id] !== false; });
+    var room = CONFIG.quick.nightStrawByAge[band(state.profile.age)] - (strawUsed || 0), straw = [], ev = [];
+    kept.forEach(function (e) {
+      if (quickKind(e.kind) !== 'bad') return;
+      if (e.kind === 'tantrum') { var qd = state.quickDays = state.quickDays || {}; (qd[e.day] = qd[e.day] || { tantrum: 0, cooled: 0, great: 0 }).tantrum = 1; }
+      if (room <= 0) { e.capped = true; return; }
+      var r = addPiece(state, 'W', { quick: e.kind, by: e.by, label: 'Straw: ' + e.kind });
+      if (r.ok) { room--; straw.push(r.piece); ev = ev.concat(r.events); } else e.capped = true;
+    });
+    var good = kept.filter(function (e) { return quickKind(e.kind) === 'good'; });
+    markTantrumDays(state, good, kept);
+    var gems = giveQuickGood(state, good, false);
+    var ids = list.map(function (e) { return e.id; });
+    state.waiting = state.waiting.filter(function (e) { return ids.indexOf(e.id) < 0; });
+    return { ok: true, pieces: gems, straw: straw, kept: kept.length, notQuite: list.length - kept.length,
+      events: ev.concat(gems.map(function (p) { return { kind: 'tray', piece: p }; })) };
+  }
+  /* Next morning (from startDay): unchecked good items arrive anyway, on yesterday's count; bad items are dropped. */
+  function quickMorning(state) {
+    var old = state.waiting.filter(function (e) { return e.day < state.day + 1; });
+    var good = old.filter(function (e) { return quickKind(e.kind) === 'good'; });
+    markTantrumDays(state, good, old);
+    var out = giveQuickGood(state, good, true);
+    state.waiting = state.waiting.filter(function (e) { return old.indexOf(e) < 0; });
+    return out;
+  }
+  /* pileCount(state, strawUsed): tonight's pile as it would land if a grown-up tapped "Keep all" now (every cap applied),
+     worked out on a copy so nothing changes. -> { blocks, straw, good, bad } (good/bad = taps waiting). */
+  function pileCount(state, strawUsed) {
+    var list = waitingFor(state);
+    var copy = JSON.parse(JSON.stringify(state)), r = quickCheck(copy, {}, strawUsed || 0);
+    return { blocks: r.pieces.length, straw: r.straw.length,
+      good: list.filter(function (e) { return quickKind(e.kind) === 'good'; }).length,
+      bad: list.filter(function (e) { return quickKind(e.kind) === 'bad'; }).length };
+  }
+  /* addPrayer(state): "I stopped and prayed" or Stop & Pray. At most prayer.perDay counted a day; every perLantern -> a lantern. */
+  function addPrayer(state) {
+    ensure(state);
+    var P = CONFIG.prayer;
+    if ((state.today.prayers || 0) >= P.perDay) return { ok: true, counted: false, count: state.prayers.n, lantern: false, lanterns: state.prayers.lanterns, events: [] };
+    state.today.prayers = (state.today.prayers || 0) + 1; state.prayers.n++;
+    var lantern = state.prayers.n % P.perLantern === 0;
+    if (lantern) state.prayers.lanterns++;
+    return { ok: true, counted: true, count: state.prayers.n, lantern: lantern, lanterns: state.prayers.lanterns,
+      events: [{ kind: 'prayer', count: state.prayers.n }].concat(lantern ? [{ kind: 'lantern', lanterns: state.prayers.lanterns }] : []) };
+  }
+  /* addBonus(state, kind, code): a piece from the weekly review shelf (no daily gem cap; bonusPerReview a day).
+     kind 'gem' | 'glass' (a gem that always glows) | 'lantern' | 'flag'. */
+  function addBonus(state, kind, code) {
+    ensure(state);
+    if ((state.today.bonus || 0) >= CONFIG.bonusPerReview) return fail('bonusCap');
+    var ev = [], piece = null;
+    if (kind === 'gem' || kind === 'glass') {
+      if (!isGem(code)) code = Object.keys(CONFIG.gems)[0];
+      var m = { bonus: kind }; if (kind === 'glass') m.glass = true;
+      var blocks = stack(state, code, m, CONFIG.blocksPerPiece); piece = blocks[0];
+      state.tray = state.tray.concat(blocks); blocks.forEach(function (b) { ev.push({ kind: 'tray', piece: b }); });
+    } else if (kind === 'lantern') { state.prayers.lanterns++; ev.push({ kind: 'lantern', lanterns: state.prayers.lanterns }); }
+    else if (kind === 'flag') { var buy = { id: state.nextId++, kind: 'flag', building: 'home', cost: 0, day: state.day, bonus: true }; state.purchases.push(buy); ev.push({ kind: 'purchase', purchase: buy }); }
+    else return fail('kind');
+    state.today.bonus = (state.today.bonus || 0) + 1;
+    return { ok: true, piece: piece, events: ev };
+  }
+  /* setColour(state, pieceId, code): choose a tray gem's colour before placing it. Three the same still make a pure window. */
+  function setColour(state, pieceId, code) {
+    if (!isGem(code)) return fail('colour');
+    var p = state.tray.filter(function (x) { return x.id === pieceId; })[0];
+    if (!p) return fail('noPiece');
+    if (!isGem(p.t)) return fail('notGem');
+    var same = p.st ? state.tray.filter(function (x) { return x.st === p.st && isGem(x.t); }) : [p];   // the whole stack from that act
+    same.forEach(function (x) { x.t = code; x.f = CONFIG.gems[code]; });
+    return { ok: true, events: [{ kind: 'colour', piece: p }] };
+  }
+  /* Animals: first wall finished -> 1, all walls up -> 2, sealed -> 3 (they move to the City with the building).
+     Once earned, an animal is never lost: if a wall falls it waits safe on the Rock until the wall is rebuilt. */
+  function animalsDue(state) {
+    var full = WALLS.filter(function (w) { var t = tally(state, w); return t.total > 0 && t.filled === t.total; }).length;
+    return full === 0 ? 0 : full < WALLS.length ? 1 : 2;
+  }
+  function animalPeak(state) { if (state.build && state.build.animals) state.build.animalPeak = Math.max(state.build.animalPeak || 0, animalsDue(state)); }
+  function animals(state) {
+    ensure(state); animalPeak(state);
+    var b = state.build, due = animalsDue(state), last = state.city[state.city.length - 1];
+    return { invited: b.animals.slice(), due: due, peak: b.animalPeak, home: b.animals.slice(0, due), onRock: b.animals.slice(due),
+      canInvite: b.animals.length < b.animalPeak || !!(last && last.animalOwed > 0), forCity: !!(last && last.animalOwed > 0) && b.animals.length >= b.animalPeak };
+  }
+  /* inviteAnimal(state, kind): fill an earned place (the building's first, then a sealed building's owed ones). */
+  function inviteAnimal(state, kind) {
+    ensure(state);
+    if (CONFIG.animals.kinds.indexOf(kind) < 0) return fail('kind');
+    var b = state.build, last = state.city[state.city.length - 1];
+    animalPeak(state);
+    if (b.animals.length < b.animalPeak) { b.animals.push(kind); return { ok: true, where: 'home', events: [{ kind: 'animal', animal: kind, where: 'home' }] }; }
+    if (last && last.animalOwed > 0) { last.animals.push(kind); last.animalOwed--; return { ok: true, where: 'city', building: last.n, events: [{ kind: 'animal', animal: kind, where: 'city' }] }; }
+    return fail('noRoom');
+  }
+
   /* summary(state): everything a screen needs to draw the status of the building. */
   function summary(state) {
     ensure(state);
@@ -720,6 +1143,7 @@
       mercy: !!state.mercy, fireOwed: !!state.fireOwed, practiceNext: CONFIG.practiceFirstFire && state.stats.fires === 0 && !state.practiced,
       windows: windows(state), seams: state.seams.length,
       commission: commissionProgress(state), commissionChoices: state.build.choices || null,
+      extras: { n: state.extras.length, cap: extraCap(state) },
       spire: { filled: state.spire.filter(Boolean).length, total: state.spire.length, open: spireSlots(state).length > 0, fell: !!state.build.spireFell },
       complete: isComplete(state), canCallFire: CONFIG.callFireWhenComplete && isComplete(state) && all.straw === 0,
       fireTonight: isFireNight(state), fired: state.today.fired, lastFire: state.lastFire,
@@ -728,6 +1152,12 @@
       family: { stones: state.family.stones, sets: state.family.sets },
       stars: state.stats.stars, starBalance: state.starBalance, purchases: state.purchases,
       nextTierIn: state.bp.nextIn != null ? state.bp.nextIn : 0,
+      empty: isEmptyBuilding(state), design: state.design || null, look: state.build.look, animals: animals(state),
+      prayers: { n: state.prayers.n, lanterns: state.prayers.lanterns, ofLantern: state.prayers.n % CONFIG.prayer.perLantern },
+      pendingNight: state.pendingNight || null,
+      waiting: waitingFor(state).filter(function (e) { return e.kind !== 'prayer'; }).length,
+      todayGood: (state.today.G || 0) + (state.today.S || 0) + (state.today.gem || 0) + (state.today.P || 0) + (state.today.bonus || 0),
+      todayStraw: state.today.W || 0,
       stats: state.stats };
   }
 
@@ -736,6 +1166,11 @@
     windows: windows, forecast: forecast, isFireNight: isFireNight, callFire: callFire, fire: fire,
     endDay: endDay, summary: summary, addGospelShare: addGospelShare, addNeighbour: addNeighbour, prayFor: prayFor,
     strawTarget: strawTarget, isComplete: isComplete, at: at, tally: tally,
-    spireSlots: spireSlots, markMadeRight: markMadeRight, commissionChoices: commissionChoices,
-    chooseCommission: chooseCommission, commissionProgress: commissionProgress, spendStars: spendStars };
+    spireSlots: spireSlots, extraSlots: extraSlots, extraAt: extraAt, markMadeRight: markMadeRight, commissionChoices: commissionChoices,
+    chooseCommission: chooseCommission, commissionProgress: commissionProgress, spendStars: spendStars,
+    /* v5 */
+    designs: designs, chooseDesign: chooseDesign, setLook: setLook, isEmptyBuilding: isEmptyBuilding, blueprintFor: blueprintFor,
+    seen: seen, nightAccount: nightAccount, confirmNight: confirmNight, ownUp: ownUp, addPrayer: addPrayer, addBonus: addBonus,
+    quickLog: quickLog, quickCheck: quickCheck, waitingFor: waitingFor, pileCount: pileCount, quickKind: quickKind,
+    setColour: setColour, animals: animals, inviteAnimal: inviteAnimal, cardDef: cardDef };
 });

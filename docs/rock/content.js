@@ -1501,6 +1501,131 @@
     return out;
   }
 
+  /* ================= v5 (17 Nov 2026): "This week's three" and choose your design =================
+     cards[i] = { id, fruit (content fruit name), art (key in js/fruit-art.js), title, caption, yes, no,
+                  examples{6,8,12}[3] (the Tomorrow picks), praise, sorry (the owning-up prayer) }
+     The rules hold the same ids with their gem code (RockRules.CONFIG.cards). */
+  var cards = [
+    { id: 'calm', fruit: 'Patience', art: 'patience', title: 'Stay calm', caption: 'When I\'m cross, I stop, breathe and pray.',
+      yes: 'Waiting calmly', no: 'Shouting and pulling',
+      examples: {
+        '6': ['When I\'m cross, I will stop and take three big breaths.', 'When I have to wait, I will count to ten.', 'When I\'m upset, I will say, "Jesus, help me."'],
+        '8': ['When someone takes my things, I will stop, breathe, and ask a grown-up.', 'When I have to wait, I will pray instead of whining.', 'When I\'m angry, I will walk away and pray before I speak.'],
+        '12': ['When I\'m annoyed, I will pause and pray before I answer.', 'When plans change, I will breathe and ask Jesus for a calm heart.', 'When I feel a tantrum coming, I will go somewhere quiet and pray.'] },
+      praise: 'You stayed calm. Jesus grew this in you. Thank you, Jesus!', sorry: 'Jesus, I lost my temper today. I\'m sorry. Please forgive me and help me stay calm.' },
+    { id: 'kind', fruit: 'Kindness', art: 'kindness', title: 'Kind words', caption: 'My words help, not hurt.',
+      yes: 'Sharing and kind', no: 'Keeping it all',
+      examples: {
+        '6': ['I will say one kind thing to my brother or sister.', 'I will say thank you at dinner.', 'When I want to say something mean, I will close my mouth.'],
+        '8': ['I will say something kind to each person at breakfast.', 'When I\'m cross, I will use a soft voice.', 'I will cheer for someone else today.'],
+        '12': ['Before I speak when cross, I will ask, "Is it kind?"', 'I will encourage someone who is having a hard day.', 'I will not answer back, even when I disagree.'] },
+      praise: 'Your words helped. Jesus grew this in you. Thank you, Jesus!', sorry: 'Jesus, I said hurtful words today. I\'m sorry. Please forgive me and help my words be kind.' },
+    { id: 'peace', fruit: 'Peace', art: 'peace', title: 'Make peace', caption: 'I stop the fight and say sorry first.',
+      yes: 'Letting go of the teddy', no: 'Fighting over it',
+      examples: {
+        '6': ['When we both want the same toy, I will let go and find a grown-up.', 'I will say sorry first.', 'I will keep my hands to myself.'],
+        '8': ['When a fight starts, I will stop and say, "Let\'s take turns."', 'I will say sorry first, even if it\'s not all my fault.', 'I will walk away from a fight and pray.'],
+        '12': ['When we argue, I will listen first and then speak.', 'I will be the first to make up after a fight.', 'I will not try to win the argument. I will try to make peace.'] },
+      praise: 'You made peace. Jesus grew this in you. Thank you, Jesus!', sorry: 'Jesus, I fought today. I\'m sorry. Please forgive me and help me make peace.' },
+    { id: 'work', fruit: 'Joy', art: 'joy', title: 'Cheerful work', caption: 'I start schoolwork without grumbling.',
+      yes: 'Glad even when plans change', no: 'Stomping and grumbling',
+      examples: {
+        '6': ['I will start my schoolwork when I\'m asked.', 'I will say, "I can do hard things with Jesus."', 'I will smile and try, even when it\'s tricky.'],
+        '8': ['I will start my schoolwork the first time I\'m asked.', 'When it\'s hard, I will ask for help, not grumble.', 'I will thank God for one thing about my work.'],
+        '12': ['I will start my work on time with no complaining.', 'When a subject is boring, I will do it well for Jesus.', 'I will ask for help early instead of getting cross.'] },
+      praise: 'You worked with a glad heart. Jesus grew this in you. Thank you, Jesus!', sorry: 'Jesus, I grumbled about my work today. I\'m sorry. Please forgive me and give me a glad heart.' },
+    { id: 'gentle', fruit: 'Gentleness', art: 'gentleness', title: 'Gentle hands and voice', caption: 'Soft hands, soft voice.',
+      yes: 'Soft hands, soft voice', no: 'Too rough and too loud',
+      examples: {
+        '6': ['I will use soft hands with my brother or sister.', 'I will use my inside voice.', 'I will be gentle with the pets.'],
+        '8': ['When I\'m cross, I will keep my hands soft and my voice quiet.', 'I will play gently with the little ones.', 'I will answer softly.'],
+        '12': ['A gentle answer turns anger away: I will answer softly.', 'I will be gentle with the little ones, even when they annoy me.', 'I will lower my voice when I want to raise it.'] },
+      praise: 'You were gentle. Jesus grew this in you. Thank you, Jesus!', sorry: 'Jesus, I was rough today. I\'m sorry. Please forgive me and make me gentle.' },
+    { id: 'first', fruit: 'Love', art: 'love', title: 'You go first', caption: 'I let someone else go first.',
+      yes: 'A hug for someone sad', no: 'Turning away',
+      examples: {
+        '6': ['I will let my brother or sister go first.', 'I will give someone a hug when they\'re sad.', 'I will share my turn.'],
+        '8': ['I will let someone else choose first.', 'I will notice who is left out and include them.', 'I will help without being asked.'],
+        '12': ['I will put someone else first when it costs me something.', 'I will notice who is sad and go to them.', 'I will do a job that isn\'t mine.'] },
+      praise: 'You put someone first. Jesus grew this in you. Thank you, Jesus!', sorry: 'Jesus, I only thought of me today. I\'m sorry. Please forgive me and teach me to love.' },
+    { id: 'truth', fruit: 'Goodness', art: 'goodness', title: 'Tell the truth', caption: 'I tell the truth, even when it\'s hard.',
+      yes: 'Giving it back', no: 'Hiding it',
+      examples: {
+        '6': ['I will tell the truth, even if I\'m in trouble.', 'I will give back what isn\'t mine.', 'I will say, "It was me."'],
+        '8': ['I will tell the truth the first time.', 'I will own up before anyone asks.', 'I will not hide things.'],
+        '12': ['I will tell the whole truth, not half of it.', 'I will own up quickly when I get it wrong.', 'I will not twist the story to look good.'] },
+      praise: 'You told the truth. Jesus grew this in you. Thank you, Jesus!', sorry: 'Jesus, I wasn\'t truthful today. I\'m sorry. Please forgive me and help me be honest.' },
+    { id: 'wait', fruit: 'Self-control', art: 'selfcontrol', title: 'Wait my turn, stop when asked', caption: 'I stop when I\'m asked, the first time.',
+      yes: 'Stopping when time is up', no: 'Five more minutes!',
+      examples: {
+        '6': ['When the timer goes, I will put the iPad down.', 'I will wait for my turn.', 'When a grown-up says stop, I will stop.'],
+        '8': ['I will stop the first time I\'m asked.', 'I will wait my turn without pushing in.', 'When screen time ends, I will hand it back with no fuss.'],
+        '12': ['I will stop the first time I\'m asked, with no argument.', 'I will put my phone or iPad away when time is up.', 'I will wait my turn to speak.'] },
+      praise: 'You stopped when you were asked. Jesus grew this in you. Thank you, Jesus!', sorry: 'Jesus, I didn\'t stop when I was asked today. I\'m sorry. Please forgive me and help me with self-control.' }
+  ];
+  /* Straw a grown-up can add (any day, whatever this week's three are), each with its "not" picture. */
+  var strawKinds = [
+    { id: 'tantrum', label: 'Tantrum', art: 'selfcontrol', did: 'had a tantrum', kind: 'wood', old: 'w3' },
+    { id: 'fight', label: 'Fighting', art: 'peace', did: 'fought', kind: 'wood', old: 'w1', sibling: true },
+    { id: 'rude', label: 'Rude words', art: 'kindness', did: 'used rude words', kind: 'hay', old: 'h1', sibling: true },
+    { id: 'grumble', label: 'Complaining about work', art: 'joy', did: 'complained about my work', kind: 'stubble', old: 's1' },
+    { id: 'lie', label: 'Lying', art: 'goodness', did: 'told a lie', kind: 'stubble', old: 's3' },
+    { id: 'other', label: 'Something else', art: null, did: 'did something that can\'t last', kind: 'hay', old: null }
+  ];
+  var v5 = {
+    morning: { ask: 'Today\'s three', prayer: 'Jesus, I can\'t do this by myself. Stay close and help me. Amen.', start: 'Start my day',
+      focus: 'My focus today', noFocus: 'Tonight you\'ll choose a focus for tomorrow.' },
+    seen: { title: 'I saw it!', ask: 'What did you see?', prayed: 'I stopped and prayed', praise: 'Jesus grew this in you. Thank you, Jesus!',
+      twin: 'Your focus! A twin gem: two glowing gems.', prayedLine: 'You stopped and prayed. The lamp in your window is lit.', anyone: 'Anyone can tap: a brother or sister too.' },
+    straw: { title: 'Straw (grown-ups)', prayFirst: 'Pray together first?', prayNow: 'Stop & Pray together', line: 'That was a straw moment. It can be put right before the fire.' },
+    quick: { prayed: 'I prayed', cooled: 'I cooled down', tell: 'Tell about today', great: 'Great attitude',
+      tantrum: 'Tantrum', disobeyed: 'Disobeyed', negative: 'Grumbling / negative', who: 'Who is telling?',
+      rude: 'Rude words', fight: 'Fighting', lie: 'Lying', other: 'Something else',
+      precious: 'Precious stones', burns: 'Burns up (wood, hay, straw)', preciousAsk: 'What did you see?', burnsAsk: 'What happened?',
+      pile: 'Tonight: \ud83d\udc8e {g} blocks \u00b7 \ud83d\udd25 {b} straw', pileTitle: 'Tonight\'s pile', pileEmpty: 'Nothing on the pile yet today.',
+      pileNote: 'A grown-up checks the pile tonight. Then the blocks come.', seenNote: 'A picture you saw today',
+      by: { me: 'Me', sibling: 'Brother or sister', grownup: 'Grown-up' },
+      waiting: '{n} waiting for a grown-up', logged: 'Saved. A grown-up will look tonight.',
+      prayedLine: 'You prayed. Thank you, Jesus!', cooledLine: 'You cooled down. That is self-control growing.',
+      checkTitle: 'Grown-up check', checkLine: 'Before we build: is each of these right?', keep: 'Keep', notQuite: 'Not quite', keepAll: 'Keep all',
+      done: 'Done', later: 'Not now (good ones arrive in the morning; the rest are let go)', prayers: 'Prayers today (thank you, Jesus)', strawNote: 'Kept straw lands tonight. Pray together first?',
+      cooledAfterTantrum: 'Cooling down after a tantrum is good. Tonight the straw stays; tomorrow try to cool down first.',
+      lateNote: 'Yesterday\'s good moments have arrived.' },
+    stopPray: { open: 'Stop. Take a slow breath in... and out.', steps: ['Breathe in slowly.', 'Breathe out slowly.', 'Pray:'],
+      prayer: { '6': 'Jesus, I need You. Please help me calm down.', '8': 'Jesus, I need You right now. Please help me calm down and choose what is right.', '12': 'Jesus, I need You right now. Calm my heart and help me choose what is right.' },
+      after: 'You stopped and prayed. That is how we build with Jesus.' },
+    night: { title: 'Looking back with Jesus', ask: 'Tell the truth about today. Jesus loves you the same.', both: 'A bit of both',
+      goodReply: 'Thank you.', bothReply: 'Thank you for being honest.', notReply: 'Thank you for telling the truth.',
+      ownUpTitle: 'Thank you for telling the truth', ownUpLine: 'Let\'s say sorry to Jesus. He forgives us, and it\'s free.',
+      pearl: 'Jesus forgives you. It\'s free. (1 John 1:9) His pearl brings back a block the fire knocked down. Lay it again.',
+      pearlShine: 'Jesus forgives you. It\'s free. (1 John 1:9) Nothing has fallen, so His pearl shines on the Rock.',
+      confirm: 'Grown-up: Yes, I saw that too', confirmNote: 'One tap gives tonight\'s gems. If nobody taps, they arrive in the morning anyway.',
+      later: 'Not now (they arrive in the morning)', addStraw: 'Grown-up: add one straw', sums: 'Today: {good} good pieces, {straw} straw',
+      goldLine: 'You were with Jesus today. This is His gift.', lateGems: 'Last night\'s gems have arrived.' },
+    tomorrow: { title: 'Tomorrow',
+      reminder: { '6': 'One day Jesus will show what lasts. What we build with Him lasts forever. You are safe in Jesus.',
+                  '8': 'Your work will be tested by fire. Tomorrow will be played on eternity\'s screen.',
+                  '12': 'Your work will be tested by fire. Tomorrow will be played on eternity\'s screen.' },
+      joel: 'Your work will be tested by fire. Tomorrow will be played on eternity\'s screen.',
+      verse: '1 Corinthians 3:13', ask: 'Which one will you build with tomorrow?', example: 'How will you do it?',
+      pray: 'Jesus, help me tomorrow: {example} Amen.', done: 'Goodnight. Jesus is with you, and the Rock never moves.' },
+    review: { title: 'This week with Jesus', ask: 'How much did I see God growing {fruit} in me this week?',
+      reply: 'Thank you for being honest. God loves you, and He\'s still growing you.',
+      shelf: 'Choose 3 bonus pieces', shelfNote: 'For doing your review honestly, not for high scores.', release: 'Grown-up: We talked about it',
+      next: 'Choose next week\'s three', nextNote: 'The ones that need growing most come first.', done: 'Next week\'s three are ready.',
+      week: 'Your week', shelfItems: { gem: 'A gem (any colour)', glass: 'A stained-glass piece', lantern: 'A lantern', flag: 'A flag' } },
+    designs: { title: 'Choose your design', note: 'You can choose while the building is empty.', roof: 'Roof colour', door: 'Door colour',
+      locked: 'Opens after {n} more {buildings}', name: 'What will you call your building?',
+      lines: { cottage: 'A snug home with a pointed roof.', tower: 'Tall and narrow, with a pointed cap.', barn: 'Wide and low, with big doors.',
+               chapel: 'A steeple that points to God.', lighthouse: 'A glowing lamp room at the top.', castle: 'Strong walls and battlements.' } },
+    animals: { title: 'Someone wants to move in!', ask: 'Who will you invite?', names: { lamb: 'Lamb', cat: 'Cat', dog: 'Dog', rabbit: 'Rabbit', bird: 'Bird', hen: 'Hen' },
+      first: 'Your first wall is finished. An animal can move in!', second: 'All your walls are up. Another animal can move in!',
+      third: 'Your building is sealed. A third animal can move in, and all three go to the City.',
+      onRock: 'The animals are waiting safe on the Rock until the wall is rebuilt.', home: '{animal} has moved in.' },
+    prayers: { candles: 'Prayers: {n} of 10', lantern: 'Ten prayers! A lantern hangs on your house. Lanterns never burn.' },
+    colours: { pick: 'Choose its colour', badge: 'From: {card}' }
+  };
+
   /* ---- Warm wording for the game's limits, keyed by the rules' reason codes. ---- */
   var kidRules = {
     pullCap: 'That is enough mending for one day. Saying sorry is always free. This one will be here for you tomorrow.',
@@ -1567,6 +1692,10 @@
     throughTheDay: throughTheDay,
     commissions: commissions,
     fadeStage: fadeStage,
-    kidRules: kidRules
+    kidRules: kidRules,
+    /* v5 */
+    cards: cards,
+    strawKinds: strawKinds,
+    v5: v5
   };
 });
