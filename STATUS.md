@@ -169,3 +169,11 @@ Played the straw → fire → rebuild loop as a child. Before: one small line of
 - Home screen in portrait: title + clock on row 1, Last night / Grown-ups / bell on row 2 (they were squashed and cut off).
 - Time-bar sun stays fully on the bar at the end. Farm note in card footers gets line spacing.
 - Rock game: "Cottage · 0 of 223 laid" label moved under the view buttons (they covered it in landscape).
+
+## v65 (20–21 Nov 2026) — walls, fire result, crafting, turning (overnight round 1)
+- Strength sign over each wall with straw: WILL FALL / LEANING / WOBBLY / PROPPED UP / HOLDS, with boxes (straw vs how much it holds, white line = breaking point, gold = propped).
+- Danger card: "Two ways to save a wall" (1. fix the straw, 2. prop it up) with a "Prop up the ___ wall (N blocks)" button: picks good blocks, turns to the wall, shows only the spaces next to it, counts down, "Propped up!" message. Also on Last look.
+- After the fire: big message over the picture + a ✅/❌ list per wall (fell / stood because propped).
+- "My pieces" hides at night and while a sheet (Craft etc.) is open, so panels get full height; it never takes more than ~half the side.
+- Crafted items go onto laid gold/silver/gem blocks; craft pictures show them on gold.
+- ⟲ ⟳ turn buttons on the picture; two-finger twist turns the house.
