@@ -140,3 +140,10 @@ Updated 17 Nov 2026.
 - Same game as the children's, but: the tray tops itself back up (12 gold, 12 silver, 6 of each gem, 4 each wood/hay/stubble), Undo block has no limit, 🔥 Fire now works any time (and again after Goodnight), ↺ Start again clears the test building.
 - Saved apart under `rock-live.grownup-test` (play.html `?live=1&sandbox=1`). Takes nothing from the app's inbox; children's saves untouched.
 - Checked in the browser: refill after laying and crafting, all 6 recipes craftable, two fires in a row, Start again, open and Close from the app. Not tried on the iPad.
+
+## 19 Nov 2026 — Pieces stacked, full screen, craft pictures (v61)
+- My pieces now wrap into rows (no sideways scrolling), with ▾ Hide / ▴ Show pieces (remembered).
+- ⛶ button on the picture: hides the side panel so the house fills the screen. The panel slides back over the picture for Craft, the design, night and fire, then hides again.
+- In landscape the picture now fills whatever height is left, so hiding pieces makes it bigger.
+- Craft list shows a picture of each item, drawn from the same blocks as in the wall. Torch flame made more orange.
+- Checked in the browser at iPad 7 size, landscape and portrait. Not tried on the iPad. The fountain picture is the weakest (reads as a spout on a basin).

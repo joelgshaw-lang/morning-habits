@@ -69,10 +69,17 @@ button:disabled{opacity:.45;cursor:default}
 .side{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;gap:8px}
 @media (min-width:1000px) and (orientation:landscape){
   .main{flex-direction:row}
-  .left{flex:1.5}
-  #stage{max-height:calc(100vh - 300px);max-height:calc(100dvh - 300px)}
+  .left{flex:1.5;min-height:0}
+  #stage{flex:1 1 0;min-height:220px;max-height:none;aspect-ratio:auto}
   .side{flex:1;min-width:330px}
 }
+/* full screen (the button on the picture): the side panel goes away while building, and comes back over the picture when it is needed */
+body.full .side{display:none}
+body.full .left{flex:1;min-height:0}
+body.full #stage{flex:1 1 0;min-height:220px;max-height:none;aspect-ratio:auto}
+body.full.need .side{display:flex;position:fixed;z-index:20;right:12px;top:64px;bottom:12px;width:min(400px,calc(100vw - 24px));box-shadow:0 10px 40px rgba(0,0,0,.55);border-radius:16px}
+#fullBtn{min-width:50px;padding:4px 7px;font-size:14px;background:rgba(34,27,68,.82)}
+body.full #fullBtn{background:var(--gold);color:var(--gold-ink)}
 /* small phones: an ordinary scrolling page */
 @media (max-width:560px),(max-height:620px){
   body{overflow:auto;height:auto} html{height:auto}
@@ -92,6 +99,10 @@ button:disabled{opacity:.45;cursor:default}
 .row .sp{flex:1}
 .note{color:var(--soft);font-size:14px}
 .tiles{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.tiles.stack{flex-wrap:wrap;overflow-x:hidden;overflow-y:auto;max-height:30vh;max-height:30dvh;scroll-snap-type:none}
+.tiles.stack .tile{width:112px;min-height:54px}
+.craftpic{width:104px;height:104px;flex:none;border-radius:12px;background:radial-gradient(circle at 50% 40%,#3a2d6e,#1a1438);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:38px;overflow:hidden}
+.craftpic img{width:100%;height:100%;display:block}
 .tile{flex:none;width:128px;min-height:62px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;font-family:var(--body);font-weight:700;font-size:13px;line-height:1.15;padding:7px;scroll-snap-align:start}
 .tile .sw{width:100%;height:14px;border-radius:5px;border:1px solid rgba(255,255,255,.3)}
 .tile.off{opacity:.38;filter:grayscale(.85);cursor:default}
@@ -318,7 +329,7 @@ button.both{width:100%;min-height:52px;font-size:17px}
         <button type="button" id="goal" hidden title="This building's goal. Tap to change it."></button>
         <button type="button" id="designBtn" hidden>Choose your design</button>
         <div id="views" role="group" aria-label="Turn the picture">
-          <button type="button" data-view="left">Left</button><button type="button" data-view="front">Front</button><button type="button" data-view="right">Right</button><button type="button" data-view="centre">Centre</button><button type="button" data-view="city">City</button><button type="button" data-view="zin" aria-label="Zoom in">&#xFF0B;</button><button type="button" data-view="zout" aria-label="Zoom out">&#xFF0D;</button><button type="button" data-view="home" aria-label="Back to the whole house">&#x2302;</button>
+          <button type="button" data-view="left">Left</button><button type="button" data-view="front">Front</button><button type="button" data-view="right">Right</button><button type="button" data-view="centre">Centre</button><button type="button" data-view="city">City</button><button type="button" data-view="zin" aria-label="Zoom in">&#xFF0B;</button><button type="button" data-view="zout" aria-label="Zoom out">&#xFF0D;</button><button type="button" data-view="home" aria-label="Back to the whole house">&#x2302;</button><button type="button" id="fullBtn" aria-label="Big picture (hide the side panel)" title="Big picture">&#x26F6;</button>
         </div>
         <div id="toast" hidden role="status"></div>
         <div id="fallback" hidden>This picture needs 3D graphics, which this browser has switched off. The buttons still work.</div>
@@ -797,9 +808,9 @@ function pieceInto(b,wall,o,p,lit){const w=wallW(wall),f=w/2,t=p.t,H=G.bh,k=H/2;
   else if(t==='C')itemInto(b,wall,o,p,w,f,H,k)
   else wbox(b,wall,o,w,H,1,M[t]||M.S,0,0)}
 /* crafted items: a stone block with the item built onto its face (all boxes, so it stays one merged draw) */
-const IT={water:flat(0x4fa8ff,0x2070ff,0.45),flame:new THREE.MeshBasicMaterial({color:0xffa040}),pink:flat(0xff7fb0,0xff3080,0.25)};
+const IT={water:flat(0x4fa8ff,0x2070ff,0.45),flame:new THREE.MeshBasicMaterial({color:0xff7a1a}),pink:flat(0xff7fb0,0xff3080,0.25)};
 function itemInto(b,wall,o,p,w,f,H,k){const c=p.c;wbox(b,wall,o,w,H,1,M.stone,0,0);
-  if(c==='torch'){wbox(b,wall,o,0.22*f,1.0*k,1.18,M.trim,0,-0.25*k);wbox(b,wall,o,0.36*f,0.42*k,1.24,IT.flame,0,0.42*k);wbox(b,wall,o,0.2*f,0.22*k,1.28,M.lamp,0,0.48*k)}
+  if(c==='torch'){wbox(b,wall,o,0.22*f,1.0*k,1.18,M.trim,0,-0.25*k);wbox(b,wall,o,0.4*f,0.46*k,1.24,IT.flame,0,0.42*k);wbox(b,wall,o,0.24*f,0.2*k,1.3,IT.flame,0,0.66*k);wbox(b,wall,o,0.12*f,0.14*k,1.32,M.lamp,0,0.4*k)}
   else if(c==='window'){const g=p.f?(p.pure?GEMLIT[p.f]:GEM[p.f]):M.lamp;wbox(b,wall,o,w*0.86,0.86*H,1.08,M.trim,0,0);wbox(b,wall,o,w*0.36,0.36*H,1.12,g,-0.2*w,0.2*H,true);wbox(b,wall,o,w*0.36,0.36*H,1.12,g,0.2*w,0.2*H,true);wbox(b,wall,o,w*0.36,0.36*H,1.12,g,-0.2*w,-0.2*H,true);wbox(b,wall,o,w*0.36,0.36*H,1.12,g,0.2*w,-0.2*H,true)}
   else if(c==='lamppost'){wbox(b,wall,o,0.16*f,1.5*k,1.18,M.trim,0,-0.2*k);wbox(b,wall,o,0.6*f,0.5*k,1.24,M.lamp,0,0.62*k);wbox(b,wall,o,0.74*f,0.12*k,1.26,M.trim,0,0.9*k)}
   else if(c==='flowers'){wbox(b,wall,o,w*0.9,0.42*k,1.3,M.wood,0,-0.55*k);[-0.55,-0.18,0.18,0.55].forEach(function(dx,i){wbox(b,wall,o,0.24*f,0.3*k,1.36,M.fl[i%M.fl.length],dx*f,-0.18*k);wbox(b,wall,o,0.1*f,0.3*k,1.33,M.leaf,dx*f,-0.4*k)})}
@@ -1120,6 +1131,19 @@ const api={render:render,dropIn:dropIn,burst:burst,cellsFx:cellsFx,showGhosts:sh
   fireStart:fireStart,burn:burn,knock:knock,wallFall:wallFall,caveIn:caveIn,spireFall:spireFall,crown:crown,mendGlow:mendGlow,seal:seal,sprout:sprout,neighbourIn:neighbourIn,stoneIn:stoneIn,
   showPlots:showPlots,hidePlots:hidePlots,cityPop:cityPop,home:home,wait:wait,turnTo:turnTo,faceWall:faceWall,rot:function(){return world.rotation.y},
   onGhost:null,onBale:null,onPlot:null,
+  /* a small picture of a crafted item, drawn once with the same boxes as in the wall, for the Craft list */
+  itemPic:(function(){const cache={};return function(id){if(cache[id])return cache[id];
+    try{const N=224,rt=new THREE.WebGLRenderTarget(N,N);rt.texture.encoding=THREE.sRGBEncoding;
+      const sc=new THREE.Scene();sc.add(new THREE.AmbientLight(0xffffff,0.8));const dl=new THREE.DirectionalLight(0xfff1dc,0.85);dl.position.set(4,6,8);sc.add(dl);
+      const b=new Batch(),g=new THREE.Group(),gems=Object.keys(R.CONFIG.gems);itemInto(b,'front',[0,0,0],{t:'C',c:id,f:id==='window'?gems[0]:null,pure:id==='window'},2,1,2,1);b.into(g);g.rotation.y=-0.42;g.rotation.x=0.1;sc.add(g);
+      const cam=new THREE.PerspectiveCamera(30,1,0.1,50);cam.position.set(0,0.3,5.6);cam.lookAt(0,0.05,0);
+      const old=renderer.getRenderTarget(),cc=new THREE.Color(),ca=renderer.getClearAlpha();renderer.getClearColor(cc);
+      renderer.setRenderTarget(rt);renderer.setClearColor(0x000000,0);renderer.clear();renderer.render(sc,cam);
+      const px=new Uint8Array(N*N*4);renderer.readRenderTargetPixels(rt,0,0,N,N,px);renderer.setRenderTarget(old);renderer.setClearColor(cc,ca);
+      g.traverse(function(o){if(o.geometry)o.geometry.dispose()});rt.dispose();
+      const cv=document.createElement('canvas');cv.width=cv.height=N;const cx=cv.getContext('2d'),im=cx.createImageData(N,N);
+      for(let y=0;y<N;y++)im.data.set(px.subarray((N-1-y)*N*4,(N-y)*N*4),y*N*4);cx.putImageData(im,0,0);
+      return cache[id]=cv.toDataURL()}catch(e){return null}}})(),
   /* for checking by hand or by a test */
   snap:function(){world.rotation.y=rotGoal;camera.position.copy(camGoal);camLook.copy(lookGoal);camera.lookAt(camLook);fresh3()},tapTarget:tapTarget,
   debugTap:function(e){aim(e);return ray.intersectObjects(ghosts.concat(pieces()),false).map(function(h){return [h.object.userData.wall,h.object.userData.c,h.object.userData.r,h.object.userData.ghost?'ghost':h.object.userData.t,Math.round(h.distance*10)/10]})},
@@ -1231,6 +1255,9 @@ function showSlots(){const s=st(),piece=trayPiece(),slots=piece?openSlots(s,piec
 /* the picture was redrawn: if a piece is still in hand, its glowing spaces come back */
 function reGhost(){if(ui.sel)showSlots()}
 function drawAll(){drawBar();drawTray();drawPanel();save()}
+/* full screen: on while building; the panel slides back over the picture for a sheet, the night, or anything that is not plain building */
+function applyFull(){const on=!!(DB&&DB.full),x=K()&&X(),need=on&&(!!ui.sheet||ui.busy||!x||x.phase!=='day');
+  document.body.classList.toggle('full',on);document.body.classList.toggle('need',need);$('fullBtn').setAttribute('aria-pressed',String(on))}
 function drawBar(){const s=st(),x=X(),kids=$('kids');kids.textContent='';
   if(!LIVE)AGES.forEach(function(a){kids.appendChild(btn('Age '+a,function(){askSwitch(a)},null,{'aria-pressed':String(DB.cur===a)}))});
   $('dayChip').textContent=WEEK[s.weekday]+' \u00b7 Day '+s.day;
@@ -1252,8 +1279,10 @@ function palette(p){return h('div',{class:'row'},[h('span',{class:'note',text:V(
 function recolour(p,code){const r=R.setColour(st(),p.id,code);if(!r.ok){refuse(r.reason);return}sfx('tap');showSlots();drawTray();save()}
 function drawTray(){topUp();const s=st(),t=$('tray'),sm=R.summary(s),tiles=trayTiles(s);t.textContent='';
   const can=tiles.length||(s.rubble.length&&sm.rubbleLeftToday>0);
-  t.appendChild(h('div',{class:'row'},[h('h2',{text:'My pieces'}),h('span',{class:'note',text:tiles.length?'Tap a piece, then tap a glowing space.':'Good things done in real life fill these up.'}),h('span',{class:'sp'}),btn('\ud83d\udee0\ufe0f Craft',function(){sfx('tap');openSheet({kind:'craft'})},'quiet'),can?btn('Lay the rest for me',layRest):null]));
-  t.appendChild(h('div',{class:'tiles'},trayGroups(s,tiles).map(function(g){return g.items.length?groupTile(g,'tray'):emptyTile(g.k)})));   /* always every kind, 0 = greyed */
+  t.appendChild(h('div',{class:'row'},[h('h2',{text:'My pieces'}),h('span',{class:'note',text:tiles.length?'Tap a piece, then tap a glowing space.':'Good things done in real life fill these up.'}),h('span',{class:'sp'}),btn('\ud83d\udee0\ufe0f Craft',function(){sfx('tap');openSheet({kind:'craft'})},'quiet'),can&&!DB.trayHide?btn('Lay the rest for me',layRest):null,
+    btn(DB.trayHide?'\u25B4 Show pieces':'\u25BE Hide',function(){sfx('tap');DB.trayHide=!DB.trayHide;save();drawTray()},'quiet',{'aria-expanded':String(!DB.trayHide)})]));
+  if(DB.trayHide){const sel=trayPiece();if(sel)t.appendChild(h('p',{class:'note',text:'Holding: '+kindName(sel)+'. Tap a glowing space.'}));return}
+  t.appendChild(h('div',{class:'tiles stack'},trayGroups(s,tiles).map(function(g){return g.items.length?groupTile(g,'tray'):emptyTile(g.k)})));   /* always every kind, 0 = greyed */
   const held=trayPiece();if(held&&ui.sel.list==='tray'&&isGem(held.t))t.appendChild(palette(held));
   if(s.rubble.length){t.appendChild(h('h3',{text:'Rubble pile: '+s.rubble.length+' fallen '+(s.rubble.length===1?'stone':'stones')+' \u00b7 '+sm.rubbleLeftToday+' more can be laid again today'}));
     t.appendChild(h('div',{class:'tiles'},groups(s.rubble).map(function(g){return groupTile(g,'rubble')})))}}
@@ -1275,7 +1304,7 @@ function groupTile(g,list){const p=g.items[0],n=g.items.length,sel=ui.sel&&ui.se
   name=n===1?pieceLabel(p):kindName(p);
   return btn([h('span',{class:'sw',style:'background:'+cssP(p)}),h('span',{text:name}),h('span',{class:'count',text:'\u00d7 '+n}),c&&ART&&n===1?h('span',{class:'badge'},[pic(c.art,'friend')]):null],
     function(){pickTile(pick,list)},'tile',{'aria-pressed':String(!!sel),'aria-label':name+', '+n})}
-function drawPanel(){const b=$('pbody'),f=$('pfoot'),x=X();b.textContent='';f.textContent='';b.scrollTop=0;
+function drawPanel(){applyFull();const b=$('pbody'),f=$('pfoot'),x=X();b.textContent='';f.textContent='';b.scrollTop=0;
   if(ui.busy){b.appendChild(h('p',{class:'say',text:'Watch the fire.'}));return}
   if(ui.sheet){SHEETS[ui.sheet.kind](b,f,ui.sheet);return}
   if(LIVE&&(x.phase!=='night'||['lastlook','plot','after'].indexOf(x.night)<0)){drawLive(b,f);return}   /* live: one simple panel; the night steps are only the fire (Last look, plot, after) */
@@ -1356,9 +1385,11 @@ const SHEETS={
     title(b,'\ud83d\udee0\ufe0f Craft');b.appendChild(h('p',{class:'note',text:'Put pieces together to make something special. Items never burn, but they fall if their wall falls.'}));
     const needWords=function(nd){return Object.keys(nd).map(function(c){const n=nd[c],nm=c==='gem'?'gems (any fruit, all one fruit shines brightest)':c==='G'?'gold':c==='S'?'silver':((FRUIT[c]&&FRUIT[c].name)||c);return n+' '+nm}).join(' + ')};
     list.forEach(function(r){const it=ITEMS[r.id]||{};
-      b.appendChild(h('div',{class:'card'},[h('div',{class:'row'},[h('h3',{text:(it.e||'')+' '+r.name}),h('span',{class:'sp'}),
+      const pic=S.itemPic?S.itemPic(r.id):null;
+      b.appendChild(h('div',{class:'card'},[h('div',{class:'row',style:'flex-wrap:nowrap;align-items:flex-start'},[h('div',{class:'craftpic','aria-hidden':'true'},[pic?h('img',{src:pic,alt:''}):(it.e||'')]),
+        h('div',{style:'flex:1;min-width:0;display:flex;flex-direction:column;gap:6px'},[h('div',{class:'row'},[h('h3',{text:(it.e||'')+' '+r.name}),h('span',{class:'sp'}),
           btn(r.ok?'Make it':'Not yet',function(){if(!r.ok)return;makeItem(r.id)},r.ok?null:'quiet',r.ok?null:{disabled:true})]),
-        h('p',{class:'note',text:'Needs '+needWords(r.need)+'. '+(it.line||'')})]))})},
+        h('p',{class:'note',text:'Needs '+needWords(r.need)+'. '+(it.line||'')})])])]))})},
   goal:function(b,f,sh){drawGoal(b,f)},
   who:function(b,f,sh){const by=QW('by')||{};title(b,QW('who'));
     b.appendChild(h('div',{class:'grid three'},['me','sibling','grownup'].map(function(w){return btn([h('span',{class:'t',text:by[w]||w})],function(){quickTap(sh.q,w,sh.card)},'pc')})))},
@@ -2010,7 +2041,8 @@ $('stars').addEventListener('click',function(){openSheet({kind:'decorate'})});
 $('goal').addEventListener('click',function(){openSheet({kind:'goal'})});
 $('designBtn').addEventListener('click',function(){openSheet({kind:'design'})});
 $('toolsClose').addEventListener('click',hideTools);
-Array.prototype.forEach.call($('views').children,function(v){v.addEventListener('click',function(){sfx('tap');S.turnTo(v.getAttribute('data-view'))})});
+Array.prototype.forEach.call($('views').children,function(v){if(!v.getAttribute('data-view'))return;v.addEventListener('click',function(){sfx('tap');S.turnTo(v.getAttribute('data-view'))})});
+$('fullBtn').addEventListener('click',function(){sfx('tap');DB.full=!DB.full;save();applyFull();say(DB.full?'Big picture. Tap \u26f6 again to bring the side back.':'',true)});
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!$('modal').hidden)$('modal').hidden=true});
 /* a leaning wall creaks now and then */
 setInterval(function(){if(ui.busy||document.hidden||!K())return;const w=R.wobble(st());if(WALLS.some(function(q){return w[q]>=2}))sfx('creak')},5200);
