@@ -317,7 +317,7 @@ button.both{width:100%;min-height:52px;font-size:17px}
         <button type="button" id="goal" hidden title="This building's goal. Tap to change it."></button>
         <button type="button" id="designBtn" hidden>Choose your design</button>
         <div id="views" role="group" aria-label="Turn the picture">
-          <button type="button" data-view="left">Left</button><button type="button" data-view="front">Front</button><button type="button" data-view="right">Right</button><button type="button" data-view="centre">Centre</button><button type="button" data-view="city">City</button>
+          <button type="button" data-view="left">Left</button><button type="button" data-view="front">Front</button><button type="button" data-view="right">Right</button><button type="button" data-view="centre">Centre</button><button type="button" data-view="city">City</button><button type="button" data-view="zin" aria-label="Zoom in">&#xFF0B;</button><button type="button" data-view="zout" aria-label="Zoom out">&#xFF0D;</button><button type="button" data-view="home" aria-label="Back to the whole house">&#x2302;</button>
         </div>
         <div id="toast" hidden role="status"></div>
         <div id="fallback" hidden>This picture needs 3D graphics, which this browser has switched off. The buttons still work.</div>
@@ -983,7 +983,8 @@ function camDist(){return Math.max(1,1.3/camera.aspect)*Math.max(1+Math.max(0,ef
 function home(){const n=Object.keys(nbGroups).length,d=camDist()*(n?1.1:1),rows=effH()/2;   /* pull back a little so the neighbour next door stays in view */
   camGoal.set(0,(10.5+(rows-3)*1.6)*d,35*d);lookGoal.set(0,Y0+rows-0.3,0)}
 const VIEWS={centre:TURN,front:-0.06,left:0.8,right:-1.0};
-function turnTo(v){if(v==='city'){cityView=true;rotGoal=TURN;const d=Math.max(1,1.3/camera.aspect);camGoal.set(CITY[0]-4,CITY[1]+13*d,CITY[2]+33*d);lookGoal.set(CITY[0],CITY[1]+3,CITY[2]-4);return}
+function turnTo(v){if(v==='zin'){ZOOM=zclamp(ZOOM*0.7);return}if(v==='zout'){ZOOM=zclamp(ZOOM/0.7);return}if(v==='home'){resetView();if(!cityView)home();return}
+  if(v==='city'){cityView=true;rotGoal=TURN;const d=Math.max(1,1.3/camera.aspect);camGoal.set(CITY[0]-4,CITY[1]+13*d,CITY[2]+33*d);lookGoal.set(CITY[0],CITY[1]+3,CITY[2]-4);return}
   cityView=false;if(VIEWS[v]!=null)rotGoal=VIEWS[v];home()}
 /* turn gently so the wall that just changed can be seen */
 function faceWall(w){if(cityView)return;const r=rotGoal;if(w==='left'&&r<0.35)rotGoal=0.8;else if(w==='right'&&r>-0.35)rotGoal=-0.85;else if(w==='front'&&Math.abs(r)>0.75)rotGoal=r>0?0.4:TURN}
@@ -1011,13 +1012,16 @@ function tapTarget(e){
   if(first&&first.userData.t==='W')return{bale:first};
   bd=first?20:34;blocks.forEach(function(m){if(m.userData.t!=='W')return;const d=near(m,e);if(d<bd){bd=d;best=m}});
   return best?{bale:best}:null}
-canvas.addEventListener('pointerdown',function(e){down={x:e.clientX,y:e.clientY,t:performance.now(),r:world.rotation.y,pull:false,dist:0};
+canvas.addEventListener('contextmenu',function(e){e.preventDefault()});
+canvas.addEventListener('pointerdown',function(e){down={x:e.clientX,y:e.clientY,t:performance.now(),r:world.rotation.y,tl:TILT,px:e.clientX,py:e.clientY,slide:e.button===2||e.shiftKey,pull:false,dist:0};
   if(armed&&near(armed.m,e)<70){armed.active=true;down.pull=true;tremble=1;e.preventDefault()}
   try{canvas.setPointerCapture(e.pointerId)}catch(_){}});
 canvas.addEventListener('pointermove',function(e){if(!down)return;
   if(down.pull){down.dist=Math.min(1,Math.abs(e.clientX-down.x)/Math.max(110,Math.min(200,canvas.clientWidth*0.22)));pullTick();return}
   if(cityView)return;
-  world.rotation.y=rotGoal=Math.max(-1.05,Math.min(1.05,down.r+(e.clientX-down.x)*0.008))});   /* clamped so nothing can ever cover the house */
+  if(down.slide){panBy(e.clientX-down.px,e.clientY-down.py);down.px=e.clientX;down.py=e.clientY;return}
+  world.rotation.y=rotGoal=Math.max(-1.05,Math.min(1.05,down.r+(e.clientX-down.x)*0.008));
+  TILT=Math.max(-0.75,Math.min(0.9,down.tl+(e.clientY-down.y)*0.004))});   /* clamped so nothing can ever cover the house */   /* clamped so nothing can ever cover the house */
 function up(e){if(!down)return;const d=down;down=null;
   if(d.pull){if(armed&&armed.active){const el=(performance.now()-d.t)/armed.min;if(d.dist>=0.8&&el>=1)pullDone();else pullSlip(d.dist>=0.8?'fast':'slip')}return}   /* out only after the full slow time */
   if(Math.hypot(e.clientX-d.x,e.clientY-d.y)<10&&performance.now()-d.t<600){const t=tapTarget(e);if(!t)return;
@@ -1026,13 +1030,19 @@ function up(e){if(!down)return;const d=down;down=null;
     else if(api.onBale)api.onBale(t.bale.userData.wall,t.bale.userData.c,t.bale.userData.r)}}
 canvas.addEventListener('pointerup',up);
 /* pinch to zoom (two fingers), mouse wheel on a computer. ZOOM < 1 is closer. */
-let ZOOM=1,pinch=null;const zg=new THREE.Vector3(),fingers=new Map();
-function zclamp(z){return Math.max(0.45,Math.min(1.7,z))}
+let ZOOM=1,pinch=null,TILT=0;const zg=new THREE.Vector3(),fingers=new Map(),PAN=new THREE.Vector3(),panGoal=new THREE.Vector3(),_r=new THREE.Vector3(),_u=new THREE.Vector3();
+/* ZOOM goes right in close (0.12) like Minecraft; two fingers slide the view (PAN); one finger up/down tilts (TILT) */
+function zclamp(z){return Math.max(0.12,Math.min(1.7,z))}
+function fmid(){const f=Array.from(fingers.values());return{x:(f[0].x+f[1].x)/2,y:(f[0].y+f[1].y)/2}}
+function panBy(dx,dy){const dist=camera.position.distanceTo(camLook),k=dist*0.0016*(1.3/Math.max(0.6,camera.aspect));
+  _r.setFromMatrixColumn(camera.matrixWorld,0);_u.setFromMatrixColumn(camera.matrixWorld,1);
+  panGoal.addScaledVector(_r,-dx*k).addScaledVector(_u,dy*k);panGoal.x=Math.max(-18,Math.min(18,panGoal.x));panGoal.y=Math.max(-8,Math.min(22,panGoal.y));panGoal.z=Math.max(-14,Math.min(14,panGoal.z))}
+function resetView(){ZOOM=1;TILT=0;panGoal.set(0,0,0)}
 function fdist(){const f=Array.from(fingers.values());return Math.hypot(f[0].x-f[1].x,f[0].y-f[1].y)||1}
 canvas.addEventListener('pointerdown',function(e){fingers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(fingers.size===2&&!(armed&&armed.active)){down=null;pinch={d0:fdist(),z0:ZOOM}}});
+  if(fingers.size===2&&!(armed&&armed.active)){down=null;pinch={d0:fdist(),z0:ZOOM,m:fmid()}}});
 canvas.addEventListener('pointermove',function(e){if(!fingers.has(e.pointerId))return;fingers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(pinch&&fingers.size===2)ZOOM=zclamp(pinch.z0*pinch.d0/fdist())});
+  if(pinch&&fingers.size===2){ZOOM=zclamp(pinch.z0*pinch.d0/fdist());const m=fmid();panBy(m.x-pinch.m.x,m.y-pinch.m.y);pinch.m=m}});
 function lift(e){fingers.delete(e.pointerId);if(fingers.size<2)pinch=null}
 canvas.addEventListener('pointerup',lift);canvas.addEventListener('pointercancel',lift);canvas.addEventListener('lostpointercapture',lift);
 canvas.addEventListener('wheel',function(e){e.preventDefault();ZOOM=zclamp(ZOOM*Math.exp(e.deltaY*0.0015))},{passive:false});
@@ -1063,7 +1073,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(0.05,(now-last)
   if(pivots.front){pivots.front.rotation.x=lean.front+sw*sway.front+tr;pivots.left.rotation.z=lean.left+sw*sway.left+tr;pivots.right.rotation.z=-(lean.right+sw*sway.right+tr)}
   doorLight.intensity=1.3+Math.sin(T*7)*0.08;
   if(!reduce&&animals.length){animals.forEach(function(g){const u=g.userData,k=Math.sin(T*0.5+u.i*2.1);g.position.x=u.x+k*0.7;g.position.z=u.z+Math.sin(T*0.37+u.i)*0.3;g.rotation.y=Math.cos(T*0.5+u.i*2.1)>0?Math.PI/2:-Math.PI/2});shadowTicks=Math.max(shadowTicks,1)}
-  const q=camSnap||reduce?1:Math.min(1,dt*3.2);camSnap=false;zg.copy(camGoal).sub(lookGoal).multiplyScalar(ZOOM).add(lookGoal);camera.position.lerp(zg,q);camLook.lerp(lookGoal,q);camera.lookAt(camLook);
+  const q=camSnap||reduce?1:Math.min(1,dt*3.2);camSnap=false;PAN.lerp(cityView?_u.set(0,0,0):panGoal,q);zg.copy(camGoal).sub(lookGoal);zg.y*=Math.max(0.05,1+TILT);zg.multiplyScalar(ZOOM).add(lookGoal).add(PAN);camera.position.lerp(zg,q);_r.copy(lookGoal).add(PAN);camLook.lerp(_r,q);camera.lookAt(camLook);
   if(shadowTicks>0){shadowTicks--;renderer.shadowMap.needsUpdate=true}
   renderer.render(scene,camera);if(renderer.info.render.calls>maxCalls)maxCalls=renderer.info.render.calls}
 size();requestAnimationFrame(loop);
