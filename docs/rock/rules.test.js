@@ -1302,4 +1302,17 @@ test('craft: an item lays in the outline or an extra spot, never burns, and fall
   var ev = R.fire(s), fall = ev.filter(function (e) { return e.kind === 'wallFall' && e.wall === 'left'; })[0];
   assert(fall && fall.pieces.some(function (q) { return q.piece.t === 'C'; }), 'it falls with its wall: ' + JSON.stringify(ev.map(function (e) { return e.kind + ':' + (e.wall || ''); })) + ' ' + JSON.stringify(R.CONFIG.fallAt) + ' mercy ' + ev.mercy);
 });
+test('decorate: an item goes onto a laid gold, silver or gem block, not onto straw or twice', function () {
+  var s = kid(8); s.tray = []; tray(s, ['G', 'G', 'G', 'G']); R.craft(s, 'torch') ; s.tray = []; tray(s, ['G', 'G']); R.craft(s, 'lamppost');
+  set(s, 'front', 0, 0, 'G'); set(s, 'front', 1, 0, 'W');
+  var slots = R.decoSlots(s);
+  assert(slots.some(function (q) { return q.wall === 'front' && q.col === 0 && q.row === 0; }), 'gold block is offered');
+  assert(!slots.some(function (q) { return q.wall === 'front' && q.col === 1 && q.row === 0; }), 'straw is not');
+  var i = s.tray.findIndex(function (p) { return p.t === 'C'; });
+  assert.equal(R.decorate(s, i, 'front', 1, 0).reason, 'noBlock');
+  var r = R.decorate(s, i, 'front', 0, 0); assert(r.ok, 'decorated');
+  assert.equal(s.walls.front[0][0].t, 'G'); assert.equal(s.walls.front[0][0].deco.c, 'lamppost');
+  assert(!s.tray.some(function (p) { return p.t === 'C'; }), 'item left the tray');
+  assert(!R.decoSlots(s).some(function (q) { return q.wall === 'front' && q.col === 0 && q.row === 0; }), 'not twice');
+});
 console.log(passed + ' tests passed' + (process.exitCode ? ', SOME FAILED' : ''));

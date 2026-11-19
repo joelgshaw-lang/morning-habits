@@ -147,3 +147,11 @@ Updated 17 Nov 2026.
 - In landscape the picture now fills whatever height is left, so hiding pieces makes it bigger.
 - Craft list shows a picture of each item, drawn from the same blocks as in the wall. Torch flame made more orange.
 - Checked in the browser at iPad 7 size, landscape and portrait. Not tried on the iPad. The fountain picture is the weakest (reads as a spout on a basin).
+
+## 19 Nov 2026 — Hold-to-place, items on blocks, smoother turning, more room (v62)
+Three review agents went through turning, placing and glitches; their main fixes are in.
+- **Hold, slide, let go:** with a piece picked, put a finger near a glowing space: the real piece shows there see-through. Slide to move it (it aims a little above the finger once sliding, with a white dot). Let go = laid. Slide off every space, onto the pieces, or add a second finger = cancelled. A quick tap still lays straight away.
+- **Items onto laid blocks:** a crafted item can go onto any laid gold, silver or gem block (rules: `decorate`, `decoSlots`; block keeps its type and strength, wears `p.deco`). Glowing spaces sit just in front of those blocks.
+- **More room:** My pieces moved to the right-hand column; the message line floats over the bottom of the picture and hides when empty. Full screen: pieces float on the right, view buttons move left.
+- **Smoother:** no view jump when text/pieces change size; 12px dead zone before turning (wobbly taps stay taps, 900ms allowed); turn and tilt lock to the main direction; gentle spin after a flick; pinch keeps its spot; zooming out drifts home; one finger keeps turning after a pinch; pixel ratio 1.5; shadows every 4th frame; animals no longer force shadows every frame; drop starts a frame later; quick second lay no longer pops the first; pieces list and panel keep their scroll; no text selection or page zoom; vertical drags no longer stolen by page scroll.
+- 111 rule checks pass. Checked in the browser at iPad 7 size (landscape, portrait, full screen) with simulated touches. **Not tried on the iPad with real fingers.**

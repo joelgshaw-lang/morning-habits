@@ -51,7 +51,7 @@ button:disabled{opacity:.45;cursor:default}
 /* stage */
 .main{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px}
 .left{flex:none;display:flex;flex-direction:column;gap:6px;min-width:0}
-#stage{position:relative;width:100%;aspect-ratio:4/3;max-height:43vh;max-height:43dvh;border-radius:18px;overflow:hidden;border:1px solid var(--line);
+#stage{position:relative;width:100%;aspect-ratio:4/3;max-height:52vh;max-height:52dvh;border-radius:18px;overflow:hidden;border:1px solid var(--line);
   background:linear-gradient(#120f33 0%,#2c1f5c 38%,#6f3d74 68%,#d98458 90%,#f0b06a 100%)}
 #stage::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 55%,rgba(0,0,0,0) 55%,rgba(8,5,24,.55) 100%)}
 #c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
@@ -63,7 +63,11 @@ button:disabled{opacity:.45;cursor:default}
 #views button{min-width:50px;padding:4px 7px;font-size:14px;background:rgba(34,27,68,.82)}
 #toast{position:absolute;z-index:3;left:50%;top:42%;transform:translate(-50%,-50%);background:rgba(18,14,40,.92);border:1px solid var(--ember);border-radius:14px;padding:10px 16px;font-weight:700;text-align:center;pointer-events:none}
 #fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}
-#cap{flex:none;display:flex;align-items:center;gap:10px;min-height:50px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px 12px}
+#cap{position:absolute;z-index:3;left:8px;right:8px;bottom:8px;display:flex;align-items:center;gap:10px;min-height:44px;background:rgba(24,19,52,.82);border:1px solid var(--line);border-radius:14px;padding:5px 10px;pointer-events:none}
+#cap button{pointer-events:auto}
+#cap{right:auto;max-width:calc(100% - 16px)}
+#cap:has(#say:empty):has(#undo[hidden]):has(#undoBlock[hidden]){display:none}   /* nothing to say: the whole picture is the child's */
+#say{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 #say{flex:1;font-weight:700;font-size:clamp(15px,2vw,17px);line-height:1.3;text-wrap:balance}
 #say:empty::before{content:"Drag the picture to turn it.";color:var(--soft);font-weight:600}
 .side{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;gap:8px}
@@ -74,10 +78,20 @@ button:disabled{opacity:.45;cursor:default}
   .side{flex:1;min-width:330px}
 }
 /* full screen (the button on the picture): the side panel goes away while building, and comes back over the picture when it is needed */
-body.full .side{display:none}
+body.full .side{position:fixed;z-index:20;right:14px;top:64px;bottom:14px;width:252px;min-width:0;pointer-events:none}
+body.full .side>*{pointer-events:auto;box-shadow:0 8px 30px rgba(0,0,0,.45)}
+body.full #panel{display:none}
+body.full #tray{background:rgba(32,25,66,.9);max-height:100%}
+body.full .tiles.stack{max-height:calc(100vh - 190px);max-height:calc(100dvh - 190px)}
+body.full .tiles.stack .tile{width:94px}
+body.full .tiles.stack{gap:6px}
+body.full #views{right:auto;left:8px;top:36px;flex-wrap:wrap;max-width:calc(100% - 290px)}   /* the view buttons move left, clear of the pieces */
+body.full.need .side{width:min(400px,calc(100vw - 28px))}
+body.full.need #panel{display:flex}
+body.full.need .tiles.stack{max-height:24vh;max-height:24dvh}
 body.full .left{flex:1;min-height:0}
 body.full #stage{flex:1 1 0;min-height:220px;max-height:none;aspect-ratio:auto}
-body.full.need .side{display:flex;position:fixed;z-index:20;right:12px;top:64px;bottom:12px;width:min(400px,calc(100vw - 24px));box-shadow:0 10px 40px rgba(0,0,0,.55);border-radius:16px}
+#tray .row h2{font-size:17px}
 #fullBtn{min-width:50px;padding:4px 7px;font-size:14px;background:rgba(34,27,68,.82)}
 body.full #fullBtn{background:var(--gold);color:var(--gold-ink)}
 /* small phones: an ordinary scrolling page */
@@ -99,8 +113,15 @@ body.full #fullBtn{background:var(--gold);color:var(--gold-ink)}
 .row .sp{flex:1}
 .note{color:var(--soft);font-size:14px}
 .tiles{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
-.tiles.stack{flex-wrap:wrap;overflow-x:hidden;overflow-y:auto;max-height:30vh;max-height:30dvh;scroll-snap-type:none}
-.tiles.stack .tile{width:112px;min-height:54px}
+.tiles.stack{flex-wrap:wrap;overflow-x:hidden;overflow-y:auto;max-height:34vh;max-height:34dvh;scroll-snap-type:none;overscroll-behavior:contain}
+.tiles.stack .tile{width:98px;min-height:50px;padding:6px;font-size:12.5px;gap:3px}
+.tiles.stack .tile .sw{height:11px}
+#aimDot{position:fixed;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--gold);box-shadow:0 0 0 3px rgba(0,0,0,.35);pointer-events:none;z-index:40}
+html{overscroll-behavior:none}
+.app,#toolsWrap,#modal{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea{-webkit-user-select:text;user-select:text}
+#pbody,.tiles{overscroll-behavior:contain}
+.chip.starchip,#goal{min-height:44px}
 .craftpic{width:104px;height:104px;flex:none;border-radius:12px;background:radial-gradient(circle at 50% 40%,#3a2d6e,#1a1438);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:38px;overflow:hidden}
 .craftpic img{width:100%;height:100%;display:block}
 .tile{flex:none;width:128px;min-height:62px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;font-family:var(--body);font-weight:700;font-size:13px;line-height:1.15;padding:7px;scroll-snap-align:start}
@@ -189,7 +210,7 @@ button.both{width:100%;min-height:52px;font-size:17px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chips span{font-size:13px;font-weight:700;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:2px 10px}
 .friend{width:84px;flex:none;background:#fff7ec;border-radius:12px;padding:2px}
-#designBtn{position:absolute;z-index:2;left:10px;bottom:10px;min-height:40px;font-size:14px;padding:4px 12px;background:rgba(242,185,63,.92);color:var(--gold-ink);border-color:#a8771a}
+#designBtn{position:absolute;z-index:2;left:10px;bottom:62px;min-height:44px;font-size:14px;padding:4px 12px;background:rgba(242,185,63,.92);color:var(--gold-ink);border-color:#a8771a}
 @media (orientation:portrait) and (max-width:900px){.pc .art svg{max-height:84px}.pic .art svg{max-height:110px}.pc small{font-size:12px}}
 @media (max-width:560px){.cards4{grid-template-columns:repeat(2,minmax(0,1fr))}.gal{grid-template-columns:repeat(2,minmax(0,1fr))}.pc .art svg{max-height:90px}}
 
@@ -333,11 +354,11 @@ button.both{width:100%;min-height:52px;font-size:17px}
         </div>
         <div id="toast" hidden role="status"></div>
         <div id="fallback" hidden>This picture needs 3D graphics, which this browser has switched off. The buttons still work.</div>
+        <div id="cap"><p id="say" aria-live="polite"></p><button type="button" id="undo" hidden>Undo</button><button type="button" id="undoBlock" hidden>&#x21B6; Undo block</button></div>
       </div>
-      <div id="cap"><p id="say" aria-live="polite"></p><button type="button" id="undo" hidden>Undo</button><button type="button" id="undoBlock" hidden>&#x21B6; Undo block</button></div>
-      <section class="card" id="tray" aria-label="Pieces to build with"></section>
     </div>
     <div class="side">
+      <section class="card" id="tray" aria-label="Pieces to build with"></section>
       <section class="card" id="panel"><div id="pbody"></div><div id="pfoot"></div></section>
     </div>
   </div>
@@ -520,7 +541,7 @@ function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout
 function make3D(){
 const stage=$('stage'),canvas=$('c');if(!window.THREE)return null;let renderer;
 try{renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:true})}catch(e){return null}
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));   /* 2x is too many pixels for an iPad 7 */renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.shadowMap.autoUpdate=false;
 const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const scene=new THREE.Scene();scene.fog=new THREE.Fog(0x4a2f66,70,190);
@@ -609,7 +630,7 @@ const M={
   lamp:new THREE.MeshBasicMaterial({color:0xffd58a}),skin:flat(0xe9b78f),shirt:flat(0x4d7bd6),pants:flat(0x2c3558),
   fl:[flat(0xff6f7d,0xff3050,0.3),flat(0xffd95a,0xffb020,0.3),flat(0xf6f0ff,0xbfb0ff,0.25),flat(0xff9ad0,0xff50a0,0.3)],
   cap:flat(0xd8453a),stem:flat(0xf1e8dc),cloud:new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.14,fog:false,depthWrite:false}),
-  slot:new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}),   /* the invisible box a tap is tested against */
+  slot:new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false,visible:false}),   /* never drawn; taps still find it */   /* the invisible box a tap is tested against */
   dot:new THREE.SpriteMaterial({color:0xffe7a6,blending:THREE.AdditiveBlending,transparent:true,opacity:0.8,depthWrite:false,depthTest:false,fog:false}),
   dotHot:new THREE.SpriteMaterial({color:0xffffff,blending:THREE.AdditiveBlending,transparent:true,opacity:1,depthWrite:false,depthTest:false,fog:false}),
   seam:flat(0xfff6fb,0xffcfe6,0.9),mortar:flat(0xe6dcc2,0xe6dcc2,0.2),
@@ -792,6 +813,7 @@ let pivots={},P={},ghosts=[],ghostLines=[],frameParts=[],freeMeshes=[],bodies=[]
 const sway={front:0,left:0,right:0},lean={front:0,left:0,right:0},animals=[];let tremble=0,T=0;
 function key(w,c,r,o){return w+':'+c+':'+r+(o==null?'':':x'+o)}
 /* a box laid along a wall: `along` the wall, `th` through it */
+function TA(){return window.matchMedia&&window.matchMedia('(max-width:560px),(max-height:620px)').matches?'pan-y':'none'}
 function wbox(b,wall,o,along,h,th,m,da,up,plainUV){if(wall==='front')b.box(along,h,th,m,o[0]+da,o[1]+up,o[2],false,null,plainUV);else b.box(th,h,along,m,o[0],o[1]+up,o[2]+da,false,null,plainUV)}
 /* one stone, merged into its wall's batch */
 function pieceInto(b,wall,o,p,lit){const w=wallW(wall),f=w/2,t=p.t,H=G.bh,k=H/2;
@@ -806,10 +828,11 @@ function pieceInto(b,wall,o,p,lit){const w=wallW(wall),f=w/2,t=p.t,H=G.bh,k=H/2;
     wbox(b,wall,o,0.22*f,1.03*H,1.1,M.band,0.6*f,0);wbox(b,wall,o,0.22*f,1.03*H,1.1,M.band,-0.6*f,0);if(p.forgiven)wbox(b,wall,o,0.8*f,0.8*k,1.2,M.P,0,0)}
   else if(t==='L'){wbox(b,wall,o,w,H,1,M.plinth,0,0);wbox(b,wall,o,0.9*f,1.1*k,1.16,M.lamp,0,0)}
   else if(t==='C')itemInto(b,wall,o,p,w,f,H,k)
-  else wbox(b,wall,o,w,H,1,M[t]||M.S,0,0)}
+  else wbox(b,wall,o,w,H,1,M[t]||M.S,0,0);
+  if(p.deco)itemInto(b,wall,o,{t:'C',c:p.deco.c,f:p.deco.f,pure:p.deco.pure},w,f,H,k,true)}   /* an item put onto a laid block: the block stays, the item sits on its face */
 /* crafted items: a stone block with the item built onto its face (all boxes, so it stays one merged draw) */
 const IT={water:flat(0x4fa8ff,0x2070ff,0.45),flame:new THREE.MeshBasicMaterial({color:0xff7a1a}),pink:flat(0xff7fb0,0xff3080,0.25)};
-function itemInto(b,wall,o,p,w,f,H,k){const c=p.c;wbox(b,wall,o,w,H,1,M.stone,0,0);
+function itemInto(b,wall,o,p,w,f,H,k,onBlock){const c=p.c;if(!onBlock)wbox(b,wall,o,w,H,1,M.stone,0,0);
   if(c==='torch'){wbox(b,wall,o,0.22*f,1.0*k,1.18,M.trim,0,-0.25*k);wbox(b,wall,o,0.4*f,0.46*k,1.24,IT.flame,0,0.42*k);wbox(b,wall,o,0.24*f,0.2*k,1.3,IT.flame,0,0.66*k);wbox(b,wall,o,0.12*f,0.14*k,1.32,M.lamp,0,0.4*k)}
   else if(c==='window'){const g=p.f?(p.pure?GEMLIT[p.f]:GEM[p.f]):M.lamp;wbox(b,wall,o,w*0.86,0.86*H,1.08,M.trim,0,0);wbox(b,wall,o,w*0.36,0.36*H,1.12,g,-0.2*w,0.2*H,true);wbox(b,wall,o,w*0.36,0.36*H,1.12,g,0.2*w,0.2*H,true);wbox(b,wall,o,w*0.36,0.36*H,1.12,g,-0.2*w,-0.2*H,true);wbox(b,wall,o,w*0.36,0.36*H,1.12,g,0.2*w,-0.2*H,true)}
   else if(c==='lamppost'){wbox(b,wall,o,0.16*f,1.5*k,1.18,M.trim,0,-0.2*k);wbox(b,wall,o,0.6*f,0.5*k,1.24,M.lamp,0,0.62*k);wbox(b,wall,o,0.74*f,0.12*k,1.26,M.trim,0,0.9*k)}
@@ -846,10 +869,10 @@ function rubbleSpot(i){const a=Math.sin(i*12.9898)*43758.5453,b=Math.sin(i*78.23
 
 /* render(s, x, p, opt): rebuild the whole picture from the saved state. opt.loose = keys of stones that are about to move;
    opt.frameLoose = the pillars and door are about to fall (a cave-in). */
-function render(s,x,p,opt){p=p||{};opt=opt||{};const sm=R.summary(s),loose={};(opt.loose||[]).forEach(function(k){loose[k]=1});
+function render(s,x,p,opt){cancelAim();p=p||{};opt=opt||{};const sm=R.summary(s),loose={};(opt.loose||[]).forEach(function(k){loose[k]=1});
   [house,far].forEach(function(g){while(g.children.length)g.remove(g.children[0])});
   trash.forEach(function(g){g.dispose()});trash=[];fx.forEach(function(f){world.remove(f.s);f.s.material.dispose()});fx=[];
-  P={};ghosts=[];ghostLines=[];frameParts=[];freeMeshes=[];bodies=[];tweens=tweens.filter(function(t){return t.keep});armed=null;nbGroups={};seedMeshes=[];marks=[];tremble=0;canvas.style.touchAction='pan-y';
+  P={};ghosts=[];ghostLines=[];frameParts=[];freeMeshes=[];bodies=[];tweens=tweens.filter(function(t){return t.keep});armed=null;nbGroups={};seedMeshes=[];marks=[];tremble=0;canvas.style.touchAction=TA();
   setShape(s);buildRock();buildCity(s,p);
   const wb=R.wobble(s);
   pivots={front:new THREE.Group(),left:new THREE.Group(),right:new THREE.Group()};
@@ -928,7 +951,7 @@ function render(s,x,p,opt){p=p||{};opt=opt||{};const sm=R.summary(s),loose={};(o
   /* wobble straight from the rules: 1 = a clear sway, 2 = an obvious lean. Each gets a "!" over the wall. Reduced motion: a still tilt and the marker. */
   WALLS.forEach(function(w){const v=wb[w];sway[w]=v===1?0.05:v>=2?0.025:0;lean[w]=v>=2?0.14:(v===1&&reduce?0.05:0);if(!v)return;
     const mk=new THREE.Sprite(markMat(v)),bx=wallBox(w),sz=v>=2?2.6:1.7;mk.scale.set(sz,sz,1);mk.position.set(bx.x,Y0+bx.h+1.6,bx.z);mk.userData.y=mk.position.y;mk.userData.v=v;house.add(mk);marks.push(mk)});
-  homeLight.intensity=x.frameDown?0.3:0.9;if(!cityView)home();shadowTicks=20}
+  homeLight.intensity=x.frameDown?0.3:0.9;if(!cityView)home();shadowTicks=Math.max(shadowTicks,4)}
 function crackInto(cl,w){const bx=wallBox(w),f=new THREE.Mesh(geo(bx.w,bx.h,bx.d),M.crackFill);f.position.set(bx.x,bx.y,bx.z);house.add(f);for(let r=0;r<Math.round(bx.h/G.bh);r++)cl.box(bx.w,G.bh,bx.d,bx.x,Y0+G.bh*(r+0.5),bx.z)}
 function crackGhost(w){const cl=new Lines();crackInto(cl,w);cl.into(house,M.lineCrack)}
 
@@ -948,29 +971,29 @@ function isLoose(m){return m&&m.userData.loose}
 
 /* ---- actions the page asks for (stones that move must have been drawn loose) ---- */
 function dropIn(wall,c,r,delay,xo){const m=P[key(wall,c,r,xo)];if(!isLoose(m))return Promise.resolve();const y=m.position.y,straw=m.userData.t==='W';m.position.y=y+8;m.visible=!delay;
-  return wait(delay||0).then(function(){m.visible=true;return tw(0.42,function(k){m.position.y=y+8*(1-k)},ease.bounce)}).then(function(){
+  return new Promise(function(r){requestAnimationFrame(function(){r()})}).then(function(){return wait(delay||0)}).then(function(){m.visible=true;return tw(0.42,function(k){m.position.y=y+8*(1-k)},ease.bounce)}).then(function(){
     if(straw){tremble=1.6;setTimeout(function(){if(!armed)tremble=0},380);sparks(wpos(m),0x8a8450,2)}else sparks(wpos(m),isGem(m.userData.t)?GCOL[m.userData.t]:0xfff0c0,isGem(m.userData.t)?5:3)})}
 function burst(wall,c,r,color,n){const m=P[key(wall,c,r)];if(m)sparks(wpos(m),color,n||6)}
 function cellsFx(wall,cells,color){cells.forEach(function(c){const L=slotLocal(wall,c.col,c.row),v=new THREE.Vector3(L[0],L[1],L[2]);pivots[wall].localToWorld(v);world.worldToLocal(v);sparks(v,color,3,2)})}
-function hideGhosts(){ghosts.concat(ghostLines).forEach(function(g){if(g.parent)g.parent.remove(g)});ghosts=[];ghostLines=[]}
+function hideGhosts(){cancelAim();ghosts.concat(ghostLines).forEach(function(g){if(g.parent)g.parent.remove(g)});ghosts=[];ghostLines=[]}
 /* glowing spaces: a soft outline with a pulsing dot. Taps are tested against ONE invisible plate per space.
    hints[key] = 'window' | 'pure': this space would finish a window, so it gets a brighter marker and a little tag. */
 function showGhosts(list,hints){hideGhosts();hints=hints||{};const gl={house:new Lines(),front:new Lines(),left:new Lines(),right:new Lines(),xfront:new Lines(),xleft:new Lines(),xright:new Lines()};list.forEach(function(q){let g,w,hh,d;
   if(q.wall==='free'){w=1.3;hh=1.3;d=0.7;g=new THREE.Mesh(geo(w,hh,0.12),M.slot);const v=freePos(q.col,false);g.position.set(v[0],v[1],v[2]);house.add(g)}
   else if(q.wall==='spire'){w=1.2;hh=1.2;d=0.9;g=new THREE.Mesh(geo(w,hh,0.12),M.slot);const v=spirePos(q.col);g.position.set(v[0],v[1],v[2]);house.add(g)}
-  else{const side=q.wall!=='front';w=side?1:G.bw;hh=G.bh;d=side?G.colW:1;g=new THREE.Mesh(side?geo(0.12,hh,d):geo(w,hh,0.12),M.slot);const L=slotLocal(q.wall,q.col,q.row,q.out);g.position.set(L[0],L[1],L[2]);pivots[q.wall].add(g)}
-  const xt=q.out!=null;(xt?gl['x'+q.wall]:(gl[q.wall]||gl.house)).box(w*0.9,hh*0.9,d*0.9,g.position.x,g.position.y,g.position.z);const hint=xt?null:hints[key(q.wall,q.col,q.row)];   /* all the outlines on one wall are one set of lines */
+  else{const side=q.wall!=='front';w=side?1:G.bw;hh=G.bh;d=side?G.colW:1;g=new THREE.Mesh(side?geo(0.12,hh,d):geo(w,hh,0.12),M.slot);const L=slotLocal(q.wall,q.col,q.row,q.out);g.position.set(L[0],L[1],L[2]);if(q.deco){const ow=outward(q.wall);g.position.x+=ow[0]*0.7;g.position.z+=ow[1]*0.7}pivots[q.wall].add(g)}
+  const xt=q.out!=null&&!q.deco;(xt?gl['x'+q.wall]:(gl[q.wall]||gl.house)).box(w*0.9,hh*0.9,d*0.9,g.position.x,g.position.y,g.position.z);const hint=xt?null:hints[key(q.wall,q.col,q.row)];   /* all the outlines on one wall are one set of lines */
   const dot=new THREE.Sprite(hint?M.dotHot:xt?M.dotX:M.dot);dot.scale.setScalar(hint?2.3:xt?0.8:1.2);g.add(dot);
   if(hint){const tg=sign(g,hint==='pure'?'pure window!':'window!',hint==='pure'?2.5:2,0,1.25,0,hint==='pure'?'#f2b93f':'#2c2356',hint==='pure'?'#2b1a02':'#fff6e0',true);tg.userData.tag=true}
   if(q.wall==='spire')sign(g,'dare?',1.6,1.6,0,0,'#5a2414','#ffd9b0',true);
-  g.userData={ghost:true,wall:q.wall,c:q.col,r:q.row,o:q.out,extra:xt};ghosts.push(g)});
+  g.userData={ghost:true,wall:q.wall,c:q.col,r:q.row,o:q.out,extra:xt,deco:!!q.deco};ghosts.push(g)});
   Object.keys(gl).forEach(function(k){const xt=k.charAt(0)==='x'&&k!=='house',l=gl[k].into(k==='house'?house:pivots[xt?k.slice(1):k],xt?M.lineX:M.lineSlot);if(l){if(xt)l.computeLineDistances();ghostLines.push(l)}})}
 /* the pull: the child drags the bale sideways, slowly. It can only come out as fast as `minMs` allows; racing ahead of it makes it slip.
    cb('fast') or cb('slip') if it slips back (they just try again), cb('done') when it is out. */
 function armPull(wall,c,r,minMs,cb){const m=P[key(wall,c,r)];if(!isLoose(m)){cb('gone');return}armed={m:m,wall:wall,base:m.position.clone(),k:0,min:minMs||800,cb:cb,active:false};canvas.style.touchAction='none'}
-function disarm(){if(armed){armed.m.position.copy(armed.base);armed.m.scale.set(1.03,1.03,1.03);armed=null}tremble=0;canvas.style.touchAction='pan-y'}
+function disarm(){if(armed){armed.m.position.copy(armed.base);armed.m.scale.set(1.03,1.03,1.03);armed=null}tremble=0;canvas.style.touchAction=TA()}
 function pullTo(k){const a=armed,o=outward(a.wall);a.k=k;a.m.position.x=a.base.x+o[0]*3.2*k;a.m.position.z=a.base.z+o[1]*3.2*k}
-function pullDone(){const a=armed;if(!a)return;armed=null;canvas.style.touchAction='pan-y';const s0=a.m.scale.x;sparks(wpos(a.m),0xffe6f2,6);
+function pullDone(){const a=armed;if(!a)return;armed=null;canvas.style.touchAction=TA();const s0=a.m.scale.x;sparks(wpos(a.m),0xffe6f2,6);
   tw(0.28,function(k){const v=s0*(1-k*0.97);a.m.scale.set(v,v,v)}).then(function(){if(a.m.parent)a.m.parent.remove(a.m);tremble=0;a.cb('done')})}
 function pullSlip(kind){const a=armed;if(!a||!a.active)return;a.active=false;const p=a.m.position.clone();sparks(wpos(a.m),0x8a8450,3);
   tw(0.25,function(k){a.m.position.lerpVectors(p,a.base,k)},ease.out).then(function(){tremble=0;a.cb(kind||'slip')})}
@@ -1012,7 +1035,7 @@ function seal(){const top=Y0+G.H;
 function sprout(){const s=seedMeshes[seedMeshes.length-1];if(!s)return;sparks(wpos(s),0xbfffb0,6,2.5)}
 function neighbourIn(id){const g=nbGroups[id];if(!g)return;const y=g.position.y;tw(0.9,function(k){g.position.y=y+12*(1-k)},ease.bounce);lookAt(g)}
 function stoneIn(id){const g=nbGroups[id];if(!g)return;const o=g.userData.last;if(o){const y=o.position.y;tw(0.5,function(k){o.position.y=y+8*(1-k)},ease.bounce).then(function(){sparks(wpos(o),0xfff0c0,5)})}lookAt(g)}
-function lookAt(g){if(cityView)return;const v=new THREE.Vector3();g.getWorldPosition(v);lookGoal.set(v.x*0.45,5,0);setTimeout(function(){if(!cityView)home()},2600)}
+function lookAt(g){if(cityView)return;const v=new THREE.Vector3();g.getWorldPosition(v);lookGoal.set(v.x*0.45,5,0);setTimeout(function again(){if(cityView)return;if(down||pinch||aimSt)return setTimeout(again,500);home()},2600)}
 function effH(){return G.H+Math.max(0,roofTop()-3)}   /* tall tops (spire, steeple, lamp room) stay in the picture */
 function camDist(){return Math.max(1,1.3/camera.aspect)*Math.max(1+Math.max(0,effH()/2-3)*0.2,(G.Wf+6*G.bw)/20)}   /* wide houses (and their free-build ring) stay in the picture */
 function home(){const n=Object.keys(nbGroups).length,d=camDist()*(n?1.1:1),rows=effH()/2;   /* pull back a little so the neighbour next door stays in view */
@@ -1035,6 +1058,46 @@ function near(o,e){const p=screenOf(o);return Math.hypot(p[0]-e.clientX,p[1]-e.c
 const eye=new THREE.Vector3(),dir=new THREE.Vector3();
 function inSight(g,blocks){g.getWorldPosition(eye);const d=eye.distanceTo(camera.position);dir.copy(eye).sub(camera.position).normalize();ray.set(camera.position,dir);
   const hs=ray.intersectObjects(blocks,false);return !hs.length||hs[0].distance>d-2.4}   /* the slanted side of the block next door does not count as hiding it */
+/* ---- AIMING: hold a finger near a glowing space and the real piece shows there, see-through; slide to move it to another
+   space; let go to lay it there. Slide away from every space (or onto the pieces), or add a second finger: nothing is laid.
+   No mesh is built while the finger moves: one preview per piece and wall side, re-parented; spaces are picked from a cached
+   list of their screen points (refreshed every few frames). */
+let aimSt=null,pvPid=null;const pvCache={},pvMat=new Map();let pvObj=null;
+const aimDot=document.createElement('div');aimDot.id='aimDot';aimDot.style.display='none';document.body.appendChild(aimDot);
+function seeThru(m){if(!pvMat.has(m.uuid)){const c=m.clone();c.transparent=true;c.opacity=0.6;c.depthWrite=false;pvMat.set(m.uuid,c)}return pvMat.get(m.uuid)}
+function dropPreviews(){Object.keys(pvCache).forEach(function(k){pvCache[k].traverse(function(x){if(x.geometry)x.geometry.dispose()});delete pvCache[k]})}
+function previewFor(p,g){const u=g.userData,w=u.wall,k=p.id+'|'+(w==='spire'?'s'+u.c:w)+'|'+(u.deco?'d':'')+'|'+G.bw+'|'+G.colW;
+  if(pvCache[k])return pvCache[k];let o;
+  if(w==='free'||w==='spire'){o=makeLoose(w,p,false);o.scale.setScalar(w==='free'?0.62:0.7-0.12*u.c)}
+  else{o=new THREE.Group();const b=new Batch(true),ww=wallW(w),H=G.bh;
+    if(u.deco)itemInto(b,w,[0,0,0],p,ww,ww/2,H,H/2,true);else pieceInto(b,w,[0,0,0],p,false);b.into(o)}
+  o.traverse(function(x){if(x.isMesh){x.material=seeThru(x.material);x.castShadow=false;x.receiveShadow=false;x.renderOrder=5}});return pvCache[k]=o}
+function cacheGhosts(){fresh3();const blocks=pieces();return ghosts.map(function(g){const q=screenOf(g);return{g:g,x:q[0],y:q[1],ok:inSight(g,blocks)}})}
+function pickAim(x,y){const L=aimSt.list;let best=null,bd=1e9,tb=null,td=16,cur=null,cd=1e9;
+  L.forEach(function(q){if(!q.ok)return;const d=Math.hypot(q.x-x,q.y-y);if(q.g===aimSt.cur)cd=d+(q.g.userData.extra?18:0);
+    if(!q.g.userData.extra&&d<td){td=d;tb=q.g}const s2=d+(q.g.userData.extra?18:0);if(s2<bd){bd=s2;best=q.g}});
+  if(tb)return tb;                                     /* a template spot right under the finger wins over an extra */
+  if(aimSt.cur&&cd<70&&!(bd<cd-14))return aimSt.cur;   /* a little stickiness, so it never flickers between two spaces */
+  return bd<=70?best:null}
+function movePreview(g){const old=aimSt.cur;if(old&&old.children[0])old.children[0].scale.multiplyScalar(1/1.6);
+  if(pvObj&&pvObj.parent)pvObj.parent.remove(pvObj);pvObj=null;aimSt.cur=g;
+  if(g){const u=g.userData;pvObj=previewFor(aimSt.p,g);
+    if(u.wall==='free'||u.wall==='spire')pvObj.position.copy(g.position);else{const L=slotLocal(u.wall,u.c,u.r,u.o);pvObj.position.set(L[0],L[1],L[2])}
+    g.parent.add(pvObj);if(g.children[0])g.children[0].scale.multiplyScalar(1.6);shadowTicks=Math.max(shadowTicks,1)}
+  if(api.onAim)api.onAim(g?{on:true,deco:!!(g&&g.userData.deco)}:{on:false})}
+let aimWhy='';
+function startAim(e){aimWhy='no hook/ghosts/city';if(!api.aimPiece||!ghosts.length||cityView||plotMarks.length)return false;const p=api.aimPiece();aimWhy='no piece';if(!p)return false;
+  if(aimSt&&aimSt.pid!==p.id){aimSt=null}if(pvPid!==p.id){dropPreviews();pvPid=p.id}
+  aimSt={id:e.pointerId,p:p,pid:p.id,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,cur:null,dirty:false,age:0,list:cacheGhosts()};
+  let nd=1e9;aimSt.list.forEach(function(q){if(q.ok)nd=Math.min(nd,Math.hypot(q.x-e.clientX,q.y-e.clientY))});
+  aimWhy='far '+Math.round(nd);if(nd>44){aimSt=null;return false}aimWhy='ok';
+  canvas.style.touchAction='none';movePreview(pickAim(e.clientX,e.clientY));aimDot.style.display='block';aimDot.style.transform='translate('+e.clientX+'px,'+e.clientY+'px)';return true}
+function aimTick(){if(!aimSt)return;aimSt.age++;if(!aimSt.dirty&&aimSt.age%8)return;if(aimSt.age%8===0)aimSt.list=cacheGhosts();aimSt.dirty=false;
+  const tr=Math.hypot(aimSt.x-aimSt.x0,aimSt.y-aimSt.y0),ax=aimSt.x,ay=aimSt.y-Math.min(44,0.8*tr),b=canvas.getBoundingClientRect();   /* once sliding, aim a little above the finger so the spot stays in view */
+  const off=ax<b.left||ax>b.right||ay<b.top||ay>b.bottom||(api.overUi&&api.overUi(aimSt.x,aimSt.y));
+  const g=off?null:pickAim(ax,ay);if(g!==aimSt.cur)movePreview(g);aimDot.style.transform='translate('+ax+'px,'+ay+'px)'}
+function cancelAim(){if(!aimSt&&!pvObj)return;if(aimSt&&aimSt.cur&&aimSt.cur.children[0])aimSt.cur.children[0].scale.multiplyScalar(1/1.6);
+  if(pvObj&&pvObj.parent)pvObj.parent.remove(pvObj);pvObj=null;aimDot.style.display='none';aimSt=null;if(down&&down.aim)down=null;if(api.onAim)api.onAim(null)}
 /* What was tapped? The nearest thing under the finger wins: one plate per glowing space, one box per laid block (no outlines, no glows).
    A near miss still counts for small fingers: the nearest space in plain sight within reach. */
 function tapTarget(e){
@@ -1048,20 +1111,36 @@ function tapTarget(e){
   bd=first?20:34;blocks.forEach(function(m){if(m.userData.t!=='W')return;const d=near(m,e);if(d<bd){bd=d;best=m}});
   return best?{bale:best}:null}
 canvas.addEventListener('contextmenu',function(e){e.preventDefault()});
-canvas.addEventListener('pointerdown',function(e){down={x:e.clientX,y:e.clientY,t:performance.now(),r:world.rotation.y,tl:TILT,px:e.clientX,py:e.clientY,slide:e.button===2||e.shiftKey,pull:false,dist:0};
+canvas.addEventListener('pointerdown',function(e){if(aimSt&&e.pointerId!==aimSt.id){cancelAim();down=null;return}   /* a second finger: stop aiming, the pinch takes over */
+  if(e.isPrimary){fingers.clear();pinch=null}   /* a first finger: forget any touch whose lift was missed */
+  if(fingers.size>=1){down=null;return}
+  down={x:e.clientX,y:e.clientY,t:performance.now(),r:world.rotation.y,tl:TILT,px:e.clientX,py:e.clientY,slide:e.button===2||e.shiftKey,pull:false,dist:0,max:0,live:false};
   if(armed&&near(armed.m,e)<70){armed.active=true;down.pull=true;tremble=1;e.preventDefault()}
+  else if(!down.slide&&startAim(e))down.aim=true;
   try{canvas.setPointerCapture(e.pointerId)}catch(_){}});
-canvas.addEventListener('pointermove',function(e){if(!down)return;
+canvas.addEventListener('pointermove',function(e){if(aimSt&&e.pointerId===aimSt.id){aimSt.x=e.clientX;aimSt.y=e.clientY;aimSt.dirty=true;return}
+  if(!down)return;
   if(down.pull){down.dist=Math.min(1,Math.abs(e.clientX-down.x)/Math.max(110,Math.min(200,canvas.clientWidth*0.22)));pullTick();return}
   if(cityView)return;
   if(down.slide){panBy(e.clientX-down.px,e.clientY-down.py);down.px=e.clientX;down.py=e.clientY;return}
-  world.rotation.y=rotGoal=down.r+(e.clientX-down.x)*0.008;   /* all the way round */
-  TILT=Math.max(-0.75,Math.min(0.9,down.tl+(e.clientY-down.y)*0.004))});   /* clamped so nothing can ever cover the house */   /* clamped so nothing can ever cover the house */
-function up(e){if(!down)return;const d=down;down=null;
+  const mx=e.clientX-down.x,my=e.clientY-down.y;down.max=Math.max(down.max||0,Math.hypot(mx,my));
+  if(!down.live){if(down.max<12)return;down.live=true;down.x=e.clientX;down.y=e.clientY;down.r=world.rotation.y;down.tl=TILT;   /* a small wobble on a tap never turns the house */
+    down.axis=Math.abs(mx)>1.4*Math.abs(my)?'x':Math.abs(my)>1.4*Math.abs(mx)?'y':'xy';return}
+  const dx=e.clientX-down.x,dy=e.clientY-down.y;
+  if(down.axis!=='y')world.rotation.y=rotGoal=down.r+dx*0.008;   /* all the way round */
+  if(down.axis!=='x')TILT=Math.max(-0.75,Math.min(0.9,down.tl+dy*0.004));
+  if(down.axis==='x'&&Math.abs(dy)>60&&Math.abs(dy)>Math.abs(dx)*0.8)down.axis='xy';if(down.axis==='y'&&Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*0.8)down.axis='xy';
+  const now=performance.now(),dtm=Math.max(8,now-(down.lt||down.t));down.v=0.7*(down.v||0)+0.3*((world.rotation.y-(down.lr==null?down.r:down.lr))/dtm*1000);down.lt=now;down.lr=world.rotation.y;
+  shadowTicks=Math.max(shadowTicks,1)});   /* clamped so nothing can ever cover the house */   /* clamped so nothing can ever cover the house */
+function up(e){if(aimSt&&e.pointerId===aimSt.id){aimTick();const t=aimSt.cur;cancelAim();down=null;
+    if(t&&api.onGhost)api.onGhost({wall:t.userData.wall,col:t.userData.c,row:t.userData.r,out:t.userData.o,deco:t.userData.deco});return}
+  if(!down)return;const d=down;down=null;
   if(d.pull){if(armed&&armed.active){const el=(performance.now()-d.t)/armed.min;if(d.dist>=0.8&&el>=1)pullDone();else pullSlip(d.dist>=0.8?'fast':'slip')}return}   /* out only after the full slow time */
-  if(Math.hypot(e.clientX-d.x,e.clientY-d.y)<10&&performance.now()-d.t<600){const t=tapTarget(e);if(!t)return;
+  shadowTicks=Math.max(shadowTicks,1);
+  if(d.live&&!reduce&&performance.now()-(d.lt||0)<80&&d.axis!=='y')rotGoal=world.rotation.y+Math.max(-1.2,Math.min(1.2,(d.v||0)/3.5));   /* a flick keeps it turning gently */
+  if((d.max||0)<12&&performance.now()-d.t<900){const t=tapTarget(e);if(!t)return;
     if(t.plot!=null){if(api.onPlot)api.onPlot(t.plot)}
-    else if(t.ghost){if(api.onGhost)api.onGhost({wall:t.ghost.userData.wall,col:t.ghost.userData.c,row:t.ghost.userData.r,out:t.ghost.userData.o})}
+    else if(t.ghost){if(api.onGhost)api.onGhost({wall:t.ghost.userData.wall,col:t.ghost.userData.c,row:t.ghost.userData.r,out:t.ghost.userData.o,deco:t.ghost.userData.deco})}
     else if(api.onBale)api.onBale(t.bale.userData.wall,t.bale.userData.c,t.bale.userData.r)}}
 canvas.addEventListener('pointerup',up);
 /* pinch to zoom (two fingers), mouse wheel on a computer. ZOOM < 1 is closer. */
@@ -1070,12 +1149,14 @@ let ZOOM=1,pinch=null,TILT=0;const zg=new THREE.Vector3(),fingers=new Map(),PAN=
 function zclamp(z){return Math.max(0.05,Math.min(1.7,z))}
 /* zoom toward a point on the screen (the fingers or the mouse), so a side wall can be zoomed into directly */
 const _zr=new THREE.Raycaster(),_zp=new THREE.Plane(),_zh=new THREE.Vector3(),_zv=new THREE.Vector2(),_zd=new THREE.Vector3();
-function zoomAt(nz,cx,cy){nz=zclamp(nz);const f=nz/ZOOM;
+function zoomAt(nz,cx,cy,anchor){nz=zclamp(nz);const f=nz/ZOOM;
+  if(f>1&&ZOOM<1){const t=Math.min(1,(nz-ZOOM)/(1-ZOOM));panGoal.multiplyScalar(1-t)}   /* zooming back out drifts home, so nobody gets lost off to the side */
   if(f<1&&cx!=null){const b=canvas.getBoundingClientRect();_zv.set(((cx-b.left)/b.width)*2-1,-((cy-b.top)/b.height)*2+1);
     camera.updateMatrixWorld();_zr.setFromCamera(_zv,camera);camera.getWorldDirection(_zd);
     const piv=_zh.copy(lookGoal).add(panGoal);_zp.setFromNormalAndCoplanarPoint(_zd,piv);
-    let hit=null;const hs=_zr.intersectObjects(world.children,true).filter(function(i){return i.object.visible&&!(i.object.userData&&i.object.userData.ghost===undefined&&i.object.type==='LineSegments')});
-    if(hs.length)hit=hs[0].point.clone();else{hit=new THREE.Vector3();if(!_zr.ray.intersectPlane(_zp,hit))hit=null}   /* the block under the fingers, or the middle plane */
+    let hit=anchor?anchor.clone():null;if(!hit){const hs=_zr.intersectObjects(world.children,true).filter(function(i){return i.object.visible&&!(i.object.userData&&i.object.userData.ghost===undefined&&i.object.type==='LineSegments')});
+    if(hs.length)hit=hs[0].point.clone();else{hit=new THREE.Vector3();if(!_zr.ray.intersectPlane(_zp,hit))hit=null}
+    if(pinch&&!pinch.anchor&&hit)pinch.anchor=hit.clone()}   /* the block under the fingers, or the middle plane */
     if(hit){panGoal.addScaledVector(hit.sub(piv),1-f);clampPan()}}   /* the spot under the fingers stays put while the view closes in on it */
   ZOOM=nz}
 function fmid(){const f=Array.from(fingers.values());return{x:(f[0].x+f[1].x)/2,y:(f[0].y+f[1].y)/2}}
@@ -1089,18 +1170,23 @@ let lastRot=world.rotation.y;const _o=new THREE.Vector3(),YAX=new THREE.Vector3(
 function orbit(v,dth){_o.copy(lookGoal).add(v).applyAxisAngle(YAX,dth).sub(lookGoal);v.copy(_o)}
 function fdist(){const f=Array.from(fingers.values());return Math.hypot(f[0].x-f[1].x,f[0].y-f[1].y)||1}
 canvas.addEventListener('pointerdown',function(e){fingers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(fingers.size===2&&!(armed&&armed.active)){down=null;pinch={d0:fdist(),z0:ZOOM,m:fmid()}}});
+  if(fingers.size===2&&!(armed&&armed.active)){down=null;pinch={d0:fdist(),z0:ZOOM,m:fmid(),anchor:null}}});
 canvas.addEventListener('pointermove',function(e){if(!fingers.has(e.pointerId))return;fingers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(pinch&&fingers.size===2){const m=fmid();zoomAt(pinch.z0*pinch.d0/fdist(),m.x,m.y);panBy(m.x-pinch.m.x,m.y-pinch.m.y);pinch.m=m}});
-function lift(e){fingers.delete(e.pointerId);if(fingers.size<2)pinch=null}
+  if(pinch&&fingers.size===2){const m=fmid();zoomAt(pinch.z0*pinch.d0/fdist(),m.x,m.y,pinch.anchor);panBy(m.x-pinch.m.x,m.y-pinch.m.y);pinch.m=m}});
+function lift(e){if(e.type!=='pointerup'&&aimSt&&e.pointerId===aimSt.id)cancelAim();fingers.delete(e.pointerId);if(fingers.size<2&&pinch){pinch=null;const f=fingers.values().next().value;if(f)down={x:f.x,y:f.y,t:0,r:world.rotation.y,tl:TILT,px:f.x,py:f.y,live:true,max:99,axis:'xy',pull:false,slide:false}}}
 canvas.addEventListener('pointerup',lift);canvas.addEventListener('pointercancel',lift);canvas.addEventListener('lostpointercapture',lift);
 canvas.addEventListener('wheel',function(e){e.preventDefault();zoomAt(ZOOM*Math.exp(e.deltaY*0.0015),e.clientX,e.clientY)},{passive:false});
 ['gesturestart','gesturechange'].forEach(function(n){canvas.addEventListener(n,function(e){e.preventDefault()},{passive:false})});   /* stop Safari zooming the whole page */canvas.addEventListener('pointercancel',function(){if(down&&down.pull)pullSlip('slip');down=null});
 
 /* ---- size and the frame loop ---- */
-function size(){const w=stage.clientWidth,hh=stage.clientHeight;if(!w||!hh)return;renderer.setSize(w,hh,false);const a=w/hh;if(camera.aspect!==a){camera.aspect=a;camera.updateProjectionMatrix();camSnap=true;if(cityView)turnTo('city');else home()}}
+let sized=false;
+function size(){const w=stage.clientWidth,hh=stage.clientHeight;if(!w||!hh)return;const pr=renderer.getPixelRatio();
+  if(canvas.width!==Math.round(w*pr)||canvas.height!==Math.round(hh*pr))renderer.setSize(w,hh,false);
+  const a=w/hh;if(Math.abs(camera.aspect-a)<0.01)return;const big=Math.abs(a/camera.aspect-1)>0.15;camera.aspect=a;camera.updateProjectionMatrix();
+  if(!sized){camSnap=true;sized=true}
+  if(cityView)turnTo('city');else if(big&&!down&&!pinch&&!aimSt&&ZOOM>0.95)home()}   /* text or pieces changing height never jumps the view; a zoomed-in child keeps their spot */
 window.addEventListener('resize',size);if(window.ResizeObserver)new ResizeObserver(size).observe(stage);
-let last=performance.now();
+let last=performance.now(),shF=0,animTick=0;
 function loop(now){requestAnimationFrame(loop);const dt=Math.min(0.05,(now-last)/1000);last=now;T+=dt;
   if(tweens.length||fx.length)shadowTicks=3;
   for(let i=tweens.length-1;i>=0;i--){const t=tweens[i];t.t+=dt;const k=Math.min(1,t.t/t.dur);t.fn(t.e(k));if(k>=1){const j=tweens.indexOf(t);if(j>=0)tweens.splice(j,1);t.done()}}
@@ -1114,23 +1200,24 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(0.05,(now-last)
     clouds.position.x+=dt*0.3;if(clouds.position.x>90)clouds.position.x=-90}
   else flies.forEach(function(f){f.h.position.set(f.x,f.y,f.z)});
   M.dot.opacity=reduce?0.9:0.55+Math.sin(T*5)*0.4;M.dotHot.opacity=reduce?1:0.7+Math.sin(T*9)*0.3;M.lineSlot.opacity=reduce?0.8:0.6+Math.sin(T*5)*0.25;
-  pullTick();
-  if(!down||down.pull){const dr=rotGoal-world.rotation.y;if(Math.abs(dr)>0.0005){world.rotation.y+=dr*(reduce?1:Math.min(1,dt*3.5));shadowTicks=2}}
+  pullTick();aimTick();
+  if(pvObj&&!reduce)pvMat.forEach(function(m){m.opacity=0.45+0.2*Math.sin(T*7)});
+  if(!down||down.pull||down.aim){const dr=rotGoal-world.rotation.y;if(Math.abs(dr)>0.0005){world.rotation.y+=dr*(reduce?1:Math.min(1,dt*3.5));shadowTicks=2}}
   if(!reduce)marks.forEach(function(mk,i){mk.position.y=mk.userData.y+Math.sin(T*(mk.userData.v>=2?6:3)+i)*0.25});
   if(armed&&!reduce){const v=1.03+Math.sin(T*6)*0.03;if(!armed.active)armed.m.scale.set(v,v,v)}
   const sw=reduce?0:Math.sin(T*3.2),tr=reduce?0:tremble*Math.sin(T*42)*0.006;
   if(pivots.front){pivots.front.rotation.x=lean.front+sw*sway.front+tr;pivots.left.rotation.z=lean.left+sw*sway.left+tr;pivots.right.rotation.z=-(lean.right+sw*sway.right+tr)}
   doorLight.intensity=1.3+Math.sin(T*7)*0.08;
-  if(!reduce&&animals.length){animals.forEach(function(g){const u=g.userData,k=Math.sin(T*0.5+u.i*2.1);g.position.x=u.x+k*0.7;g.position.z=u.z+Math.sin(T*0.37+u.i)*0.3;g.rotation.y=Math.cos(T*0.5+u.i*2.1)>0?Math.PI/2:-Math.PI/2});shadowTicks=Math.max(shadowTicks,1)}
-  const q=camSnap||reduce?1:Math.min(1,dt*3.2);camSnap=false;if(!cityView){const dth=world.rotation.y-lastRot;if(Math.abs(dth)>1e-6){orbit(panGoal,dth);orbit(PAN,dth)}}lastRot=world.rotation.y;
+  if(!reduce&&animals.length){animals.forEach(function(g){const u=g.userData,k=Math.sin(T*0.5+u.i*2.1);g.position.x=u.x+k*0.7;g.position.z=u.z+Math.sin(T*0.37+u.i)*0.3;g.rotation.y=Math.cos(T*0.5+u.i*2.1)>0?Math.PI/2:-Math.PI/2});if(++animTick%10===0)shadowTicks=Math.max(shadowTicks,1)}
+  const live=(down&&!down.pull)||pinch;const q=camSnap||reduce?1:Math.min(1,dt*(live?14:3.2));camSnap=false;if(!cityView){const dth=world.rotation.y-lastRot;if(Math.abs(dth)>1e-6){orbit(panGoal,dth);orbit(PAN,dth)}}lastRot=world.rotation.y;
   PAN.lerp(cityView?_u.set(0,0,0):panGoal,q);zg.copy(camGoal).sub(lookGoal);zg.y*=Math.max(0.05,1+TILT);zg.multiplyScalar(ZOOM).add(lookGoal).add(PAN);camera.position.lerp(zg,q);_r.copy(lookGoal).add(PAN);camLook.lerp(_r,q);camera.lookAt(camLook);
-  if(shadowTicks>0){shadowTicks--;renderer.shadowMap.needsUpdate=true}
+  if(shadowTicks>0&&(++shF%4===0||shadowTicks===1)){shadowTicks--;renderer.shadowMap.needsUpdate=true}   /* shadows catch up every 4th frame while things move */
   renderer.render(scene,camera);if(renderer.info.render.calls>maxCalls)maxCalls=renderer.info.render.calls}
 size();requestAnimationFrame(loop);
 const api={render:render,dropIn:dropIn,burst:burst,cellsFx:cellsFx,showGhosts:showGhosts,hideGhosts:hideGhosts,armPull:armPull,disarm:disarm,autoPull:autoPull,settle:settle,
   fireStart:fireStart,burn:burn,knock:knock,wallFall:wallFall,caveIn:caveIn,spireFall:spireFall,crown:crown,mendGlow:mendGlow,seal:seal,sprout:sprout,neighbourIn:neighbourIn,stoneIn:stoneIn,
   showPlots:showPlots,hidePlots:hidePlots,cityPop:cityPop,home:home,wait:wait,turnTo:turnTo,faceWall:faceWall,rot:function(){return world.rotation.y},
-  onGhost:null,onBale:null,onPlot:null,
+  onGhost:null,onBale:null,onPlot:null,aimPiece:null,onAim:null,overUi:null,cancelAim:function(){cancelAim()},aimWhy:function(){return aimWhy},ghostPts:function(){return cacheGhosts().map(function(q){return[q.g.userData.wall,q.g.userData.c,q.g.userData.r,Math.round(q.x),Math.round(q.y),q.ok]})},aimInfo:function(){const v=new THREE.Vector3();if(pvObj&&pvObj.parent)pvObj.getWorldPosition(v);return{cur:aimSt&&aimSt.cur&&{w:aimSt.cur.userData.wall,c:aimSt.cur.userData.c,r:aimSt.cur.userData.r},pv:!!(pvObj&&pvObj.parent),at:v.toArray().map(function(n){return Math.round(n*10)/10}),scr:pvObj&&pvObj.parent?screenOf(pvObj):null,kids:pvObj?pvObj.children.length:0}},
   /* a small picture of a crafted item, drawn once with the same boxes as in the wall, for the Craft list */
   itemPic:(function(){const cache={};return function(id){if(cache[id])return cache[id];
     try{const N=224,rt=new THREE.WebGLRenderTarget(N,N);rt.texture.encoding=THREE.sRGBEncoding;
@@ -1246,7 +1333,7 @@ function topUp(){if(!SANDBOX)return;const s=st();if(!s||!s.tray)return;const n={
 function redraw(opt){draw3(opt);reGhost();if(X().phase==='night'&&X().night==='plot')plotMode();else S.hidePlots();drawAll()}
 /* glowing spaces for the piece in hand. A gem may also dare the spire, and is shown where it would finish a window. */
 function trayPiece(){if(!ui.sel)return null;const s=st(),list=ui.sel.list==='tray'?s.tray:s.rubble;return list.filter(function(p){return p.id===ui.sel.id})[0]||null}
-function openSlots(s,piece){return R.legalSlots(s).concat(piece&&isGem(piece.t)?R.spireSlots(s):[],piece&&piece.t!=='W'?R.extraSlots(s):[])}   /* nearby extras: never straw */
+function openSlots(s,piece){return R.legalSlots(s).concat(piece&&isGem(piece.t)?R.spireSlots(s):[],piece&&piece.t!=='W'?R.extraSlots(s):[],piece&&piece.t==='C'&&ui.sel&&ui.sel.list==='tray'?R.decoSlots(s):[])}   /* an item can also go onto a laid gold, silver or gem block */   /* nearby extras: never straw */
 function windowHints(s,piece,slots){const out={};if(!piece||!isGem(piece.t))return out;const base=R.windows(s);
   slots.forEach(function(q){if(q.wall==='free'||q.wall==='spire'||q.out!=null)return;const col=s.walls[q.wall][q.col];col[q.row]=piece;const w=R.windows(s);col[q.row]=null;   /* try it, ask the rules, take it out again */
     if(w.pure>base.pure)out[K3(q.wall,q.col,q.row)]='pure';else if(w.total>base.total)out[K3(q.wall,q.col,q.row)]='window'});return out}
@@ -1277,9 +1364,10 @@ function tile(p,list){const sel=ui.sel&&ui.sel.id===p.id,c=p.m&&p.m.card&&CARD[p
 function palette(p){return h('div',{class:'row'},[h('span',{class:'note',text:V('colours.pick')||'Choose its colour'}),h('div',{class:'palette'},FRUITS.map(function(fr){
   return btn('',function(){recolour(p,fr.code)},null,{style:'background:'+css(fr.code),'aria-label':fr.name,title:fr.name,'aria-pressed':String(p.t===fr.code)})}))])}
 function recolour(p,code){const r=R.setColour(st(),p.id,code);if(!r.ok){refuse(r.reason);return}sfx('tap');showSlots();drawTray();save()}
-function drawTray(){topUp();const s=st(),t=$('tray'),sm=R.summary(s),tiles=trayTiles(s);t.textContent='';
+function drawTray(){topUp();const _o=$('tray').querySelector('.tiles.stack'),_y=_o?_o.scrollTop:0;drawTray0();const _n=$('tray').querySelector('.tiles.stack');if(_n)_n.scrollTop=_y}
+function drawTray0(){const s=st(),t=$('tray'),sm=R.summary(s),tiles=trayTiles(s);t.textContent='';
   const can=tiles.length||(s.rubble.length&&sm.rubbleLeftToday>0);
-  t.appendChild(h('div',{class:'row'},[h('h2',{text:'My pieces'}),h('span',{class:'note',text:tiles.length?'Tap a piece, then tap a glowing space.':'Good things done in real life fill these up.'}),h('span',{class:'sp'}),btn('\ud83d\udee0\ufe0f Craft',function(){sfx('tap');openSheet({kind:'craft'})},'quiet'),can&&!DB.trayHide?btn('Lay the rest for me',layRest):null,
+  t.appendChild(h('div',{class:'row'},[h('h2',{text:'My pieces'}),tiles.length?null:h('span',{class:'note',text:'Good things done in real life fill these up.'}),h('span',{class:'sp'}),btn('\ud83d\udee0\ufe0f Craft',function(){sfx('tap');openSheet({kind:'craft'})},'quiet'),can&&!DB.trayHide?btn('Lay the rest',layRest,'quiet'):null,
     btn(DB.trayHide?'\u25B4 Show pieces':'\u25BE Hide',function(){sfx('tap');DB.trayHide=!DB.trayHide;save();drawTray()},'quiet',{'aria-expanded':String(!DB.trayHide)})]));
   if(DB.trayHide){const sel=trayPiece();if(sel)t.appendChild(h('p',{class:'note',text:'Holding: '+kindName(sel)+'. Tap a glowing space.'}));return}
   t.appendChild(h('div',{class:'tiles stack'},trayGroups(s,tiles).map(function(g){return g.items.length?groupTile(g,'tray'):emptyTile(g.k)})));   /* always every kind, 0 = greyed */
@@ -1304,7 +1392,8 @@ function groupTile(g,list){const p=g.items[0],n=g.items.length,sel=ui.sel&&ui.se
   name=n===1?pieceLabel(p):kindName(p);
   return btn([h('span',{class:'sw',style:'background:'+cssP(p)}),h('span',{text:name}),h('span',{class:'count',text:'\u00d7 '+n}),c&&ART&&n===1?h('span',{class:'badge'},[pic(c.art,'friend')]):null],
     function(){pickTile(pick,list)},'tile',{'aria-pressed':String(!!sel),'aria-label':name+', '+n})}
-function drawPanel(){applyFull();const b=$('pbody'),f=$('pfoot'),x=X();b.textContent='';f.textContent='';b.scrollTop=0;
+let panelWas='';
+function drawPanel(){applyFull();const b=$('pbody'),f=$('pfoot'),x=X(),was=JSON.stringify([ui.sheet&&ui.sheet.kind,ui.sheet&&ui.sheet.step,x&&x.phase,x&&x.night]),y=b.scrollTop;b.textContent='';f.textContent='';b.scrollTop=0;requestAnimationFrame(function(){if(was===panelWas)b.scrollTop=y;panelWas=was});
   if(ui.busy){b.appendChild(h('p',{class:'say',text:'Watch the fire.'}));return}
   if(ui.sheet){SHEETS[ui.sheet.kind](b,f,ui.sheet);return}
   if(LIVE&&(x.phase!=='night'||['lastlook','plot','after'].indexOf(x.night)<0)){drawLive(b,f);return}   /* live: one simple panel; the night steps are only the fire (Last look, plot, after) */
@@ -1589,16 +1678,27 @@ S.onGhost=function(slot){if(busy()||!ui.sel)return;const k=K(),s=k.s,sp=get('com
   /* the spire is a dare: the first time on each building it asks */
   if(slot.wall==='spire'&&!(k.p.dared||{})[s.sealed]){confirmBox(sp.dare||'Dare to build a spire? If any straw burns, the spire comes down.',sp.yes||'I dare',function(){(k.p.dared||(k.p.dared={}))[s.sealed]=true;layAt(slot)},{no:sp.no||'Not this time'});return}
   layAt(slot)};
-function layAt(slot){if(!ui.sel)return;clearUndo();const snap=JSON.stringify(K());const k=K(),s=k.s,list=ui.sel.list==='tray'?s.tray:s.rubble,i=list.findIndex(function(p){return p.id===ui.sel.id});if(i<0)return;
+/* an item onto a laid block: the block keeps its place and strength, and wears the item */
+S.aimPiece=function(){return busy()?null:trayPiece()};
+S.overUi=function(x,y){const r=$('tray').getBoundingClientRect();return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom};
+S.onAim=function(a){if(!a){say('',true);return}const sel=trayPiece();if(!a.on){say('Let go here to cancel. Nothing is put down.',true);return}
+  say(a.deco?'Let go to put it onto this block.':'Let go to put '+(sel?kindName(sel).toLowerCase():'it')+' here. Slide to choose another space.',true)};
+const falling={};   /* stones still dropping: kept as their own pieces if the next one is laid before they land */
+function decoAt(slot){clearUndo();const snap=JSON.stringify(K()),s=st(),i=s.tray.findIndex(function(p){return p.id===ui.sel.id});if(i<0)return;
+  const r=R.decorate(s,i,slot.wall,slot.col,slot.row,slot.out);if(!r.ok){refuse(r.reason);return}
+  bundo.stack.push(snap);if(bundo.stack.length>20)bundo.stack.shift();drawUndoBlock();
+  const it=ITEMS[r.events[0].item.c]||{};ui.sel=null;const next=s.tray.filter(function(p){return p.t==='C'})[0];if(next)ui.sel={id:next.id,list:'tray'};
+  draw3();reGhost();sfx('gem');say((it.e||'')+' '+itemName(r.events[0].item.c)+' added to that block. '+(it.line||''),true);drawAll()}
+function layAt(slot){if(!ui.sel)return;if(slot.deco){decoAt(slot);return}clearUndo();const snap=JSON.stringify(K());const k=K(),s=k.s,list=ui.sel.list==='tray'?s.tray:s.rubble,i=list.findIndex(function(p){return p.id===ui.sel.id});if(i<0)return;
   const before=R.windows(s).total,was=goalDone(),r=ui.sel.list==='tray'?R.place(s,i,slot.wall,slot.col,slot.row,slot.out):R.placeRubble(s,i,slot.wall,slot.col,slot.row,slot.out);
   if(!r.ok){refuse(r.reason);return}
-  bundo.stack.push(snap);if(bundo.stack.length>20)bundo.stack.shift();drawUndoBlock();save();
+  bundo.stack.push(snap);if(bundo.stack.length>20)bundo.stack.shift();drawUndoBlock();
   const ev=r.events[0],kind=ui.sel.list,laid=ui.sel.id;ui.sel=null;
   /* keep the flow going: pick up the next piece of the same kind */
   const next=(kind==='tray'?trayTiles(s):s.rubble)[0];
   if(next&&next.id!==laid&&!(kind==='rubble'&&R.summary(s).rubbleLeftToday<=0))ui.sel={id:next.id,list:kind};
-  draw3({loose:[K3(slot.wall,slot.col,slot.row,slot.out)]});reGhost();
-  S.dropIn(slot.wall,slot.col,slot.row,0,slot.out).then(function(){sfx(isGem(ev.piece.t)?'gem':'place')});
+  const fk=K3(slot.wall,slot.col,slot.row,slot.out);falling[fk]=1;draw3({loose:Object.keys(falling)});reGhost();
+  S.dropIn(slot.wall,slot.col,slot.row,0,slot.out).then(function(){delete falling[fk];sfx(isGem(ev.piece.t)?'gem':'place')});
   if(ev.windows.total>before){const relit=k.p.dark;k.p.dark=false;const ms=(get('milestones')||[]).filter(function(q){return q.id===(ev.windows.pure?'pureGlass':'firstWindow')})[0];
     say(relit?(get('commissions.window.relit')||'The window is shining again.'):(ms?ms.line:''));sfx('pearl')}
   else if(slot.wall==='spire')say('A gem on the spire. Keep the straw out, and it stands.');
@@ -2043,11 +2143,12 @@ $('designBtn').addEventListener('click',function(){openSheet({kind:'design'})});
 $('toolsClose').addEventListener('click',hideTools);
 Array.prototype.forEach.call($('views').children,function(v){if(!v.getAttribute('data-view'))return;v.addEventListener('click',function(){sfx('tap');S.turnTo(v.getAttribute('data-view'))})});
 $('fullBtn').addEventListener('click',function(){sfx('tap');DB.full=!DB.full;save();applyFull();say(DB.full?'Big picture. Tap \u26f6 again to bring the side back.':'',true)});
+['gesturestart','gesturechange'].forEach(function(n){document.addEventListener(n,function(e){e.preventDefault()},{passive:false})});   /* never zoom the whole page */
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!$('modal').hidden)$('modal').hidden=true});
 /* a leaning wall creaks now and then */
 setInterval(function(){if(ui.busy||document.hidden||!K())return;const w=R.wobble(st());if(WALLS.some(function(q){return w[q]>=2}))sfx('creak')},5200);
 DB.tip=(DB.tip||0)+1;
-window.RockPlay={state:st,extra:X,kid:K,scene:S,redraw:redraw,db:function(){return DB},hints:windowHints,art:function(){return artState},simDay:function(t){return simDay(K(),t||'typical')}};   /* handy for checking by hand in the console */
+window.RockPlay={sel:function(){return ui.sel},busy:function(){return ui.busy},state:st,extra:X,kid:K,scene:S,redraw:redraw,db:function(){return DB},hints:windowHints,art:function(){return artState},simDay:function(t){return simDay(K(),t||'typical')}};   /* handy for checking by hand in the console */
 redraw();
 if(LIVE)liveStart();
 /* the pictures come after the first paint, so the page is never held up by them */

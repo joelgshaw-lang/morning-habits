@@ -586,6 +586,28 @@
     state.stats.crafted = (state.stats.crafted || 0) + 1;
     return { ok: true, piece: piece, used: used, events: [{ kind: 'craft', id: rc.id, piece: piece }] };
   }
+  /* An item can also go ONTO a block already laid (gold, silver or a gem): the block stays as it is and wears the item. */
+  function canDeco(p) { return !!p && !p.deco && !p.pearl && (p.t === 'G' || p.t === 'S' || isGem(p.t)); }
+  /* decoSlots(state) -> [{wall, col, row, out?, deco:true}] every laid block an item can go on */
+  function decoSlots(state) {
+    ensure(state); var out = [];
+    eachSlot(state, function (w, c, r, p) { if (canDeco(p)) out.push({ wall: w, col: c, row: r, deco: true }); });
+    state.extras.forEach(function (e) { if (canDeco(e.p)) out.push({ wall: e.wall, col: e.col, row: e.row, out: e.out, deco: true }); });
+    return out;
+  }
+  /* decorate(state, trayIndex, wall, col, row, out?): put a crafted item from the tray onto a laid block */
+  function decorate(state, trayIndex, wall, col, row, out) {
+    ensure(state);
+    var item = state.tray[trayIndex]; if (!item || item.t !== 'C') return fail('notItem');
+    var p = out != null ? extraAt(state, wall, col, row, out) : at(state, wall, col, row);
+    if (!canDeco(p)) return fail('noBlock');
+    state.tray.splice(trayIndex, 1);
+    p.deco = { c: item.c, f: item.f || null, pure: !!item.pure, id: item.id };
+    state.stats.decorated = (state.stats.decorated || 0) + 1;
+    var e = { kind: 'decorate', wall: wall, col: col, row: row, piece: p, item: item };
+    if (out != null) e.out = out;
+    return { ok: true, events: [e] };
+  }
   function autoPlace(state) { return { ok: true, events: autoLay(state, false) }; }
 
   /* forgive(state, wall, col, row): the sorry prayer. Free, unlimited, at once. The bale gets its pearl mark. */
@@ -1213,7 +1235,7 @@
   }
 
   return { CONFIG: CONFIG, newChild: newChild, startDay: startDay, addPiece: addPiece, legalSlots: legalSlots,
-    craft: craft, craftable: craftable, place: place, placeRubble: placeRubble, autoPlace: autoPlace, forgive: forgive, pull: pull, wobble: wobble,
+    craft: craft, craftable: craftable, decorate: decorate, decoSlots: decoSlots, place: place, placeRubble: placeRubble, autoPlace: autoPlace, forgive: forgive, pull: pull, wobble: wobble,
     windows: windows, forecast: forecast, isFireNight: isFireNight, callFire: callFire, fire: fire,
     endDay: endDay, summary: summary, addGospelShare: addGospelShare, addNeighbour: addNeighbour, prayFor: prayFor,
     strawTarget: strawTarget, isComplete: isComplete, at: at, tally: tally,
