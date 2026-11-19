@@ -164,3 +164,8 @@ Played the straw → fire → rebuild loop as a child. Before: one small line of
 - **Prop a wall up** (new rule `brace`): every 3 good blocks laid on the ground just outside a wall let it hold 1 more straw (max 2). Straw still burns and knocks blocks; the wall just stays up. The card says exactly how many more blocks would save it, and only when it can.
 - **Build it back** card after a fall: "N blocks fell. They are still yours." One button picks up a fallen block and shows the spaces. Big-pile rebuild raised 12 → 20 a day; test space unlimited.
 - 112 rule checks pass. Checked in the browser: card wording for practice, normal and after-cave-in fires; full fire to a cave-in (156 blocks to the pile); Build it back; propping changes "will fall" to "wobbly". Not tried on the iPad.
+
+## v64 (20 Nov 2026) — front page tidy
+- Home screen in portrait: title + clock on row 1, Last night / Grown-ups / bell on row 2 (they were squashed and cut off).
+- Time-bar sun stays fully on the bar at the end. Farm note in card footers gets line spacing.
+- Rock game: "Cottage · 0 of 223 laid" label moved under the view buttons (they covered it in landscape).

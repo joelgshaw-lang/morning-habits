@@ -750,7 +750,7 @@ function windowBarHTML(r = 'morning') {
     return `
     <div class="window-bar ${phase}" data-routine="morning" role="progressbar" aria-valuenow="${Math.round(left * 100)}" aria-valuemin="0" aria-valuemax="100">
       <div class="window-fill" style="width:${pct}%;${fill ? `background:${fill}` : ''}"></div>
-      ${phase === 'closed' ? '' : `<span class="sun-edge" style="left:${pct}%">☀️</span>`}
+      ${phase === 'closed' ? '' : `<span class="sun-edge" style="left:clamp(28px,${pct}%,calc(100% - 28px))">☀️</span>`}
       <div class="window-label">${label}</div>
     </div>`;
   }
