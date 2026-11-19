@@ -186,3 +186,12 @@ Played the straw → fire → rebuild loop as a child. Before: one small line of
 - Fire: flame burst before straw turns to ash, ground shake on falls/cave-in, clack per landing block, shorter wait before it starts.
 - Rebuild: 12 fallen blocks a day (was 4), "Built back!" when the pile is empty; words say blocks wait in the rubble pile.
 - Crafted items 30% bigger on blocks. Portrait: pieces strip no longer cut off.
+
+## v67 (21 Nov 2026) — overnight round 3 (round 2 scored 7.3/10 overall, up from 6.5)
+- Only blocks laid with "Prop it up" count as props (rules brace.marked + markProp), so good blocks can't be stockpiled outside a wall to skip sorry. Rebuilt blocks are plain blocks again.
+- Honest counts everywhere: straw burned · blocks knocked off · props used up · blocks that fell with a wall.
+- "Propped up, but…" when another wall will still fall or the house will cave in. Cracked walls are named on the danger card and after a fall.
+- Wall sign says "N straw · falls at N".
+- A slow drag turns the house: a hold only starts when the finger stays still (6px) for 0.26s. Prop mode shows the row right against the wall first. ⌂ also turns the house back to the front.
+- Fire: the world darkens while it burns, longer flames + grey smoke, a wall shudders before it falls, the view steps back after a cave-in. Bigger torch flame.
+- Words: no "tonight is practice" on real fires; "forgiven, and the bale stays until you make it right"; Build it back says "tap"; the grown-up rule line no longer shows in the children's panel in the family app.

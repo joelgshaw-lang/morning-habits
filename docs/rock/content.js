@@ -437,7 +437,7 @@
       'You owned up first. Jesus is teaching you to walk in the light.',
       'You came to me first. God loves an honest heart, and so do I.'
     ],
-    forgivenStillBurns: 'You are fully forgiven. Now go and love the person you hurt. That is the part that lasts.'
+    forgivenStillBurns: 'You are fully forgiven, free and for good. The bale stays in the wall until you make it right: go and love the person you hurt. That is the part that lasts.'
   };
 
   var sorry = {
@@ -493,7 +493,7 @@
   };
 
   var fireWords = {
-    before: 'One day Jesus will show what lasts. This is practice. The fire is not God being cross with you. Jesus took that on the cross.',
+    before: 'One day Jesus will show what lasts. Tonight is a small picture of that. The fire is not God being cross with you. Jesus took that on the cross.',
     lastLook: 'Last look. Is there any straw you want to say sorry for and pull out?',
     small: 'Some straw burned. That bit couldn\'t last. Any blocks it knocked down are not lost: they wait in your rubble pile. Jesus loves you just the same.',
     wallFalls: 'This wall had a lot of straw, so it fell. That\'s sad. The stones are safe. Only the stacking is lost. Let\'s build again.',
@@ -1187,7 +1187,7 @@
           Age 6 uses fireWords as it stands. ---- */
   var fireWordsOlder = {
     before: {
-      '8': 'One day Jesus will show what lasts in everything we have done. Tonight is practice. The fire is not God being cross. Jesus took that on the cross.',
+      '8': 'One day Jesus will show what lasts in everything we have done. Tonight is a small picture of that. The fire is not God being cross. Jesus took that on the cross.',
       '12': 'Paul says each one\'s work will be shown for what it is. Tonight is a small picture of that day. It tests the work, never His love. Belonging to Him comes by trusting Him, not by building.'
     },
     small: {

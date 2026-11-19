@@ -1321,7 +1321,7 @@ test('brace: good blocks outside a wall let it hold more straw, but straw still 
   var s = kid(8), fa = R.summary(s).fallAt;
   for (var i = 0; i < fa; i++) set(s, 'left', i, 0, 'W');
   assert.equal(R.wobble(s).left, 2, 'leaning without help');
-  s.extras.push({ wall: 'left', col: 0, row: 0, out: 1, p: { id: 901, t: 'G' } }, { wall: 'left', col: 1, row: 0, out: 1, p: { id: 902, t: 'S' } }, { wall: 'left', col: 2, row: 0, out: 1, p: { id: 903, t: 'G' } });
+  s.extras.push({ wall: 'left', col: 0, row: 0, out: 1, p: { id: 901, t: 'G', prop: true } }, { wall: 'left', col: 1, row: 0, out: 1, p: { id: 902, t: 'S', prop: true } }, { wall: 'left', col: 2, row: 0, out: 1, p: { id: 903, t: 'G', prop: true } });
   assert.equal(R.braceOf(s, 'left'), 1);
   assert.notEqual(R.wobble(s).left, 2, 'propped up');
   var fc = R.forecast(s); assert(fc.wallFalls.indexOf('left') < 0, 'does not fall'); assert(fc.burns >= fa, 'straw still burns');
@@ -1329,12 +1329,20 @@ test('brace: good blocks outside a wall let it hold more straw, but straw still 
 test('brace: the props that carry a wall through a fire are used up (rubble pile)', function () {
   var s = kid(8), fa = R.summary(s).fallAt; s.stats.fires = 1; s.practiced = true; s.mercy = false;
   for (var i = 0; i < fa; i++) set(s, 'left', i, 0, 'W');
-  for (var c = 0; c < 4; c++) s.extras.push({ wall: 'left', col: c, row: 0, out: 1, p: { id: 910 + c, t: 'G' } });
+  for (var c = 0; c < 4; c++) s.extras.push({ wall: 'left', col: c, row: 0, out: 1, p: { id: 910 + c, t: 'G', prop: true } });
   var rub = s.rubble.length, ev = R.fire(s);
   assert(!ev.some(function (e) { return e.kind === 'wallFall'; }), 'the wall stood');
   var spent = ev.filter(function (e) { return e.prop; }).length;
   assert.equal(spent, 3, 'three props took the weight');
   assert.equal(s.extras.filter(function (x) { return x.wall === 'left'; }).length, 1, 'the spare prop stays');
   assert(s.rubble.length >= rub + 3, 'used props are in the rubble pile');
+});
+test('brace: good blocks just lying outside a wall do not count, only ones laid with Prop it up', function () {
+  var s = kid(8), fa = R.summary(s).fallAt;
+  for (var i = 0; i < fa; i++) set(s, 'left', i, 0, 'W');
+  for (var c = 0; c < 3; c++) s.extras.push({ wall: 'left', col: c, row: 0, out: 1, p: { id: 930 + c, t: 'G' } });
+  assert.equal(R.braceOf(s, 'left'), 0, 'stockpiled blocks are not props');
+  s.extras.forEach(function (x) { R.markProp(s, x.wall, x.col, x.row, x.out); });
+  assert.equal(R.braceOf(s, 'left'), 1, 'marked as props: they hold');
 });
 console.log(passed + ' tests passed' + (process.exitCode ? ', SOME FAILED' : ''));
