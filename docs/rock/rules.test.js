@@ -1358,4 +1358,11 @@ test('furniture is bought with stars and remembers who it is for', function () {
   var r = R.spendStars(s, 1, { kind: 'bench', building: 'home', forWho: 'Mum' });
   assert(r.ok); assert.equal(r.purchase.forWho, 'Mum'); assert.equal(s.starBalance, 1); assert.equal(s.tray.length, tray, 'never costs building blocks');
 });
+test('brace: on a cave-in night props are not "used up" first, they fall with the house', function () {
+  var s = kid(8), fa = R.summary(s).fallAt; s.stats.fires = 1; s.practiced = true; s.mercy = false; C.twoWallsCaveIn = TUNED.twoWallsCaveIn;
+  for (var i = 0; i < fa; i++) { set(s, 'left', i, 0, 'W'); set(s, 'right', i, 0, 'W'); set(s, 'front', i, 0, 'W'); }
+  for (var c = 0; c < 3; c++) s.extras.push({ wall: 'right', col: c, row: 0, out: 1, p: { id: 940 + c, t: 'G', prop: true } });
+  var ev = R.fire(s);
+  if (ev.some(function (e) { return e.kind === 'caveIn'; })) assert.equal(ev.filter(function (e) { return e.prop; }).length, 0, 'no props used up on a cave-in');
+});
 console.log(passed + ' tests passed' + (process.exitCode ? ', SOME FAILED' : ''));

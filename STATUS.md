@@ -203,3 +203,10 @@ Played the straw → fire → rebuild loop as a child. Before: one small line of
 - "📖 Recipe book" (was Craft): level bar, the 6 crafts, Furniture, and "Coming next" ? cards that flip with a chime when they open.
 - First furniture: a bench by the front door for 1 star, made "For Mum / Dad / my brother / my sister / a friend / a neighbour", with a name sign.
 - TO DO before any child reaches 10 nights (about 10 days): build bed + table and a pet (the cards say "coming to your island soon").
+
+## v69 (21 Nov 2026) — fixes from the final review (v67 scored 7.3/10 overall: A 7.5, B 6.8, C 6.8, D 7.1, E 7.1, F 7.0)
+- On a cave-in night props are no longer "used up" first (they fall with the house). New test (117 pass).
+- The wall sign changes to PROPPED UP the moment the last prop lands.
+- After the fire: a cave-in is one clear row ("two walls fell together"); "are cracked" grammar; no cracked warning during the breather after a cave-in.
+- Practice fire: only warns "this much straw falls" when a wall really has that much; fire words don't mention knocked blocks when none were.
+- While propping, a tap never opens a straw bale. Rebuild card shows progress ("N waiting · N back up today · N more today"). Old messages clear at goodnight.

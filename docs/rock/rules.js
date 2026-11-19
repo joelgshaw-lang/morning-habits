@@ -875,7 +875,9 @@
       ev.push(e);
     }
     /* props that hold a straw-heavy wall up through this fire are used up: the blocks that took the weight go to the rubble pile */
-    if (CONFIG.brace && CONFIG.brace.oneFire && !mercy && !practice) WALLS.forEach(function (w) {
+    var cavePre = falling.length > 0 && (wasCracked.filter(function (w) { return CONFIG.sameWallCanCaveIn || falling.indexOf(w) < 0 || falling.length > 1; }).length > 0 || (CONFIG.twoWallsCaveIn && falling.length > 1))
+      && !(state.lastCaveIn && state.day - state.lastCaveIn <= CONFIG.caveInGraceDays);   // the whole house comes down anyway: props are not "used up", they fall with it
+    if (CONFIG.brace && CONFIG.brace.oneFire && !mercy && !practice && !cavePre) WALLS.forEach(function (w) {
       if (falling.indexOf(w) >= 0) return;
       var load = strawCount(state, w) - fallAt + 1; if (load <= 0) return;
       var props = state.extras.filter(function (x) { return isProp(x, w); })

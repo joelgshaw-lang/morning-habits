@@ -1514,7 +1514,7 @@ function dangerCard(b){const s=st(),spots=strawSpots(s);if(!spots.length)return;
   const when=tonight?'The fire comes TONIGHT!':n===1?'The fire comes tomorrow night.':'The fire comes in '+n+' nights.';
   const what=fcWords(fc);
   const c=h('div',{class:'card danger'+(tonight?' now':'')},[h('h3',{text:'\ud83d\udd25 '+when}),
-    fc.practice?h('p',{class:'say',text:'This first fire is a practice: no wall falls this time. From the next fire on, a wall with this much straw FALLS DOWN.'}):h('p',{class:'say',text:fc.caveIn?'If it came now, the WHOLE HOUSE would cave in!':fc.wallFalls.length?'If it came now, the '+fc.wallFalls.map(function(w){return WALLNAME[w]}).join(' and the ')+' would FALL DOWN.':'If it came now: '+what.join(', ')+'.'}),
+    fc.practice?h('p',{class:'say',text:'This first fire is a practice: no wall falls this time.'+(WALLS.some(function(w){return wb[w]>=2})?' From the next fire on, a wall with this much straw FALLS DOWN.':'')}):h('p',{class:'say',text:fc.caveIn?'If it came now, the WHOLE HOUSE would cave in!':fc.wallFalls.length?'If it came now, the '+fc.wallFalls.map(function(w){return WALLNAME[w]}).join(' and the ')+' would FALL DOWN.':'If it came now: '+what.join(', ')+'.'}),
     fc.wallFalls.length||fc.caveIn||fc.practice?h('p',{class:'note',text:(fc.practice?'Even now: ':'And ')+what.join(', ')+'.'}):null,
     R.summary(s).mercy&&!fc.practice?h('p',{class:'note',text:'After the cave-in, no wall can fall at the next fire. A breather to rebuild. From the fire after that, leaning walls fall again.'}):null]);
   /* each wall, at a glance */
@@ -1540,7 +1540,7 @@ function propBox(s,wb,num){const box=h('div',{class:'propbox'},[h('p',{class:'wa
   return box}
 function rebuildCard(b){const s=st(),sm=R.summary(s);if(!s.rubble.length)return;const left=sm.rubbleLeftToday;
   const c=h('div',{class:'card rebuild'},[h('h3',{text:'\ud83e\uddf1 Build it back'}),
-    h('p',{class:'note',text:s.rubble.length+(s.rubble.length===1?' block fell. It is':' blocks fell. They are')+' still yours. '+(left>0?(left>999?'Put back as many as you like.':'You can put back '+left+' today.'):'You can put more back tomorrow.')})]);
+    h('p',{class:'note',text:s.rubble.length+(s.rubble.length===1?' block waiting. It is':' blocks waiting. They are')+' still yours. '+(s.today.rubble?s.today.rubble+' back up today! ':'')+(left>0?(left>999?'Put back as many as you like.':left+' more today.'):'More tomorrow.')})]);
   if(left>0)c.appendChild(btn('Build it back',function(){if(busy())return;sfx('tap');ui.sel={id:s.rubble[0].id,list:'rubble'};if(!showSlots()){say('There is no open space right now.');return}say('Tap a glowing space to put it back.',true);drawTray()},'big'));
   b.appendChild(c)}
 function drawDay(b,f){const k=K(),s=k.s,sm=R.summary(s),sw=V('seen')||{},stw=V('straw')||{};
@@ -1839,6 +1839,7 @@ function showNews(big,small,kind){const n=$('news');n.className='news '+(kind||'
 function layAt(slot){if(!ui.sel)return;if(slot.deco){decoAt(slot);return}clearUndo();const snap=JSON.stringify(K());const k=K(),s=k.s,list=ui.sel.list==='tray'?s.tray:s.rubble,i=list.findIndex(function(p){return p.id===ui.sel.id});if(i<0)return;
   const before=R.windows(s).total,was=goalDone(),r=ui.sel.list==='tray'?R.place(s,i,slot.wall,slot.col,slot.row,slot.out):R.placeRubble(s,i,slot.wall,slot.col,slot.row,slot.out);
   if(!r.ok){refuse(r.reason);return}
+  if(ui.prop&&slot.out>=1&&slot.wall===ui.prop)R.markProp(s,slot.wall,slot.col,slot.row,slot.out);   /* before the redraw, so the sign changes at once */
   bundo.stack.push(snap);if(bundo.stack.length>20)bundo.stack.shift();drawUndoBlock();
   const ev=r.events[0],kind=ui.sel.list,laid=ui.sel.id;ui.sel=null;
   /* keep the flow going: pick up the next piece of the same kind */
@@ -1849,7 +1850,7 @@ function layAt(slot){if(!ui.sel)return;if(slot.deco){decoAt(slot);return}clearUn
   if(ev.windows.total>before){const relit=k.p.dark;k.p.dark=false;const ms=(get('milestones')||[]).filter(function(q){return q.id===(ev.windows.pure?'pureGlass':'firstWindow')})[0];
     say(relit?(get('commissions.window.relit')||'The window is shining again.'):(ms?ms.line:''));sfx('pearl')}
   else if(slot.wall==='spire')say('A gem on the spire. Keep the straw out, and it stands.');
-  cheerGoal(was);if(ui.prop){if(slot.out>=1&&slot.wall===ui.prop)R.markProp(s,slot.wall,slot.col,slot.row,slot.out);propAfter(s);reGhost()}
+  cheerGoal(was);if(ui.prop){propAfter(s);draw3();reGhost()}
   if(kind==='rubble'&&!s.rubble.length){sfx('seal');showNews('\ud83c\udfe0 Built back!','Every fallen block is back up. Well done for not giving up.','good')}
   drawAll()}
 function makeItem(id){if(busy())return;undoPoint();const r=R.craft(st(),id);if(!r.ok){ui.undo=null;sfx('no');say('You need more pieces for that one.');drawAll();return}
@@ -1863,7 +1864,7 @@ function layRest(){if(busy())return;clearUndo();clearBlockUndo();const k=K(),s=k
 S.onSign=function(w){if(busy())return;const s=st(),x=X(),wb=R.wobble(s),need=propNeed(s,w),k=strawSpots(s,w).length;
   if(x.phase==='day'&&wb[w]>=2&&need>0){startProp(w);return}
   sfx('tap');S.faceWall(w);say(k?'The '+WALLNAME[w]+' has '+k+' straw. '+(need<0?'Too much to prop up: tap a red bale to fix it.':'Tap a red glowing bale to fix it'+(wb[w]>=2&&need>0?', or prop the wall up.':'.')):'The '+WALLNAME[w]+' is strong.',true)};
-S.onBale=function(wall,col,row){if(busy())return;sfx('tap');ui.sel=null;S.hideGhosts();drawTray();openSheet({kind:'fix',wall:wall,col:col,row:row})};
+S.onBale=function(wall,col,row){if(busy())return;if(ui.prop&&ui.sel){say('Tap a glowing space next to the '+WALLNAME[ui.prop]+' to lay a prop.',true);return}sfx('tap');ui.sel=null;S.hideGhosts();drawTray();openSheet({kind:'fix',wall:wall,col:col,row:row})};
 function sorry(sh){clearUndo();const k=K(),s=k.s,r=R.forgive(s,sh.wall,sh.col,sh.row);if(!r.ok){refuse(r.reason);return}
   /* age 6: the grown-up's one tap says "we prayed it together and went and made it right" */
   if(band()===6){const pc=R.at(s,sh.wall,sh.col,sh.row);R.markMadeRight(s,sh.wall,sh.col,sh.row,'grown-up');(pc.m||(pc.m={})).went=true;pc.m.right=true}
@@ -1993,7 +1994,7 @@ function choosePlot(i,quiet){const k=K();if(k.x.phase!=='night'||k.x.night!=='pl
 S.onPlot=choosePlot;
 function goodnight(){if(busy())return;clearUndo();clearBlockUndo();const k=K(),x=k.x,s=k.s;if(x.night==='plot')choosePlot(freePlots(k,1)[0],true);
   /* live: back to the building. The real calendar closes the day (section 10), not a button, and the app does the night check. */
-  if(LIVE){x.phase='day';x.night='account';ui.sheet=null;S.disarm();S.hideGhosts();ui.sel=null;S.turnTo('centre');drawAll();return}
+  if(LIVE){say('');x.phase='day';x.night='account';ui.sheet=null;S.disarm();S.hideGhosts();ui.sel=null;S.turnTo('centre');drawAll();return}
   ui.sheet=null;S.disarm();S.hideGhosts();ui.sel=null;S.turnTo('centre');
   /* the day closes now: any pieces still in the tray are laid by the builders, so nothing can be hoarded */
   let laidLine='';
@@ -2032,6 +2033,7 @@ async function runFire(){if(ui.busy)return;clearUndo();clearBlockUndo();const k=
   for(const e of of('wallFall')){sfx('fall');await S.wallFall(e.wall)}
   if(of('caveIn').length){sfx('fall');await S.caveIn();S.turnTo('home')}   /* step back to see the whole heap */
   let words=CT.fire(ev.size==='caveIn'?'caveIn':ev.size==='wallFall'?'wallFalls':ev.size==='small'?'small':'stoodFirm',a);
+  if(ev.size==='small'&&!of('knock').length)words=words.replace(' and knocked blocks down.','.').replace(' Your gold, silver and gems are not lost: they are in your rubble pile, ready to build back.',' Your gold, silver and gems are safe.').replace(' Any blocks it knocked down are not lost: they wait in your rubble pile.','');
   if(ev.practice)words=(CW.practiceFire||'This first fire is practice.')+' '+words;   /* nothing but straw is lost at a first fire */
   if(of('spireFall').length){sfx('fall');await S.spireFall();words+=' '+(SW.falls||'The spire came down. The stones are safe.')}
   if(ev.windowsLost>0){k.p.dark=true;words+=' '+(WW.dark||'A window has gone dark. Lay the stone again and the light comes back.')}
@@ -2047,11 +2049,13 @@ async function runFire(){if(ui.busy)return;clearUndo();clearBlockUndo();const k=
   else await S.wait(700);
   /* the tally: what happened to each wall, said plainly */
   const fell=of('wallFall').map(function(e){return e.wall}),cave=of('caveIn').length>0,burned=of('burn').length,knocked=of('knock').filter(function(e){return !e.prop}).length,propsUsed=of('knock').filter(function(e){return e.prop}).length,fellN=of('wallFall').concat(of('caveIn')).reduce(function(n,e){return n+e.pieces.length},0),rows=[];
+  if(cave)rows.push({ok:false,t:'The WHOLE HOUSE caved in: '+(fell.length>1?'two walls fell together':'a wall fell while another was still cracked')+'.'});
   WALLS.forEach(function(w){if(!pre[w].straw&&!pre[w].br)return;
-    if(cave||fell.indexOf(w)>=0)rows.push({ok:false,t:'The '+WALLNAME[w]+' FELL DOWN'+(pre[w].straw?' ('+pre[w].straw+' straw in it)':'')+'.'});
+    if(cave)return;
+    if(fell.indexOf(w)>=0)rows.push({ok:false,t:'The '+WALLNAME[w]+' FELL DOWN'+(pre[w].straw?' ('+pre[w].straw+' straw in it)':'')+'.'});
     else if(pre[w].br&&pre[w].straw>=fa1)rows.push({ok:true,t:'The '+WALLNAME[w]+' stood, because you propped it up! The props were used up holding it.'});
     else if(pre[w].straw)rows.push({ok:true,t:'The '+WALLNAME[w]+' stood'+(ev.practice?' (practice fire)':ev.mercy?' (the breather after a cave-in)':'')+'.'})});
-  if(fell.length&&!cave)rows.push({ok:false,warn:true,t:'The '+fell.map(function(w){return WALLNAME[w]}).join(' and the ')+' is cracked now. If another wall falls in the next fires, the whole house comes down.'});
+  const grace=s.lastCaveIn&&s.day-s.lastCaveIn<=(R.CONFIG.caveInGraceDays||0);if(fell.length&&!cave&&!grace)rows.push({ok:false,warn:true,t:'The '+fell.map(function(w){return WALLNAME[w]}).join(' and the ')+(fell.length>1?' are':' is')+' cracked now. If another wall falls in the next fires, the whole house comes down.'});
   x.fireTally={burned:burned,knocked:knocked,props:propsUsed,fell:fellN,cave:cave,rows:rows};
   if(cave)showNews('\ud83d\udca5 The whole house caved in!',burned+' straw burned. The blocks are in the rubble pile: you can build it back.','bad');
   else if(fell.length)showNews('\ud83d\udca5 The '+fell.map(function(w){return WALLNAME[w]}).join(' and the ')+' fell down!',burned+' straw burned. '+fellN+' blocks fell'+(knocked?', '+knocked+' more knocked off':'')+'. They wait in the rubble pile to be built back.','bad');
