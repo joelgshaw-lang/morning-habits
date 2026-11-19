@@ -87,10 +87,11 @@
     pullsPerDay: 2,                                 // used only when pullsMatchStrawCap is off
     pullsMatchStrawCap: true,                       // pulls allowed a day = straw allowed a day for that age
     pullNeedsForgive: true,                         // the bale must carry the pearl mark first
-    pullNeedsMadeRight: false,                      // true: markMadeRight() must be called before pull() works
+    pullNeedsMadeRight: false,
+    brace: { enabled: true, per: 3, max: 2 },       // good blocks laid just OUTSIDE a wall prop it up: every 3 = it stands with 1 more straw (at most 2). Straw still burns and knocks.                      // true: markMadeRight() must be called before pull() works
     pullMode: 'settle',                             // 'settle' (wall drops, pearl seam) | 'pearlSlot'
     rubblePerDay: { 6: 4, 8: 4, 12: 4 },            // (v6: x2 blocks) fallen stones a child may re-lay each day
-    rubbleBigPile: { over: 16, perDay: 12 },          // while the pile is bigger than `over`, re-lay this many a day
+    rubbleBigPile: { over: 16, perDay: 20 },          // while the pile is bigger than `over`, re-lay this many a day (19 Nov 2026: 12 -> 20, rebuilding should feel generous)
     autoLayAtNight: true,                           // endDay lays any tray pieces left over (no hoarding)
     carryOverMax: 12,                               // tray blocks carried into the next building; the rest go to the family landmark
     missedFireNextNight: true,                      // a fire night that was not held is held the next night
@@ -654,9 +655,23 @@
   }
 
   /* wobble(state) -> {front,left,right}: 0 steady, 1 sways, 2 leans (it will fall at the next fire). */
+  /* braceOf(state, wall) -> how many more straw this wall can hold before it falls, from good blocks laid just outside it */
+  function braceOf(state, w) {
+    var B = CONFIG.brace; if (!B || !B.enabled) return 0;
+    var n = (state.extras || []).filter(function (x) { return x.wall === w && x.out >= 1 && x.p && x.p.t !== 'W'; }).length;
+    return Math.min(B.max, Math.floor(n / B.per));
+  }
+  function wallFallAt(state, w) { return fallAtFor(state) + braceOf(state, w); }
+  /* bracing(state) -> {front:{blocks, holds, next}} : blocks outside, extra straw it holds, blocks still needed for the next step */
+  function bracing(state) {
+    var B = CONFIG.brace || {}, o = {};
+    WALLS.forEach(function (w) { var n = (state.extras || []).filter(function (x) { return x.wall === w && x.out >= 1 && x.p && x.p.t !== 'W'; }).length, holds = braceOf(state, w);
+      o[w] = { blocks: n, holds: holds, next: B.enabled && holds < B.max ? B.per * (holds + 1) - n : 0 }; });
+    return o;
+  }
   function wobble(state) {
-    var fallAt = fallAtFor(state), o = {};
-    WALLS.forEach(function (w) { var s = strawCount(state, w); o[w] = s >= fallAt ? 2 : s >= fallAt - CONFIG.swayBelow && s > 0 ? 1 : 0; });
+    var o = {};
+    WALLS.forEach(function (w) { var fallAt = wallFallAt(state, w), s = strawCount(state, w); o[w] = s >= fallAt ? 2 : s >= fallAt - CONFIG.swayBelow && s > 0 ? 1 : 0; });
     return o;
   }
 
@@ -828,7 +843,7 @@
     var wasCracked = WALLS.filter(function (w) { return state.cracked[w] > 0; });
     var before = windows(state), lit = {};
     before.list.forEach(function (x) { x.cells.forEach(function (c) { lit[x.wall + ':' + c.col + ':' + c.row] = true; }); });
-    if (!mercy && !practice) WALLS.forEach(function (w) { if (strawCount(state, w) >= fallAt) falling.push(w); });
+    if (!mercy && !practice) WALLS.forEach(function (w) { if (strawCount(state, w) >= wallFallAt(state, w)) falling.push(w); });
     state.mercy = false; state.fireOwed = false; state.practiced = true;
     if (falling.length) fairOf(state).fallDays.push(state.day);
     function knock(w, c, r, p) {
@@ -1235,7 +1250,7 @@
   }
 
   return { CONFIG: CONFIG, newChild: newChild, startDay: startDay, addPiece: addPiece, legalSlots: legalSlots,
-    craft: craft, craftable: craftable, decorate: decorate, decoSlots: decoSlots, place: place, placeRubble: placeRubble, autoPlace: autoPlace, forgive: forgive, pull: pull, wobble: wobble,
+    craft: craft, craftable: craftable, bracing: bracing, braceOf: braceOf, decorate: decorate, decoSlots: decoSlots, place: place, placeRubble: placeRubble, autoPlace: autoPlace, forgive: forgive, pull: pull, wobble: wobble,
     windows: windows, forecast: forecast, isFireNight: isFireNight, callFire: callFire, fire: fire,
     endDay: endDay, summary: summary, addGospelShare: addGospelShare, addNeighbour: addNeighbour, prayFor: prayFor,
     strawTarget: strawTarget, isComplete: isComplete, at: at, tally: tally,
