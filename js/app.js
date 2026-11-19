@@ -152,7 +152,7 @@ const portal = createPortal({
   endGrace: () => { grownUntil = 0; }, coinTarget: (id) => coinTarget(id),
   version: () => state.appVersion || '', updateNow: () => updateNow(),
   quickSection: (k) => quick.sectionHTML(k), quickHandle: (b) => quick.handle(b), quickWaiting: (id) => quick.waitingFor(id).length,
-  openRock: (id) => openRock(id),
+  openRock: (id) => openRock(id), openRockTest: () => openRockTest(),
 });
 const quick = createQuick({
   state, esc, kid: (id) => kid(id), clock, kvGet, kvSet, toast: (h) => toast(h), sheet: (...a) => sheet(...a), grownUp: (...a) => grownUp(...a),
@@ -166,8 +166,21 @@ const quick = createQuick({
 function sendToRock(kidId, item) {
   try { const key = `rock.inbox.${kidId}`, list = JSON.parse(localStorage.getItem(key) || '[]'); list.push({ t: clock.now().toISOString(), ...item }); localStorage.setItem(key, JSON.stringify(list)); } catch {}
 }
+// The grown-ups test space: the same game with endless blocks, Fire now and Start again, saved apart from the children.
+function openRockTest() {
+  state.rockOpen = true;
+  state.rockTest = true;
+  state.autoHomeAt = 0;
+  state.lastTouch = Date.now();
+  const el = document.createElement('div');
+  el.className = 'rock-frame';
+  const q = new URLSearchParams({ live: '1', sandbox: '1', kid: 'grownup-test', name: 'Test space', age: '12' });
+  el.innerHTML = `<iframe src="./docs/rock/play.html?${q}" title="Build on the Rock: test space" allow="autoplay"></iframe>`;
+  document.body.appendChild(el);
+}
 function openRock(id) {
   const k = kid(id);
+  state.rockTest = false;
   state.rockOpen = true;
   state.kidId = id;
   state.day = state.days[id];
@@ -183,6 +196,7 @@ function closeRock() {
   state.rockOpen = false;
   document.querySelector('.rock-frame')?.remove();
   state.lastTouch = Date.now();
+  if (state.rockTest) { state.rockTest = false; return render(); }
   renderKid();
 }
 window.addEventListener('message', (e) => {

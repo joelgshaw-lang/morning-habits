@@ -307,6 +307,7 @@ button.both{width:100%;min-height:52px;font-size:17px}
     <button type="button" id="grown" class="quiet">Grown-ups</button>
     <button type="button" id="testBlocks" class="quiet" title="Try-out only: a pile of blocks to build with">&#x1F9EA; Test blocks</button>
     <button type="button" id="fireNow" class="quiet" title="Try-out only: go straight to tonight's fire">&#x1F525; Fire now</button>
+    <button type="button" id="startOver" class="quiet" hidden title="Test space only: clear this building and begin again">&#x21BA; Start again</button>
   </div>
   <div id="plan" hidden></div>
   <div class="main">
@@ -436,7 +437,7 @@ R.CONFIG.commissions.enabled=false;   /* v5: the goal cards are off the screen *
 /* LIVE MODE: play.html?live=1&kid=<id>&name=<name>&age=<age>, opened full screen by the family app (in a frame).
    One real child, saved under 'rock-live.<kid>' (the pretend children keep 'rock-play-v4', untouched). Real days follow the
    calendar (a new day starts at 3am, as in the app). Pieces arrive from the app through 'rock.inbox.<kid>' (see section 10). */
-const QS=new URLSearchParams(location.search),LIVE=QS.get('live')==='1';
+const QS=new URLSearchParams(location.search),LIVE=QS.get('live')==='1',SANDBOX=LIVE&&QS.get('sandbox')==='1';   /* SANDBOX: the grown-ups test space (endless blocks, Fire now, Start again), its own save, nothing from the app */
 const LKID=String(QS.get('kid')||'child').replace(/[^\w-]/g,'').slice(0,40)||'child';
 const LNAME=String(QS.get('name')||'').slice(0,20),LAGE=Math.max(3,Math.min(18,parseInt(QS.get('age'),10)||6));
 const KEY=LIVE?'rock-live.'+LKID:'rock-play-v4';let DB=null;
@@ -1166,8 +1167,8 @@ function clearUndo(){ui.undo=null;$('undo').hidden=true;clearTimeout(undoTimer)}
 /* Undo block: take back the last blocks laid, up to DB.undoMax times a session (a grown-up setting, default 5).
    Each laid block keeps a snapshot; anything other than laying (fire, night, a new day, switching child) clears them. */
 const bundo={stack:[],used:0};
-function undoMax(){return DB.undoMax==null?5:DB.undoMax}
-function drawUndoBlock(){const b=$('undoBlock'),left=undoMax()-bundo.used;b.hidden=!bundo.stack.length||left<=0;b.textContent='\u21B6 Undo block ('+Math.max(0,left)+' left)'}
+function undoMax(){return SANDBOX?1e6:DB.undoMax==null?5:DB.undoMax}
+function drawUndoBlock(){const b=$('undoBlock'),left=undoMax()-bundo.used;b.hidden=!bundo.stack.length||left<=0;b.textContent=SANDBOX?'\u21B6 Undo block':'\u21B6 Undo block ('+Math.max(0,left)+' left)'}
 function clearBlockUndo(){bundo.stack=[];drawUndoBlock()}
 $('undoBlock').addEventListener('click',function(){if(busy()||!bundo.stack.length||bundo.used>=undoMax())return;
   DB.kids[DB.cur]=JSON.parse(bundo.stack.pop());bundo.used++;save();ui.sel=null;S.hideGhosts();redraw();drawUndoBlock();sfx('tap');
@@ -1212,6 +1213,12 @@ function ensurePlots(k){const p=k.p;if(!p.plots)p.plots={};const used={};Object.
 function freePlots(k,n){const used={};Object.keys(k.p.plots||{}).forEach(function(q){used[k.p.plots[q]]=1});const out=[];for(let i=0;out.length<n&&i<400;i++)if(!used[i])out.push(i);return out}
 function draw3(opt){const k=K();ensurePlots(k);S.render(k.s,k.x,k.p,opt)}
 function plotMode(){S.turnTo('city');S.showPlots(freePlots(K(),3))}
+/* test space: the tray never runs out. Each kind is topped back up as it is used (marked test, so nothing counts it as earned). */
+function topUp(){if(!SANDBOX)return;const s=st();if(!s||!s.tray)return;const n={},mat={};
+  s.tray.forEach(function(p){if(p.t==='W'){const m=(p.m&&p.m.material)||'hay';mat[m]=(mat[m]||0)+1}else n[p.t]=(n[p.t]||0)+1});
+  const add=function(t,want,have,m){for(let i=have;i<want;i++){const q={id:s.nextId++,t:t,m:m?{test:1,material:m}:{test:1}};if(R.CONFIG.gems[t])q.f=R.CONFIG.gems[t];s.tray.push(q)}};
+  add('G',12,n.G||0);add('S',12,n.S||0);Object.keys(R.CONFIG.gems).forEach(function(g){add(g,6,n[g]||0)});
+  ['wood','hay','stubble'].forEach(function(m){add('W',4,mat[m]||0,m)})}
 function redraw(opt){draw3(opt);reGhost();if(X().phase==='night'&&X().night==='plot')plotMode();else S.hidePlots();drawAll()}
 /* glowing spaces for the piece in hand. A gem may also dare the spire, and is shown where it would finish a window. */
 function trayPiece(){if(!ui.sel)return null;const s=st(),list=ui.sel.list==='tray'?s.tray:s.rubble;return list.filter(function(p){return p.id===ui.sel.id})[0]||null}
@@ -1243,7 +1250,7 @@ function tile(p,list){const sel=ui.sel&&ui.sel.id===p.id,c=p.m&&p.m.card&&CARD[p
 function palette(p){return h('div',{class:'row'},[h('span',{class:'note',text:V('colours.pick')||'Choose its colour'}),h('div',{class:'palette'},FRUITS.map(function(fr){
   return btn('',function(){recolour(p,fr.code)},null,{style:'background:'+css(fr.code),'aria-label':fr.name,title:fr.name,'aria-pressed':String(p.t===fr.code)})}))])}
 function recolour(p,code){const r=R.setColour(st(),p.id,code);if(!r.ok){refuse(r.reason);return}sfx('tap');showSlots();drawTray();save()}
-function drawTray(){const s=st(),t=$('tray'),sm=R.summary(s),tiles=trayTiles(s);t.textContent='';
+function drawTray(){topUp();const s=st(),t=$('tray'),sm=R.summary(s),tiles=trayTiles(s);t.textContent='';
   const can=tiles.length||(s.rubble.length&&sm.rubbleLeftToday>0);
   t.appendChild(h('div',{class:'row'},[h('h2',{text:'My pieces'}),h('span',{class:'note',text:tiles.length?'Tap a piece, then tap a glowing space.':'Good things done in real life fill these up.'}),h('span',{class:'sp'}),btn('\ud83d\udee0\ufe0f Craft',function(){sfx('tap');openSheet({kind:'craft'})},'quiet'),can?btn('Lay the rest for me',layRest):null]));
   t.appendChild(h('div',{class:'tiles'},trayGroups(s,tiles).map(function(g){return g.items.length?groupTile(g,'tray'):emptyTile(g.k)})));   /* always every kind, 0 = greyed */
@@ -1898,6 +1905,7 @@ const LINBOX='rock.inbox.'+LKID,FIRE_HOUR=17,MAXCATCH=400;
 const LIVEW={title:'{name}\'s building',titleNoName:'My building',hello:'Hello {name}! Choose your design.',none:'Your pieces come from real life. They show up here.',todayHead:'Today\'s pieces',
   place:'Tap a piece, then tap a glowing space.',arrived:'New pieces: {list}.',strawLanded:'Straw landed: {list}. Tap a bale to put it right.',strawHint:'There is straw in your walls. Tap a bale to put it right before the fire.',
   newDay:'A new day!',fireOwed:'Last night was fire night. Have a last look, then light the fire.',fireLater:'Fire tonight. You can light it after 5 o\'clock.',fireButton:'Last look before the fire',fireDone:'The fire is over for today.'};
+if(SANDBOX){LIVEW.title='Grown-ups test space';LIVEW.none='Blocks, gems and straw never run out here. Try anything, then Start again.'}
 function LW(key,vars){const v=get('live.'+key);return fill(typeof v==='string'?v:(LIVEW[key]||''),vars)}
 function takeInbox(){let a=null;try{const raw=localStorage.getItem(LINBOX);if(raw==null)return [];localStorage.removeItem(LINBOX);a=JSON.parse(raw)}catch(e){a=null}
   return Array.isArray(a)?a.filter(function(o){return o&&typeof o==='object'}):[]}
@@ -1988,13 +1996,15 @@ function liveStart(){
 $('mute').addEventListener('click',function(){DB.mute=!DB.mute;drawBar();save();sfx('tap')});
 $('grown').addEventListener('click',openTools);
 /* try-out only (hidden in the family app): a pile of test blocks, and a jump straight to the Last look before the fire */
-if(LIVE){$('testBlocks').hidden=true;$('fireNow').hidden=true}
+if(LIVE){$('testBlocks').hidden=true;$('fireNow').hidden=!SANDBOX;$('startOver').hidden=!SANDBOX}
+$('startOver').addEventListener('click',function(){if(!SANDBOX||busy())return;
+  confirmBox('Start the test space again? This building is cleared. The children\'s buildings are not touched.','Yes, start again',function(){try{localStorage.removeItem(KEY)}catch(e){}DB=null;loadLive();DB.isNew=false;save();location.reload()})});
 $('testBlocks').addEventListener('click',function(){if(LIVE)return;const s=st();if(!s)return;
   const add=function(t,n){for(let i=0;i<n;i++){const p={id:s.nextId++,t:t};if(R.CONFIG.gems[t])p.f=R.CONFIG.gems[t];p.m={test:1};s.tray.push(p)}};
   add('G',20);add('S',20);Object.keys(R.CONFIG.gems).forEach(function(g){add(g,4)});
   ['wood','hay','stubble'].forEach(function(mat){for(let i=0;i<4;i++)s.tray.push({id:s.nextId++,t:'W',m:{test:1,material:mat}})});
   save();redraw();sfx('gem');toast('88 test blocks added (with 4 wood, 4 hay and 4 stubble straw). Tap a piece, then a glowing space.')});
-$('fireNow').addEventListener('click',function(){if(LIVE||busy())return;const x=X();clearUndo();clearBlockUndo();ui.sel=null;ui.sheet=null;S.hideGhosts();
+$('fireNow').addEventListener('click',function(){if((LIVE&&!SANDBOX)||busy())return;const x=X();clearUndo();clearBlockUndo();ui.sel=null;ui.sheet=null;S.hideGhosts();
   x.phase='night';x.night='lastlook';save();redraw();sfx('tap');say('Last look before the fire. Tap a straw bale to put it right, or light the fire.',true)});
 $('stars').addEventListener('click',function(){openSheet({kind:'decorate'})});
 $('goal').addEventListener('click',function(){openSheet({kind:'goal'})});

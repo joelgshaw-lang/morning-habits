@@ -188,7 +188,9 @@ export function createPortal(ctx) {
       <div class="job-row-edit"><span class="ji">🔨</span><b>Farm set-up<small> Each child gets one free set-up of their farm (move anything, as often as they like). Give everyone another one here.</small></b>
         <button class="farm-btn small" data-farm-setup="1">Give again</button></div>
       <div class="job-row-edit"><span class="ji">🏰</span><b>Build on the Rock (pretend try-out)<small> The pretend-day test page. Each child's real building opens from their page. Needs internet.</small></b>
-        <a class="farm-btn small" href="docs/rock/play.html" target="_blank" rel="noopener" style="text-decoration:none">Open</a></div>`;
+        <a class="farm-btn small" href="docs/rock/play.html" target="_blank" rel="noopener" style="text-decoration:none">Open</a></div>
+      <div class="job-row-edit"><span class="ji">🧪</span><b>Building test space<small> Endless blocks, gems, straw and crafting to try things out, with Fire now and Start again. Kept apart from the children's buildings.</small></b>
+        <button class="farm-btn small" data-open-rock-test="1">Open</button></div>`;
   }
 
   const SPEEDS = [[0.8, 'Slow'], [0.9, 'Calm'], [0.95, 'Normal'], [1.05, 'Quick']];
@@ -382,6 +384,7 @@ export function createPortal(ctx) {
     }
     if (ds.openFarm) { el.remove(); el = null; return ctx.openFarm(ds.openFarm); }
     if (ds.openRock) { el.remove(); el = null; return ctx.openRock(ds.openRock); }
+    if (ds.openRockTest) { el.remove(); el = null; return ctx.openRockTest(); }
     if (ds.keep || ds.drop) { if (await ctx.quickHandle(t)) draw(); return; }
   }
 
