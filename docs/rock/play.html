@@ -503,8 +503,11 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.outputEn
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.shadowMap.autoUpdate=false;
 const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const scene=new THREE.Scene();scene.fog=new THREE.Fog(0x4a2f66,70,190);
-const camera=new THREE.PerspectiveCamera(30,4/3,0.5,400),camLook=new THREE.Vector3(0,5,0),camGoal=new THREE.Vector3(0,10.5,35),lookGoal=new THREE.Vector3(0,5,0);
+const camera=new THREE.PerspectiveCamera(30,4/3,0.1,400),camLook=new THREE.Vector3(0,5,0),camGoal=new THREE.Vector3(0,10.5,35),lookGoal=new THREE.Vector3(0,5,0);
 const world=new THREE.Group();scene.add(world);const TURN=-0.55;world.rotation.y=TURN;let rotGoal=TURN;
+/* the house spins all the way round: turn buttons pick the nearest matching angle, so it never whizzes round several times */
+function wrapA(a){return Math.atan2(Math.sin(a),Math.cos(a))}
+function nearRot(a){return a+2*Math.PI*Math.round((world.rotation.y-a)/(2*Math.PI))}
 const Y0=1.6;let shadowTicks=20,camSnap=true,cityView=false,maxCalls=0;
 /* the shape of the blueprint being built (from the rules: walls of any width and height, the door anywhere along the front) */
 const BLK=0.8;   /* blocks are drawn at 80% of the old 2-unit stone: twice the blocks make a wider, taller, grander house */
@@ -984,10 +987,10 @@ function home(){const n=Object.keys(nbGroups).length,d=camDist()*(n?1.1:1),rows=
   camGoal.set(0,(10.5+(rows-3)*1.6)*d,35*d);lookGoal.set(0,Y0+rows-0.3,0)}
 const VIEWS={centre:TURN,front:-0.06,left:0.8,right:-1.0};
 function turnTo(v){if(v==='zin'){ZOOM=zclamp(ZOOM*0.7);return}if(v==='zout'){ZOOM=zclamp(ZOOM/0.7);return}if(v==='home'){resetView();if(!cityView)home();return}
-  if(v==='city'){cityView=true;rotGoal=TURN;const d=Math.max(1,1.3/camera.aspect);camGoal.set(CITY[0]-4,CITY[1]+13*d,CITY[2]+33*d);lookGoal.set(CITY[0],CITY[1]+3,CITY[2]-4);return}
-  cityView=false;if(VIEWS[v]!=null)rotGoal=VIEWS[v];home()}
+  if(v==='city'){cityView=true;rotGoal=nearRot(TURN);const d=Math.max(1,1.3/camera.aspect);camGoal.set(CITY[0]-4,CITY[1]+13*d,CITY[2]+33*d);lookGoal.set(CITY[0],CITY[1]+3,CITY[2]-4);return}
+  cityView=false;if(VIEWS[v]!=null)rotGoal=nearRot(VIEWS[v]);home()}
 /* turn gently so the wall that just changed can be seen */
-function faceWall(w){if(cityView)return;const r=rotGoal;if(w==='left'&&r<0.35)rotGoal=0.8;else if(w==='right'&&r>-0.35)rotGoal=-0.85;else if(w==='front'&&Math.abs(r)>0.75)rotGoal=r>0?0.4:TURN}
+function faceWall(w){if(cityView)return;const r=wrapA(rotGoal);if(w==='left'&&(r<0.35||r>1.6))rotGoal=nearRot(0.8);else if(w==='right'&&(r>-0.35||r<-1.6))rotGoal=nearRot(-0.85);else if(w==='front'&&Math.abs(r)>0.75)rotGoal=nearRot(r>0?0.4:TURN)}
 
 /* ---- pointer: tap a glowing space, a straw bale or a City plot; drag a bale that is ready to pull; or turn the picture ---- */
 const ray=new THREE.Raycaster(),ptr=new THREE.Vector2(),tmp=new THREE.Vector3();let down=null;
@@ -1020,7 +1023,7 @@ canvas.addEventListener('pointermove',function(e){if(!down)return;
   if(down.pull){down.dist=Math.min(1,Math.abs(e.clientX-down.x)/Math.max(110,Math.min(200,canvas.clientWidth*0.22)));pullTick();return}
   if(cityView)return;
   if(down.slide){panBy(e.clientX-down.px,e.clientY-down.py);down.px=e.clientX;down.py=e.clientY;return}
-  world.rotation.y=rotGoal=Math.max(-1.05,Math.min(1.05,down.r+(e.clientX-down.x)*0.008));
+  world.rotation.y=rotGoal=down.r+(e.clientX-down.x)*0.008;   /* all the way round */
   TILT=Math.max(-0.75,Math.min(0.9,down.tl+(e.clientY-down.y)*0.004))});   /* clamped so nothing can ever cover the house */   /* clamped so nothing can ever cover the house */
 function up(e){if(!down)return;const d=down;down=null;
   if(d.pull){if(armed&&armed.active){const el=(performance.now()-d.t)/armed.min;if(d.dist>=0.8&&el>=1)pullDone();else pullSlip(d.dist>=0.8?'fast':'slip')}return}   /* out only after the full slow time */
@@ -1032,20 +1035,34 @@ canvas.addEventListener('pointerup',up);
 /* pinch to zoom (two fingers), mouse wheel on a computer. ZOOM < 1 is closer. */
 let ZOOM=1,pinch=null,TILT=0;const zg=new THREE.Vector3(),fingers=new Map(),PAN=new THREE.Vector3(),panGoal=new THREE.Vector3(),_r=new THREE.Vector3(),_u=new THREE.Vector3();
 /* ZOOM goes right in close (0.12) like Minecraft; two fingers slide the view (PAN); one finger up/down tilts (TILT) */
-function zclamp(z){return Math.max(0.12,Math.min(1.7,z))}
+function zclamp(z){return Math.max(0.05,Math.min(1.7,z))}
+/* zoom toward a point on the screen (the fingers or the mouse), so a side wall can be zoomed into directly */
+const _zr=new THREE.Raycaster(),_zp=new THREE.Plane(),_zh=new THREE.Vector3(),_zv=new THREE.Vector2(),_zd=new THREE.Vector3();
+function zoomAt(nz,cx,cy){nz=zclamp(nz);const f=nz/ZOOM;
+  if(f<1&&cx!=null){const b=canvas.getBoundingClientRect();_zv.set(((cx-b.left)/b.width)*2-1,-((cy-b.top)/b.height)*2+1);
+    camera.updateMatrixWorld();_zr.setFromCamera(_zv,camera);camera.getWorldDirection(_zd);
+    const piv=_zh.copy(lookGoal).add(panGoal);_zp.setFromNormalAndCoplanarPoint(_zd,piv);
+    let hit=null;const hs=_zr.intersectObjects(world.children,true).filter(function(i){return i.object.visible&&!(i.object.userData&&i.object.userData.ghost===undefined&&i.object.type==='LineSegments')});
+    if(hs.length)hit=hs[0].point.clone();else{hit=new THREE.Vector3();if(!_zr.ray.intersectPlane(_zp,hit))hit=null}   /* the block under the fingers, or the middle plane */
+    if(hit){panGoal.addScaledVector(hit.sub(piv),1-f);clampPan()}}   /* the spot under the fingers stays put while the view closes in on it */
+  ZOOM=nz}
 function fmid(){const f=Array.from(fingers.values());return{x:(f[0].x+f[1].x)/2,y:(f[0].y+f[1].y)/2}}
-function panBy(dx,dy){const dist=camera.position.distanceTo(camLook),k=dist*0.0016*(1.3/Math.max(0.6,camera.aspect));
+function panBy(dx,dy){const dist=camera.position.distanceTo(camLook),k=2*dist*Math.tan(camera.fov*Math.PI/360)/Math.max(200,canvas.clientHeight);
   _r.setFromMatrixColumn(camera.matrixWorld,0);_u.setFromMatrixColumn(camera.matrixWorld,1);
-  panGoal.addScaledVector(_r,-dx*k).addScaledVector(_u,dy*k);panGoal.x=Math.max(-18,Math.min(18,panGoal.x));panGoal.y=Math.max(-8,Math.min(22,panGoal.y));panGoal.z=Math.max(-14,Math.min(14,panGoal.z))}
+  panGoal.addScaledVector(_r,-dx*k).addScaledVector(_u,dy*k);clampPan()}
+function clampPan(){panGoal.x=Math.max(-26,Math.min(26,panGoal.x));panGoal.y=Math.max(-8,Math.min(30,panGoal.y));panGoal.z=Math.max(-26,Math.min(26,panGoal.z))}
 function resetView(){ZOOM=1;TILT=0;panGoal.set(0,0,0)}
+/* when the house turns, the spot being looked at turns with it, so the view circles round that spot (like Minecraft) */
+let lastRot=world.rotation.y;const _o=new THREE.Vector3(),YAX=new THREE.Vector3(0,1,0);
+function orbit(v,dth){_o.copy(lookGoal).add(v).applyAxisAngle(YAX,dth).sub(lookGoal);v.copy(_o)}
 function fdist(){const f=Array.from(fingers.values());return Math.hypot(f[0].x-f[1].x,f[0].y-f[1].y)||1}
 canvas.addEventListener('pointerdown',function(e){fingers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(fingers.size===2&&!(armed&&armed.active)){down=null;pinch={d0:fdist(),z0:ZOOM,m:fmid()}}});
 canvas.addEventListener('pointermove',function(e){if(!fingers.has(e.pointerId))return;fingers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(pinch&&fingers.size===2){ZOOM=zclamp(pinch.z0*pinch.d0/fdist());const m=fmid();panBy(m.x-pinch.m.x,m.y-pinch.m.y);pinch.m=m}});
+  if(pinch&&fingers.size===2){const m=fmid();zoomAt(pinch.z0*pinch.d0/fdist(),m.x,m.y);panBy(m.x-pinch.m.x,m.y-pinch.m.y);pinch.m=m}});
 function lift(e){fingers.delete(e.pointerId);if(fingers.size<2)pinch=null}
 canvas.addEventListener('pointerup',lift);canvas.addEventListener('pointercancel',lift);canvas.addEventListener('lostpointercapture',lift);
-canvas.addEventListener('wheel',function(e){e.preventDefault();ZOOM=zclamp(ZOOM*Math.exp(e.deltaY*0.0015))},{passive:false});
+canvas.addEventListener('wheel',function(e){e.preventDefault();zoomAt(ZOOM*Math.exp(e.deltaY*0.0015),e.clientX,e.clientY)},{passive:false});
 ['gesturestart','gesturechange'].forEach(function(n){canvas.addEventListener(n,function(e){e.preventDefault()},{passive:false})});   /* stop Safari zooming the whole page */canvas.addEventListener('pointercancel',function(){if(down&&down.pull)pullSlip('slip');down=null});
 
 /* ---- size and the frame loop ---- */
@@ -1073,7 +1090,8 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(0.05,(now-last)
   if(pivots.front){pivots.front.rotation.x=lean.front+sw*sway.front+tr;pivots.left.rotation.z=lean.left+sw*sway.left+tr;pivots.right.rotation.z=-(lean.right+sw*sway.right+tr)}
   doorLight.intensity=1.3+Math.sin(T*7)*0.08;
   if(!reduce&&animals.length){animals.forEach(function(g){const u=g.userData,k=Math.sin(T*0.5+u.i*2.1);g.position.x=u.x+k*0.7;g.position.z=u.z+Math.sin(T*0.37+u.i)*0.3;g.rotation.y=Math.cos(T*0.5+u.i*2.1)>0?Math.PI/2:-Math.PI/2});shadowTicks=Math.max(shadowTicks,1)}
-  const q=camSnap||reduce?1:Math.min(1,dt*3.2);camSnap=false;PAN.lerp(cityView?_u.set(0,0,0):panGoal,q);zg.copy(camGoal).sub(lookGoal);zg.y*=Math.max(0.05,1+TILT);zg.multiplyScalar(ZOOM).add(lookGoal).add(PAN);camera.position.lerp(zg,q);_r.copy(lookGoal).add(PAN);camLook.lerp(_r,q);camera.lookAt(camLook);
+  const q=camSnap||reduce?1:Math.min(1,dt*3.2);camSnap=false;if(!cityView){const dth=world.rotation.y-lastRot;if(Math.abs(dth)>1e-6){orbit(panGoal,dth);orbit(PAN,dth)}}lastRot=world.rotation.y;
+  PAN.lerp(cityView?_u.set(0,0,0):panGoal,q);zg.copy(camGoal).sub(lookGoal);zg.y*=Math.max(0.05,1+TILT);zg.multiplyScalar(ZOOM).add(lookGoal).add(PAN);camera.position.lerp(zg,q);_r.copy(lookGoal).add(PAN);camLook.lerp(_r,q);camera.lookAt(camLook);
   if(shadowTicks>0){shadowTicks--;renderer.shadowMap.needsUpdate=true}
   renderer.render(scene,camera);if(renderer.info.render.calls>maxCalls)maxCalls=renderer.info.render.calls}
 size();requestAnimationFrame(loop);
