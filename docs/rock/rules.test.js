@@ -1264,4 +1264,42 @@ test('live: with autoLayAtNight off, unseen tray pieces wait across days', funct
   assert.equal(R.addPiece(s, 'G', { label: 'Prayer time' }).ok, true);   // a new day's cap
 });
 
+/* ---- crafting (19 Nov) ---- */
+function tray(s, codes) { codes.forEach(function (t) { var q = { id: s.nextId++, t: t }; if (R.CONFIG.gems[t]) q.f = R.CONFIG.gems[t]; s.tray.push(q); }); }
+test('craft: a torch uses one gold and one joy and gives one item', function () {
+  var s = kid(8); s.tray = []; tray(s, ['G', 'j', 'S']);
+  var r = R.craft(s, 'torch'); assert(r.ok);
+  assert.deepEqual(s.tray.map(function (p) { return p.t; }), ['S', 'C']);
+  assert.equal(s.tray[1].c, 'torch');
+  assert.equal(R.craft(s, 'torch').reason, 'notEnough', 'nothing left to make another');
+  assert.equal(R.craft(s, 'nope').reason, 'noRecipe');
+});
+test('craft: craftable lists what can be made now', function () {
+  var s = kid(8); s.tray = []; tray(s, ['G', 'G']);
+  var c = R.craftable(s), ok = c.filter(function (x) { return x.ok; }).map(function (x) { return x.id; });
+  assert.deepEqual(ok, ['lamppost']);
+});
+test('craft: a window takes three gems and is pure when all one fruit', function () {
+  var s = kid(8); s.tray = []; tray(s, ['l', 'k', 'k', 'k', 'p']);
+  var r = R.craft(s, 'window'); assert(r.ok); assert.equal(r.piece.pure, true); assert.equal(r.piece.f, 'k');
+  assert.deepEqual(s.tray.filter(function (p) { return p.t !== 'C'; }).map(function (p) { return p.t; }).sort(), ['l', 'p']);
+  var t = kid(8); t.tray = []; tray(t, ['l', 'k', 'p']);
+  var r2 = R.craft(t, 'window'); assert(r2.ok); assert.equal(r2.piece.pure, false);
+});
+test('craft: straw, pearls and items are never used as ingredients', function () {
+  var s = kid(8); s.tray = []; tray(s, ['W', 'W', 'W']); s.tray.push({ id: s.nextId++, t: 'l', pearl: true });
+  assert.equal(R.craft(s, 'window').reason, 'notEnough');
+});
+test('craft: an item lays in the outline or an extra spot, never burns, and falls with its wall', function () {
+  var s = kid(6); s.tray = []; tray(s, ['G', 'G', 'G', 'G']); R.craft(s, 'lamppost'); R.craft(s, 'lamppost');
+  var i = s.tray.findIndex(function (p) { return p.t === 'C'; });
+  assert(R.place(s, i, 'left', 0, 0).ok, 'in the outline');
+  var x = R.extraSlots(s)[0]; i = s.tray.findIndex(function (p) { return p.t === 'C'; });
+  assert(R.place(s, i, x.wall, x.col, x.row, x.out).ok, 'in an extra spot');
+  set(s, 'right', 0, 0, 'W'); R.fire(s);
+  assert.equal(s.walls.left[0][0].t, 'C', 'it does not burn');
+  for (var c = 1; c < s.walls.left.length; c++) for (var r = 0; r < 2; r++) set(s, 'left', c, r, 'W');   // plenty of straw: it falls whatever the tuning
+  var ev = R.fire(s), fall = ev.filter(function (e) { return e.kind === 'wallFall' && e.wall === 'left'; })[0];
+  assert(fall && fall.pieces.some(function (q) { return q.piece.t === 'C'; }), 'it falls with its wall: ' + JSON.stringify(ev.map(function (e) { return e.kind + ':' + (e.wall || ''); })) + ' ' + JSON.stringify(R.CONFIG.fallAt) + ' mercy ' + ev.mercy);
+});
 console.log(passed + ' tests passed' + (process.exitCode ? ', SOME FAILED' : ''));

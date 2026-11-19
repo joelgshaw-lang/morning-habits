@@ -70,6 +70,17 @@
                { id: 'bp7', style: 'cottage', grow: 1 }, { id: 'bp8', style: 'barn', grow: 2 }, { id: 'bp9', style: 'cottage', grow: 0 },
                { id: 'bp10', style: 'castle', grow: 1 }, { id: 'bp11', style: 'lighthouse', grow: 2 }, { id: 'bp12', style: 'barn', grow: 0 } ] },
     animals: { kinds: ['lamb', 'cat', 'dog', 'rabbit', 'bird', 'hen'], perBuilding: 3 },
+    /* 19 Nov (Joel): crafting, Minecraft-style. Pieces in the tray are combined into one item (type 'C', p.c = recipe id).
+       need: piece codes and counts; 'gem' = any fruit gem. An item lays like a stone (outline or extra spot), never burns,
+       and falls with its wall like any stone. */
+    craft: { recipes: [
+      { id: 'torch',    name: 'Torch',                need: { G: 1, j: 1 } },
+      { id: 'window',   name: 'Stained-glass window', need: { gem: 3 } },
+      { id: 'lamppost', name: 'Lamp post',            need: { G: 2 } },
+      { id: 'flowers',  name: 'Flower box',           need: { l: 1, k: 1, t: 1 } },
+      { id: 'arch',     name: 'Arched door',          need: { S: 2, G: 1 } },
+      { id: 'fountain', name: 'Fountain',             need: { p: 4 } }
+    ] },
     strawCapByAge: { 6: 2, 8: 3, 12: 3 },
     fallAt: { 6: 2, 8: 2, 12: 2 },                  // straw in one wall that makes it fall at a fire
     swayBelow: 1,                                   // sway starts this many straw below fallAt
@@ -541,6 +552,40 @@
   }
   /* autoPlace(state): "lay the rest for me". Tray first, then rubble up to today's limit.
      Holes first, then lowest row, front-left-right, then the free slots. Returns all place events. */
+  /* ---- crafting ---- */
+  function recipe(id) { return CONFIG.craft.recipes.filter(function (r) { return r.id === id; })[0] || null; }
+  function plainPiece(p) { return p && !p.pearl && p.t !== 'W' && p.t !== 'L' && p.t !== 'C'; }
+  /* pick the tray pieces a recipe would use (indexes), or null. Named codes first; 'gem' prefers three of one fruit. */
+  function craftPick(state, rc) {
+    var used = {}, need = rc.need, pick = [];
+    function take(code, n) {
+      for (var i = 0; i < state.tray.length && n > 0; i++) { var p = state.tray[i];
+        if (!used[i] && plainPiece(p) && p.t === code) { used[i] = 1; pick.push(i); n--; } }
+      return n === 0;
+    }
+    for (var code in need) { if (code !== 'gem' && !take(code, need[code])) return null; }
+    if (need.gem) {
+      var by = {}; state.tray.forEach(function (p, i) { if (!used[i] && plainPiece(p) && isGem(p.t)) by[p.t] = (by[p.t] || 0) + 1; });
+      var best = Object.keys(by).sort(function (a, b) { return by[b] - by[a]; }), n = need.gem;
+      if (best.length && by[best[0]] >= n) { if (!take(best[0], n)) return null; }
+      else { for (var k = 0; k < best.length && n > 0; k++) { var m = Math.min(n, by[best[k]]); if (take(best[k], m)) n -= m; } if (n > 0) return null; }
+    }
+    return pick;
+  }
+  /* craftable(state) -> [{id, name, need, ok}] */
+  function craftable(state) { ensure(state); return CONFIG.craft.recipes.map(function (r) { return { id: r.id, name: r.name, need: r.need, ok: !!craftPick(state, r) }; }); }
+  /* craft(state, id) -> {ok, piece, used:[pieces]} : the pieces leave the tray and one item joins it */
+  function craft(state, id) {
+    ensure(state);
+    var rc = recipe(id); if (!rc) return fail('noRecipe');
+    var pick = craftPick(state, rc); if (!pick) return fail('notEnough');
+    var used = pick.sort(function (a, b) { return b - a; }).map(function (i) { return state.tray.splice(i, 1)[0]; }).reverse();
+    var gems = used.filter(function (p) { return isGem(p.t); }), piece = { id: state.nextId++, t: 'C', c: rc.id, m: { crafted: true, from: used.map(function (p) { return p.t; }) } };
+    if (gems.length) { piece.f = gems[0].t; if (rc.need.gem) piece.pure = gems.every(function (p) { return p.t === gems[0].t; }); }   // 'all one fruit' only means something for a window
+    state.tray.push(piece);
+    state.stats.crafted = (state.stats.crafted || 0) + 1;
+    return { ok: true, piece: piece, used: used, events: [{ kind: 'craft', id: rc.id, piece: piece }] };
+  }
   function autoPlace(state) { return { ok: true, events: autoLay(state, false) }; }
 
   /* forgive(state, wall, col, row): the sorry prayer. Free, unlimited, at once. The bale gets its pearl mark. */
@@ -1168,7 +1213,7 @@
   }
 
   return { CONFIG: CONFIG, newChild: newChild, startDay: startDay, addPiece: addPiece, legalSlots: legalSlots,
-    place: place, placeRubble: placeRubble, autoPlace: autoPlace, forgive: forgive, pull: pull, wobble: wobble,
+    craft: craft, craftable: craftable, place: place, placeRubble: placeRubble, autoPlace: autoPlace, forgive: forgive, pull: pull, wobble: wobble,
     windows: windows, forecast: forecast, isFireNight: isFireNight, callFire: callFire, fire: fire,
     endDay: endDay, summary: summary, addGospelShare: addGospelShare, addNeighbour: addNeighbour, prayFor: prayFor,
     strawTarget: strawTarget, isComplete: isComplete, at: at, tally: tally,
