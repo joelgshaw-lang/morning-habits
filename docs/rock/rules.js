@@ -88,9 +88,9 @@
     pullsMatchStrawCap: true,                       // pulls allowed a day = straw allowed a day for that age
     pullNeedsForgive: true,                         // the bale must carry the pearl mark first
     pullNeedsMadeRight: false,
-    brace: { enabled: true, per: 3, max: 2 },       // good blocks laid just OUTSIDE a wall prop it up: every 3 = it stands with 1 more straw (at most 2). Straw still burns and knocks.                      // true: markMadeRight() must be called before pull() works
+    brace: { enabled: true, per: 3, max: 2, oneFire: true },   // oneFire (21 Nov 2026): props that carry a wall through a fire are used up (knocked to the rubble pile), so straw can't pile up behind them for ever.       // good blocks laid just OUTSIDE a wall prop it up: every 3 = it stands with 1 more straw (at most 2). Straw still burns and knocks.                      // true: markMadeRight() must be called before pull() works
     pullMode: 'settle',                             // 'settle' (wall drops, pearl seam) | 'pearlSlot'
-    rubblePerDay: { 6: 4, 8: 4, 12: 4 },            // (v6: x2 blocks) fallen stones a child may re-lay each day
+    rubblePerDay: { 6: 12, 8: 12, 12: 12 },         // (21 Nov 2026: 4 -> 12, a usual fire knocks ~12 off: one day to put it back) fallen stones a child may re-lay each day
     rubbleBigPile: { over: 16, perDay: 20 },          // while the pile is bigger than `over`, re-lay this many a day (19 Nov 2026: 12 -> 20, rebuilding should feel generous)
     autoLayAtNight: true,                           // endDay lays any tray pieces left over (no hoarding)
     carryOverMax: 12,                               // tray blocks carried into the next building; the rest go to the family landmark
@@ -851,6 +851,15 @@
       var e = { kind: 'knock', wall: w, col: c, row: r, piece: p }; if (lit[w + ':' + c + ':' + r]) e.window = true;
       ev.push(e);
     }
+    /* props that hold a straw-heavy wall up through this fire are used up: the blocks that took the weight go to the rubble pile */
+    if (CONFIG.brace && CONFIG.brace.oneFire && !mercy && !practice) WALLS.forEach(function (w) {
+      if (falling.indexOf(w) >= 0) return;
+      var load = strawCount(state, w) - fallAt + 1; if (load <= 0) return;
+      var props = state.extras.filter(function (x) { return x.wall === w && x.out >= 1 && x.p && x.p.t !== 'W'; })
+        .sort(function (a, b) { return b.row - a.row; }).slice(0, CONFIG.brace.per * load);   // from the top down, so nothing is left floating
+      props.forEach(function (x) { takeExtra(state, w, x.col, x.row, x.out); state.rubble.push(x.p);
+        ev.push({ kind: 'knock', wall: w, col: x.col, row: x.row, out: x.out, extra: true, prop: true, piece: x.p }); });
+    });
     eachSlot(state, function (w, c, r, p) {
       if (!p || p.t !== 'W') return;
       burned++; state.walls[w][c][r] = null;

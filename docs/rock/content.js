@@ -495,7 +495,7 @@
   var fireWords = {
     before: 'One day Jesus will show what lasts. This is practice. The fire is not God being cross with you. Jesus took that on the cross.',
     lastLook: 'Last look. Is there any straw you want to say sorry for and pull out?',
-    small: 'Some straw burned. That bit couldn\'t last. Your gold and gems are safe, and Jesus loves you just the same.',
+    small: 'Some straw burned. That bit couldn\'t last. Any blocks it knocked down are not lost: they wait in your rubble pile. Jesus loves you just the same.',
     wallFalls: 'This wall had a lot of straw, so it fell. That\'s sad. The stones are safe. Only the stacking is lost. Let\'s build again.',
     caveIn: 'The building fell. It\'s okay to feel sad. The Rock didn\'t move. Jesus hasn\'t moved, and He loves you just the same. Nothing you did with Him is lost. We\'ll rebuild together.',
     stoodFirm: 'The fire came, and it stood. What you built with Jesus lasts.',
@@ -1191,7 +1191,7 @@
       '12': 'Paul says each one\'s work will be shown for what it is. Tonight is a small picture of that day. It tests the work, never His love. Belonging to Him comes by trusting Him, not by building.'
     },
     small: {
-      '8': 'Some straw burned and left a gap. That part couldn\'t last. Your gold, silver and gems are safe, and Jesus loves you just the same. Tomorrow you can fill the gap.',
+      '8': 'Some straw burned and knocked blocks down. That part couldn\'t last. Your gold, silver and gems are not lost: they are in your rubble pile, ready to build back. Jesus loves you just the same.',
       '12': 'A bit of straw burned. That part didn\'t last. Everything done with Him is still yours. Fill the gap this week.'
     },
     wallFalls: {

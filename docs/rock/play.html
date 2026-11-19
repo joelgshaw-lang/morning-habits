@@ -106,7 +106,7 @@ body.full #fullBtn{background:var(--gold);color:var(--gold-ink)}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:8px 12px;display:flex;flex-direction:column;gap:6px}
 #tray{flex:none}
 body.notray #tray{display:none}
-body:not(.full) .side #tray{max-height:46%;overflow-y:auto}   /* the pieces never squeeze the panel below to nothing */
+@media (orientation:landscape){body:not(.full) .side #tray{max-height:46%;overflow-y:auto}}   /* the pieces never squeeze the panel below to nothing */
 #panel{flex:1;min-height:0;padding:0;gap:0;overflow:hidden}
 #pbody{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
 #pfoot{flex:none;padding:8px 12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
@@ -731,15 +731,16 @@ function markMat(level){const k='mark'+level;if(texCache[k])return texCache[k];c
   g.fillStyle=level>=2?'#e5482f':'#f2b93f';g.beginPath();g.arc(32,32,28,0,6.3);g.fill();g.lineWidth=4;g.strokeStyle='#fff';g.stroke();
   g.fillStyle=level>=2?'#fff':'#2b1a02';g.font='900 46px Arial,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('!',32,35);
   const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;return texCache[k]=new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false,depthWrite:false,fog:false})}
-function wallSignMat(straw,safe,br,word){const k='ws'+straw+'_'+safe+'_'+br+word;if(texCache[k])return texCache[k];const cv=document.createElement('canvas');cv.width=320;cv.height=160;const g=cv.getContext('2d');
-  const col=word==='WILL FALL'?'#e5482f':word==='LEANING'||word==='WOBBLY'?'#f2a93f':word==='PROPPED UP'?'#e8b730':'#3fae5f';
-  g.fillStyle='rgba(20,14,40,.88)';g.beginPath();g.roundRect?g.roundRect(4,4,312,152,22):g.rect(4,4,312,152);g.fill();g.lineWidth=6;g.strokeStyle=col;g.stroke();
-  g.fillStyle=col;g.font='900 44px Arial,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(word,160,44,296);
-  const n=Math.min(8,Math.max(straw,safe+1)),bw=Math.min(34,260/n-6),x0=160-(n*(bw+6)-6)/2;
-  for(let i=0;i<n;i++){const xx=x0+i*(bw+6),yy=86;
+function wallSignMat(straw,safe,br,word){const k='ws'+straw+'_'+safe+'_'+br+word;if(texCache[k])return texCache[k];const cv=document.createElement('canvas');cv.width=360;cv.height=200;const g=cv.getContext('2d');
+  const col=word==='WILL FALL'?'#e5482f':word==='LEANING'||word==='WOBBLY'?'#f2a93f':word==='PROPPED UP'?'#e8b730':'#3fae5f',ic=word==='WILL FALL'?'\u26a0\ufe0f':word==='PROPPED UP'?'\ud83e\uddf1':word==='HOLDS'?'\u2705':'\u3030\ufe0f';
+  g.fillStyle='rgba(20,14,40,.9)';g.beginPath();g.roundRect?g.roundRect(4,4,352,192,24):g.rect(4,4,352,192);g.fill();g.lineWidth=7;g.strokeStyle=col;g.stroke();
+  g.textAlign='center';g.textBaseline='middle';g.fillStyle=col;g.font='900 46px Arial,sans-serif';g.fillText(ic+' '+word,180,44,336);
+  g.fillStyle='#fff';g.font='800 30px Arial,sans-serif';g.fillText(straw+' straw \u00b7 holds '+safe,180,94,336);
+  const n=Math.min(8,Math.max(straw,safe+1)),bw=Math.min(36,300/n-6),x0=180-(n*(bw+6)-6)/2;
+  for(let i=0;i<n;i++){const xx=x0+i*(bw+6),yy=126;
     if(i<straw){g.fillStyle=i>=safe?'#ff3b1f':'#e8a33a';g.fillRect(xx,yy,bw,bw)}   /* straw in the wall: amber while it can hold it, red past the line */
     g.lineWidth=4;g.strokeStyle=i>=safe?'#ff6a50':i>=safe-br?'#ffd84a':'#7fe39a';g.strokeRect(xx+2,yy+2,bw-4,bw-4);
-    if(i===safe-1||(safe===0&&i===0)){g.fillStyle='#fff';g.fillRect(xx+bw+1,yy-10,4,bw+20)}}   /* the breaking line */
+    if(i===safe-1){g.fillStyle='#fff';g.fillRect(xx+bw+1,yy-8,4,bw+16)}}   /* the breaking line */
   const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;return texCache[k]=new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false,depthWrite:false,fog:false})}
 function signMat(name,bg,fg,front){const k='sign'+name+bg+(front?'f':'');if(texCache[k])return texCache[k];const cv=document.createElement('canvas');cv.width=256;cv.height=80;const g=cv.getContext('2d');
   g.fillStyle=bg||'#7e583a';g.fillRect(4,4,248,72);g.strokeStyle='#3a2a18';g.lineWidth=6;g.strokeRect(4,4,248,72);
@@ -868,7 +869,7 @@ function pieceInto(b,wall,o,p,lit){const w=wallW(wall),f=w/2,t=p.t,H=G.bh,k=H/2;
   if(p.deco)itemInto(b,wall,o,{t:'C',c:p.deco.c,f:p.deco.f,pure:p.deco.pure},w,f,H,k,true)}   /* an item put onto a laid block: the block stays, the item sits on its face */
 /* crafted items: a stone block with the item built onto its face (all boxes, so it stays one merged draw) */
 const IT={water:flat(0x4fa8ff,0x2070ff,0.45),flame:new THREE.MeshBasicMaterial({color:0xff7a1a}),pink:flat(0xff7fb0,0xff3080,0.25)};
-function itemInto(b,wall,o,p,w,f,H,k,onBlock){const c=p.c;if(!onBlock)wbox(b,wall,o,w,H,1,M.stone,0,0);
+function itemInto(b,wall,o,p,w,f,H,k,onBlock){const c=p.c;if(!onBlock)wbox(b,wall,o,w,H,1,M.stone,0,0);else{f*=1.3;k*=1.3}   /* on a block: a bit bigger, so it shows from across the island */
   if(c==='torch'){wbox(b,wall,o,0.22*f,1.0*k,1.18,M.trim,0,-0.25*k);wbox(b,wall,o,0.4*f,0.46*k,1.24,IT.flame,0,0.42*k);wbox(b,wall,o,0.24*f,0.2*k,1.3,IT.flame,0,0.66*k);wbox(b,wall,o,0.12*f,0.14*k,1.32,M.lamp,0,0.4*k)}
   else if(c==='window'){const g=p.f?(p.pure?GEMLIT[p.f]:GEM[p.f]):M.lamp;wbox(b,wall,o,w*0.86,0.86*H,1.08,M.trim,0,0);wbox(b,wall,o,w*0.36,0.36*H,1.12,g,-0.2*w,0.2*H,true);wbox(b,wall,o,w*0.36,0.36*H,1.12,g,0.2*w,0.2*H,true);wbox(b,wall,o,w*0.36,0.36*H,1.12,g,-0.2*w,-0.2*H,true);wbox(b,wall,o,w*0.36,0.36*H,1.12,g,0.2*w,-0.2*H,true)}
   else if(c==='lamppost'){wbox(b,wall,o,0.16*f,1.5*k,1.18,M.trim,0,-0.2*k);wbox(b,wall,o,0.6*f,0.5*k,1.24,M.lamp,0,0.62*k);wbox(b,wall,o,0.74*f,0.12*k,1.26,M.trim,0,0.9*k)}
@@ -990,7 +991,7 @@ function render(s,x,p,opt){cancelAim();p=p||{};opt=opt||{};const sm=R.summary(s)
     const straw=s.walls[w].reduce(function(n,col){return n+col.filter(function(q){return q&&q.t==='W'}).length},0),br=R.braceOf(s,w);if(!straw&&!v)return;
     /* a strength sign over the wall: red boxes = straw in it, the line = where it breaks, gold = held up by the blocks propping it */
     const falls=fcs&&(fcs.caveIn||fcs.wallFalls.indexOf(w)>=0),word=falls?'WILL FALL':v>=2?'LEANING':br&&straw>=fa0?'PROPPED UP':v===1?'WOBBLY':'HOLDS',
-      mk=new THREE.Sprite(wallSignMat(straw,fa0-1+br,br,word)),bx=wallBox(w);mk.scale.set(7.6,3.8,1);mk.position.set(bx.x,Y0+bx.h+2.6,bx.z);mk.userData.y=mk.position.y;mk.userData.v=falls?2:v;mk.userData.wall=w;house.add(mk);marks.push(mk)});
+      mk=new THREE.Sprite(wallSignMat(straw,fa0-1+br,br,word)),bx=wallBox(w);mk.scale.set(7.6,4.2,1);mk.position.set(bx.x,Y0+bx.h+2.6,bx.z);mk.userData.y=mk.position.y;mk.userData.v=falls?2:v;mk.userData.wall=w;house.add(mk);marks.push(mk)});
   /* every straw bale in a wall glows red, pulsing, so a child can see at once what the fire will take */
   if(!strawHalo)strawHalo=haloMat(0xff4a20,0.6,true);
   WALLS.forEach(function(w){s.walls[w].forEach(function(col,c){col.forEach(function(q,r){if(!q||q.t!=='W')return;const L=slotLocal(w,c,r),ow=outward(w),sp=new THREE.Sprite(strawHalo);
@@ -1007,9 +1008,10 @@ function wait(ms){return new Promise(function(r){setTimeout(r,reduce?Math.min(ms
 function wpos(m){const v=new THREE.Vector3();m.getWorldPosition(v);world.worldToLocal(v);return v}
 function sparks(wp,color,n,rise){for(let j=0;j<n&&fx.length<44;j++){const s=halo(color,2,0.9,true);s.visible=false;world.add(s);fx.push({s:s,t:-j*0.04,life:0.7,x:wp.x+rnd(-0.7,0.7),y:wp.y+rnd(-0.4,0.4),z:wp.z+rnd(-0.3,0.7),rise:rise||rnd(1.5,3.5)})}}   /* never more than a few dozen sprites at once */
 function outward(wall){return wall==='left'?[-1,0]:wall==='right'?[1,0]:[0,1]}
+let shake=0,clackAt=0;
 function tumble(m,vx,vy,vz){house.attach(m);m.traverse(function(o){if(o.isSprite)o.visible=false});bodies.push({m:m,v:new THREE.Vector3(vx,vy,vz),w:new THREE.Vector3(rnd(-4,4),rnd(-3,3),rnd(-4,4)),rest:false})}
 function groundAt(x,z){return (Math.abs(x)<7.5&&z>-3&&z<6)?Y0:0}
-function settleBody(b){const m=b.m,r0=m.rotation.clone(),tx=m.userData.flat==='x'?Math.PI/2:0,tz=m.userData.flat==='z'?Math.PI/2:0;
+function settleBody(b){const nw=performance.now();if(nw-clackAt>70){clackAt=nw;sfx('place')}const m=b.m,r0=m.rotation.clone(),tx=m.userData.flat==='x'?Math.PI/2:0,tz=m.userData.flat==='z'?Math.PI/2:0;
   tw(0.18,function(k){m.rotation.x=r0.x+(tx-r0.x)*k;m.rotation.z=r0.z+(tz-r0.z)*k},ease.out)}
 function isLoose(m){return m&&m.userData.loose}
 
@@ -1053,14 +1055,15 @@ function fireStart(){tw(2.2,function(k){fireLight.intensity=Math.sin(k*Math.PI)*
     s.visible=false;world.add(s);fx.push({s:s,t:-rnd(0,0.9),life:rnd(0.7,1.1),x:x,y:Y0,z:z,rise:rnd(G.H*0.8,G.H*1.3)})}
   return wait(900)}
 function burn(wall,c,r){const k=key(wall,c,r),m=P[k];if(!isLoose(m))return Promise.resolve();delete P[k];
-  m.traverse(function(o){if(o.isMesh)o.material=M.char;if(o.isSprite)o.visible=false});sparks(wpos(m),0xff8a30,4,4);const s0=m.scale.x;
-  return tw(0.55,function(q){const v=s0*(1-q*0.98);m.scale.set(v,v,v)}).then(function(){if(m.parent)m.parent.remove(m)})}
-function knock(wall,c,r,xo){const k=key(wall,c,r,xo),m=P[k];if(!isLoose(m))return;delete P[k];const o=outward(wall);tumble(m,o[0]*rnd(4,6)+rnd(0.5,2.5),4,o[1]*rnd(4,6)+rnd(-1,1))}
+  const wp=wpos(m),fl=halo(0xff5a10,3.4,0.95,true);fl.position.copy(wp);world.add(fl);tw(0.9,function(q){fl.scale.setScalar(3.4+q*1.6);fl.material.opacity=0.95*(1-q);fl.position.y=wp.y+q*1.2}).then(function(){world.remove(fl);fl.material.dispose()});   /* a burst of flame first */
+  sparks(wp,0xff8a30,6,4);return wait(260).then(function(){m.traverse(function(o){if(o.isMesh)o.material=M.char;if(o.isSprite)o.visible=false});const s0=m.scale.x;
+  return tw(0.55,function(q){const v=s0*(1-q*0.98);m.scale.set(v,v,v)}).then(function(){if(m.parent)m.parent.remove(m)})})}
+function knock(wall,c,r,xo){const k=key(wall,c,r,xo),m=P[k];if(!isLoose(m))return;delete P[k];shake=Math.max(shake,0.3);const o=outward(wall);tumble(m,o[0]*rnd(4,6)+rnd(0.5,2.5),4,o[1]*rnd(4,6)+rnd(-1,1))}
 function fallOne(wall){const o=outward(wall);Object.keys(P).forEach(function(k){const m=P[k];if(m.userData.wall!==wall||!isLoose(m))return;delete P[k];
   tumble(m,o[0]*rnd(4,8)+rnd(-2,2),rnd(2,6),o[1]*rnd(4,8)+rnd(-1.5,1.5))});sway[wall]=0;lean[wall]=0;marks.forEach(function(mk){if(mk.parent)mk.parent.remove(mk)});marks=[];
   crackGhost(wall)}
-function wallFall(wall){fallOne(wall);return wait(1300)}
-function caveIn(){WALLS.forEach(function(w,i){setTimeout(function(){fallOne(w)},i*300)});
+function wallFall(wall){fallOne(wall);shake=Math.max(shake,1.1);return wait(1500)}
+function caveIn(){WALLS.forEach(function(w,i){setTimeout(function(){fallOne(w);shake=Math.max(shake,1.6)},i*300)});
   setTimeout(function(){frameParts.forEach(function(g){tumble(g,rnd(-2,2),rnd(2,4),rnd(3,6))});frameParts=[];if(roofGhost)roofGhost.visible=false},500);
   tw(1.2,function(k){homeLight.intensity=0.9-0.6*k},ease.lin);return wait(2400)}
 function spireFall(){Object.keys(P).forEach(function(k){const m=P[k];if(m.userData.wall!=='spire')return;delete P[k];tumble(m,rnd(2,5),rnd(1,3),rnd(3,6))});return wait(1100)}
@@ -1130,6 +1133,7 @@ function movePreview(g){const old=aimSt.cur;if(old&&old.children[0])old.children
     g.parent.add(pvObj);if(g.children[0])g.children[0].scale.multiplyScalar(1.6);shadowTicks=Math.max(shadowTicks,1)}
   if(api.onAim)api.onAim(g?{on:true,deco:!!(g&&g.userData.deco)}:{on:false})}
 let aimWhy='';
+function nearGhost(e){if(!api.aimPiece||!ghosts.length||cityView||plotMarks.length||!api.aimPiece())return false;const L=cacheGhosts();return L.some(function(q){return q.ok&&Math.hypot(q.x-e.clientX,q.y-e.clientY)<=44})}
 function startAim(e){aimWhy='no hook/ghosts/city';if(!api.aimPiece||!ghosts.length||cityView||plotMarks.length)return false;const p=api.aimPiece();aimWhy='no piece';if(!p)return false;
   if(aimSt&&aimSt.pid!==p.id){aimSt=null}if(pvPid!==p.id){dropPreviews();pvPid=p.id}
   aimSt={id:e.pointerId,p:p,pid:p.id,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,cur:null,dirty:false,age:0,list:cacheGhosts()};
@@ -1137,7 +1141,7 @@ function startAim(e){aimWhy='no hook/ghosts/city';if(!api.aimPiece||!ghosts.leng
   aimWhy='far '+Math.round(nd);if(nd>44){aimSt=null;return false}aimWhy='ok';
   canvas.style.touchAction='none';movePreview(pickAim(e.clientX,e.clientY));aimDot.style.display='block';aimDot.style.transform='translate('+e.clientX+'px,'+e.clientY+'px)';return true}
 function aimTick(){if(!aimSt)return;aimSt.age++;if(!aimSt.dirty&&aimSt.age%8)return;if(aimSt.age%8===0)aimSt.list=cacheGhosts();aimSt.dirty=false;
-  const tr=Math.hypot(aimSt.x-aimSt.x0,aimSt.y-aimSt.y0),ax=aimSt.x,ay=aimSt.y-Math.min(44,0.8*tr),b=canvas.getBoundingClientRect();   /* once sliding, aim a little above the finger so the spot stays in view */
+  const tr=Math.hypot(aimSt.x-aimSt.x0,aimSt.y-aimSt.y0),ax=aimSt.x,ay=aimSt.y,b=canvas.getBoundingClientRect();   /* once sliding, aim a little above the finger so the spot stays in view */
   const off=ax<b.left||ax>b.right||ay<b.top||ay>b.bottom||(api.overUi&&api.overUi(aimSt.x,aimSt.y));
   const g=off?null:pickAim(ax,ay);if(g!==aimSt.cur)movePreview(g);aimDot.style.transform='translate('+ax+'px,'+ay+'px)'}
 function cancelAim(){if(!aimSt&&!pvObj)return;if(aimSt&&aimSt.cur&&aimSt.cur.children[0])aimSt.cur.children[0].scale.multiplyScalar(1/1.6);
@@ -1145,6 +1149,7 @@ function cancelAim(){if(!aimSt&&!pvObj)return;if(aimSt&&aimSt.cur&&aimSt.cur.chi
 /* What was tapped? The nearest thing under the finger wins: one plate per glowing space, one box per laid block (no outlines, no glows).
    A near miss still counts for small fingers: the nearest space in plain sight within reach. */
 function tapTarget(e){
+  if(marks.length){fresh3();let bm=null,bdm=46;marks.forEach(function(m){if(!m.userData.wall)return;const d=near(m,e);if(d<bdm){bdm=d;bm=m}});if(bm)return{sign:bm.userData.wall}}   /* the strength sign over a wall */
   if(plotMarks.length){let bp=null,bd=64;fresh3();plotMarks.forEach(function(m){if(m.userData.glowOnly)return;const d=near(m,e);if(d<bd){bd=d;bp=m}});return bp?{plot:bp.userData.plot}:null}
   const blocks=pieces();aim(e);const hs=ray.intersectObjects(ghosts.concat(blocks),false),first=hs.length?hs[0].object:null;
   if(first&&first.userData.ghost){if(first.userData.extra){let tb=null,td=16;ghosts.forEach(function(g){if(g.userData.extra)return;const d=near(g,e);if(d<td&&inSight(g,blocks)){td=d;tb=g}});if(tb)return{ghost:tb}}return{ghost:first}}   /* a template spot close by wins over a nearby extra */
@@ -1160,10 +1165,12 @@ canvas.addEventListener('pointerdown',function(e){if(aimSt&&e.pointerId!==aimSt.
   if(fingers.size>=1){down=null;return}
   down={x:e.clientX,y:e.clientY,t:performance.now(),r:world.rotation.y,tl:TILT,px:e.clientX,py:e.clientY,slide:e.button===2||e.shiftKey,pull:false,dist:0,max:0,live:false};
   if(armed&&near(armed.m,e)<70){armed.active=true;down.pull=true;tremble=1;e.preventDefault()}
-  else if(!down.slide&&startAim(e))down.aim=true;
+  else if(!down.slide&&nearGhost(e)){const d0=down,ev={pointerId:e.pointerId,clientX:e.clientX,clientY:e.clientY};d0.pend=ev;   /* near a glowing space: wait a moment. Still = hold the block; moving off quickly = turn */
+    d0.pendT=setTimeout(function(){if(down===d0&&d0.pend&&!d0.live){d0.pend=null;if(startAim({pointerId:ev.pointerId,clientX:d0.px2==null?ev.clientX:d0.px2,clientY:d0.py2==null?ev.clientY:d0.py2}))d0.aim=true}},170)}
   try{canvas.setPointerCapture(e.pointerId)}catch(_){}});
 canvas.addEventListener('pointermove',function(e){if(aimSt&&e.pointerId===aimSt.id){aimSt.x=e.clientX;aimSt.y=e.clientY;aimSt.dirty=true;return}
   if(!down)return;
+  if(down.pend){down.px2=e.clientX;down.py2=e.clientY;if(Math.hypot(e.clientX-down.x,e.clientY-down.y)>12){clearTimeout(down.pendT);down.pend=null}}   /* moved off fast: this is a turn, not a hold */
   if(down.pull){down.dist=Math.min(1,Math.abs(e.clientX-down.x)/Math.max(110,Math.min(200,canvas.clientWidth*0.22)));pullTick();return}
   if(cityView)return;
   if(down.slide){panBy(e.clientX-down.px,e.clientY-down.py);down.px=e.clientX;down.py=e.clientY;return}
@@ -1171,7 +1178,7 @@ canvas.addEventListener('pointermove',function(e){if(aimSt&&e.pointerId===aimSt.
   if(!down.live){if(down.max<12)return;down.live=true;down.x=e.clientX;down.y=e.clientY;down.r=world.rotation.y;down.tl=TILT;   /* a small wobble on a tap never turns the house */
     down.axis=Math.abs(mx)>1.4*Math.abs(my)?'x':Math.abs(my)>1.4*Math.abs(mx)?'y':'xy';return}
   const dx=e.clientX-down.x,dy=e.clientY-down.y;
-  if(down.axis!=='y')world.rotation.y=rotGoal=down.r+dx*0.008;   /* all the way round */
+  if(down.axis!=='y')world.rotation.y=rotGoal=down.r+dx*0.006;   /* all the way round */
   if(down.axis!=='x')TILT=Math.max(-0.75,Math.min(0.9,down.tl+dy*0.004));
   if(down.axis==='x'&&Math.abs(dy)>60&&Math.abs(dy)>Math.abs(dx)*0.8)down.axis='xy';if(down.axis==='y'&&Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*0.8)down.axis='xy';
   const now=performance.now(),dtm=Math.max(8,now-(down.lt||down.t));down.v=0.7*(down.v||0)+0.3*((world.rotation.y-(down.lr==null?down.r:down.lr))/dtm*1000);down.lt=now;down.lr=world.rotation.y;
@@ -1184,6 +1191,7 @@ function up(e){if(aimSt&&e.pointerId===aimSt.id){aimTick();const t=aimSt.cur;can
   if(d.live&&!reduce&&performance.now()-(d.lt||0)<80&&d.axis!=='y')rotGoal=world.rotation.y+Math.max(-1.2,Math.min(1.2,(d.v||0)/3.5));   /* a flick keeps it turning gently */
   if((d.max||0)<12&&performance.now()-d.t<900){const t=tapTarget(e);if(!t)return;
     if(t.plot!=null){if(api.onPlot)api.onPlot(t.plot)}
+    else if(t.sign){if(api.onSign)api.onSign(t.sign)}
     else if(t.ghost){if(api.onGhost)api.onGhost({wall:t.ghost.userData.wall,col:t.ghost.userData.c,row:t.ghost.userData.r,out:t.ghost.userData.o,deco:t.ghost.userData.deco})}
     else if(api.onBale)api.onBale(t.bale.userData.wall,t.bale.userData.c,t.bale.userData.r)}}
 canvas.addEventListener('pointerup',up);
@@ -1217,8 +1225,8 @@ function fdist(){const f=Array.from(fingers.values());return Math.hypot(f[0].x-f
 canvas.addEventListener('pointerdown',function(e){fingers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(fingers.size===2&&!(armed&&armed.active)){down=null;pinch={d0:fdist(),z0:ZOOM,m:fmid(),anchor:null,a0:fang(),r0:world.rotation.y}}});
 canvas.addEventListener('pointermove',function(e){if(!fingers.has(e.pointerId))return;fingers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(pinch&&fingers.size===2){const m=fmid();zoomAt(pinch.z0*pinch.d0/fdist(),m.x,m.y,pinch.anchor);panBy(m.x-pinch.m.x,m.y-pinch.m.y);pinch.m=m;
-    let da=fang()-pinch.a0;da=Math.atan2(Math.sin(da),Math.cos(da));if(pinch.tw||Math.abs(da)>0.12){pinch.tw=true;world.rotation.y=rotGoal=pinch.r0-da*1.4}}});
+  if(pinch&&fingers.size===2){const m=fmid();if(!pinch.tw)zoomAt(pinch.z0*pinch.d0/fdist(),m.x,m.y,pinch.anchor);panBy(m.x-pinch.m.x,m.y-pinch.m.y);pinch.m=m;
+    let da=fang()-pinch.a0;da=Math.atan2(Math.sin(da),Math.cos(da));if(pinch.tw||Math.abs(da)>0.25){if(!pinch.tw){pinch.tw=true;pinch.a0=fang()-Math.sign(da)*0.0001;pinch.r0=world.rotation.y;da=0}world.rotation.y=rotGoal=pinch.r0-da*1.4}}});
 function lift(e){if(e.type!=='pointerup'&&aimSt&&e.pointerId===aimSt.id)cancelAim();fingers.delete(e.pointerId);if(fingers.size<2&&pinch){pinch=null;const f=fingers.values().next().value;if(f)down={x:f.x,y:f.y,t:0,r:world.rotation.y,tl:TILT,px:f.x,py:f.y,live:true,max:99,axis:'xy',pull:false,slide:false}}}
 canvas.addEventListener('pointerup',lift);canvas.addEventListener('pointercancel',lift);canvas.addEventListener('lostpointercapture',lift);
 canvas.addEventListener('wheel',function(e){e.preventDefault();zoomAt(ZOOM*Math.exp(e.deltaY*0.0015),e.clientX,e.clientY)},{passive:false});
@@ -1259,6 +1267,7 @@ function frame(now){const dt=Math.min(0.05,(now-last)/1000);last=now;T+=dt;
   if(!reduce&&animals.length){animals.forEach(function(g){const u=g.userData,k=Math.sin(T*0.5+u.i*2.1);g.position.x=u.x+k*0.7;g.position.z=u.z+Math.sin(T*0.37+u.i)*0.3;g.rotation.y=Math.cos(T*0.5+u.i*2.1)>0?Math.PI/2:-Math.PI/2});if(++animTick%10===0)shadowTicks=Math.max(shadowTicks,1)}
   const live=(down&&!down.pull)||pinch;const q=camSnap||reduce?1:Math.min(1,dt*(live?14:3.2));camSnap=false;if(!cityView){const dth=world.rotation.y-lastRot;if(Math.abs(dth)>1e-6){orbit(panGoal,dth);orbit(PAN,dth)}}lastRot=world.rotation.y;
   PAN.lerp(cityView?_u.set(0,0,0):panGoal,q);zg.copy(camGoal).sub(lookGoal);zg.y*=Math.max(0.05,1+TILT);zg.multiplyScalar(ZOOM).add(lookGoal).add(PAN);camera.position.lerp(zg,q);_r.copy(lookGoal).add(PAN);camLook.lerp(_r,q);camera.lookAt(camLook);
+  if(shake>0){if(!reduce){camera.position.x+=rnd(-1,1)*shake*0.45;camera.position.y+=rnd(-1,1)*shake*0.35}shake=shake<0.03?0:shake*0.9}   /* the ground shakes when a wall comes down */
   if(shadowTicks>0&&(++shF%4===0||shadowTicks===1)){shadowTicks--;renderer.shadowMap.needsUpdate=true}   /* shadows catch up every 4th frame while things move */
   renderer.render(scene,camera);if(renderer.info.render.calls>maxCalls)maxCalls=renderer.info.render.calls}
 try{size()}catch(e){window.__sizeErr=String(e&&e.stack||e)}requestAnimationFrame(loop);   /* the loop must start whatever happens */
@@ -1512,7 +1521,7 @@ function propBox(s,wb,num){const box=h('div',{class:'propbox'},[h('p',{class:'wa
   WALLS.forEach(function(w){if(wb[w]<2)return;const need=propNeed(s,w);
     if(need>0){any=true;box.appendChild(btn('\ud83e\uddf1 Prop up the '+WALLNAME[w]+' ('+need+' '+(need===1?'block':'blocks')+')',function(){startProp(w)},'prop'))}
     else if(need<0){any=true;box.appendChild(h('p',{class:'note',text:'The '+WALLNAME[w]+' has too much straw to prop up. Pull some out first.'}))}});
-  if(!any)box.appendChild(h('p',{class:'note',text:'Good blocks laid right next to a leaning wall hold it up. Every '+R.CONFIG.brace.per+' blocks = it can hold 1 more straw.'}));
+  box.appendChild(h('p',{class:'note',text:'Good blocks laid right next to a wall hold it up for ONE fire (every '+R.CONFIG.brace.per+' blocks = 1 more straw). Then they are used up.'}));
   return box}
 function rebuildCard(b){const s=st(),sm=R.summary(s);if(!s.rubble.length)return;const left=sm.rubbleLeftToday;
   const c=h('div',{class:'card rebuild'},[h('h3',{text:'\ud83e\uddf1 Build it back'}),
@@ -1780,11 +1789,11 @@ function goodPiece(s){const ok=function(t){return s.tray.filter(function(p){retu
 function startProp(w){if(busy())return;const s=st(),need=propNeed(s,w),p=goodPiece(s);
   if(need<=0){say(need===0?'The '+WALLNAME[w]+' is already propped up enough.':'Too much straw in the '+WALLNAME[w]+' to prop it up. Pull some straw out first.',true);return}
   if(!p){sfx('no');say('You need good blocks (gold, silver or gems) to prop it up. Good things done in real life bring more.',true);return}
-  sfx('tap');ui.sheet=null;ui.prop=w;ui.anySpace=false;ui.sel={id:p.id,list:'tray'};S.turnTo('home');S.faceWall(w);
+  sfx('tap');ui.sheet=null;ui.prop=w;ui.anySpace=false;ui.sel={id:p.id,list:'tray'};S.turnTo('home');S.faceWall(w);S.turnTo('zin');
   if(!showSlots()){ui.prop=null;ui.sel=null;S.hideGhosts();say('There is no space next to the '+WALLNAME[w]+' right now.',true);drawAll();return}
   say('\ud83e\uddf1 Prop up the '+WALLNAME[w]+': lay '+need+' good '+(need===1?'block':'blocks')+' on the glowing spaces right next to it.',true);drawAll()}
 function propAfter(s){const w=ui.prop;if(!w)return;const need=propNeed(s,w);
-  if(need===0){ui.prop=null;ui.sel=null;S.hideGhosts();sfx('seal');showNews('\ud83e\uddf1 Propped up!','The '+WALLNAME[w]+' will stand now. The straw still burns, so pull it out when you can.','good');say('The '+WALLNAME[w]+' is propped up. It will stand.',true);return}
+  if(need===0){ui.prop=null;ui.sel=null;S.hideGhosts();sfx('seal');const kn=R.forecast(s).knocks;showNews('\ud83e\uddf1 Propped up!','The '+WALLNAME[w]+' will stand at the next fire. But the straw still burns'+(kn?' and knocks '+kn+' '+(kn===1?'block':'blocks')+' off':'')+', and the props get used up. Only sorry + making it right takes straw out.','good');say('The '+WALLNAME[w]+' is propped up. It will stand.',true);return}
   const p=goodPiece(s);if(!p){ui.prop=null;ui.sel=null;S.hideGhosts();say('Out of good blocks. '+need+' more needed to prop the '+WALLNAME[w]+' up.',true);return}
   ui.sel={id:p.id,list:'tray'};say('\ud83e\uddf1 '+need+' more to prop up the '+WALLNAME[w]+'. Keep going!',true)}
 /* a big message over the picture: what just happened, in a few words */
@@ -1803,7 +1812,9 @@ function layAt(slot){if(!ui.sel)return;if(slot.deco){decoAt(slot);return}clearUn
   if(ev.windows.total>before){const relit=k.p.dark;k.p.dark=false;const ms=(get('milestones')||[]).filter(function(q){return q.id===(ev.windows.pure?'pureGlass':'firstWindow')})[0];
     say(relit?(get('commissions.window.relit')||'The window is shining again.'):(ms?ms.line:''));sfx('pearl')}
   else if(slot.wall==='spire')say('A gem on the spire. Keep the straw out, and it stands.');
-  cheerGoal(was);if(ui.prop){propAfter(s);reGhost()}drawAll()}
+  cheerGoal(was);if(ui.prop){propAfter(s);reGhost()}
+  if(kind==='rubble'&&!s.rubble.length){sfx('seal');showNews('\ud83c\udfe0 Built back!','Every fallen block is back up. Well done for not giving up.','good')}
+  drawAll()}
 function makeItem(id){if(busy())return;undoPoint();const r=R.craft(st(),id);if(!r.ok){ui.undo=null;sfx('no');say('You need more pieces for that one.');drawAll();return}
   sfx('gem');save();ui.sheet=null;ui.sel={id:r.piece.id,list:'tray'};showSlots();say('You made '+kindName(r.piece)+'! '+(R.decoSlots(st()).length?'Tap a gold, silver or gem block to put it on. ':'Tap a glowing space to put it in. ')+((ITEMS[id]||{}).line||''),true);drawAll();offerUndo()}
 function layRest(){if(busy())return;clearUndo();clearBlockUndo();const k=K(),s=k.s,was=goalDone(),r=lampsAside(s,function(){return R.autoPlace(s)});ui.sel=null;S.hideGhosts();   /* the rules never put anything on the spire here */
@@ -1812,6 +1823,9 @@ function layRest(){if(busy())return;clearUndo();clearBlockUndo();const k=K(),s=k
   if(!r.events.length)say('There is no open space right now.');cheerGoal(was);drawAll()}
 
 /* ---- D. fixing straw ---- */
+S.onSign=function(w){if(busy())return;const s=st(),x=X(),wb=R.wobble(s),need=propNeed(s,w),k=strawSpots(s,w).length;
+  if(x.phase==='day'&&wb[w]>=2&&need>0){startProp(w);return}
+  sfx('tap');S.faceWall(w);say(k?'The '+WALLNAME[w]+' has '+k+' straw. '+(need<0?'Too much to prop up: tap a red bale to fix it.':'Tap a red glowing bale to fix it'+(wb[w]>=2&&need>0?', or prop the wall up.':'.')):'The '+WALLNAME[w]+' is strong.',true)};
 S.onBale=function(wall,col,row){if(busy())return;sfx('tap');ui.sel=null;S.hideGhosts();drawTray();openSheet({kind:'fix',wall:wall,col:col,row:row})};
 function sorry(sh){clearUndo();const k=K(),s=k.s,r=R.forgive(s,sh.wall,sh.col,sh.row);if(!r.ok){refuse(r.reason);return}
   /* age 6: the grown-up's one tap says "we prayed it together and went and made it right" */
@@ -1898,16 +1912,16 @@ function drawNight(b,f){const k=K(),s=k.s,x=k.x,a=band(),sm=R.summary(s),nw=V('n
     if(fc.burns)lines.push(fc.burns+(fc.burns===1?' straw bale':' straw bales')+' will burn.');
     if(fc.knocks)lines.push(fc.knocks+(fc.knocks===1?' stone':' stones')+' next to the straw will be knocked to the rubble pile.');
     fc.wallFalls.forEach(function(w){lines.push('The '+WALLNAME[w]+' is leaning. It has too much straw and it will fall.')});
-    if(fc.caveIn)lines.push('Another wall is still cracked from last time, so the whole building would come down.');
+    if(fc.caveIn)lines.push(fc.wallFalls.length>1?'Two walls will fall at once, so the WHOLE HOUSE comes down.':'Another wall is still cracked from last time, so the whole building would come down.');
     if(fc.spireFall)lines.push('Straw is still in the walls, so the spire would come down.');
     if(fc.windowsLost)lines.push(fc.windowsLost+(fc.windowsLost===1?' window':' windows')+' would go dark.');
     if(sm.mercy)lines.push('After a cave-in, no wall can fall at this fire.');
     if(sm.practiceNext)lines.push(get('commissions.practiceFire')||'This first fire is practice. Straw will burn, but nothing will fall.');
-    WALLS.forEach(function(w){if(sm.walls[w].wobble===1)lines.push('The '+WALLNAME[w]+' is swaying.')});
+    WALLS.forEach(function(w){if(sm.walls[w].wobble!==1)return;const k=strawSpots(s,w).length;lines.push(R.braceOf(s,w)&&k>=sm.fallAt?'The '+WALLNAME[w]+' is propped up: it will stand, but its straw still burns and the props get used up.':'The '+WALLNAME[w]+' is swaying.')});
     b.appendChild(h('ul',{class:'plain'},lines.map(function(l){return h('li',{text:l})})));
     if(sm.mortar)b.appendChild(h('p',{class:'mortar',text:mortarLine(sm)}));
     if(fc.burns)b.appendChild(h('p',{class:'note',text:'One more chance: tap a straw bale in the picture to put it right.'}));
-    if(fc.wallFalls.length&&!fc.caveIn)b.appendChild(propBox(s,R.wobble(s)));
+    if(fc.wallFalls.length)b.appendChild(propBox(s,R.wobble(s)));
     f.appendChild(btn('Light the fire',runFire,'big'));f.appendChild(btn('Not tonight',function(){say('');goodnight()},'quiet'));return}
   if(x.night==='plot'){const free=freePlots(k,3);title(b,'A place in the City');b.appendChild(h('p',{class:'say',text:x.fireWords||''}));
     b.appendChild(h('p',{class:'note',text:'Tap a numbered plot in the picture, or one of these.'}));
@@ -1915,7 +1929,7 @@ function drawNight(b,f){const k=K(),s=k.s,x=k.x,a=band(),sm=R.summary(s),nw=V('n
   if(x.night==='after'){title(b,'After the fire');const ft=x.fireTally;
     if(ft){b.appendChild(h('p',{class:'say',text:(ft.cave?'\ud83d\udca5 The whole house caved in.':ft.burned?'\ud83d\udd25 '+ft.burned+' straw burned'+(ft.knocked?', '+ft.knocked+' blocks knocked off.':'.'):'\u2728 Nothing burned.')}));
       if(ft.rows.length)b.appendChild(h('ul',{class:'tally'},ft.rows.map(function(r){return h('li',{class:r.ok?'ok':'bad',text:(r.ok?'\u2705 ':'\u274c ')+r.t})})));
-      if(ft.knocked||ft.cave||ft.rows.some(function(r){return !r.ok}))b.appendChild(h('p',{class:'note',text:'\ud83e\uddf1 Fallen blocks are still yours. Tomorrow, tap "Build it back" to put them up again.'}))}
+      if(ft.knocked||ft.cave||ft.rows.some(function(r){return !r.ok}))b.appendChild(h('p',{class:'note',text:'\ud83e\uddf1 Fallen blocks are still yours. In the morning, tap "Build it back" and put them straight back up.'}))}
     b.appendChild(h('p',{class:'note',text:x.fireWords||''}));animalButton(b);
     b.appendChild(h('p',{class:'note',text:'Grown-up: '+(get('fireWords.parentRule')||'')}));f.appendChild(btn('Goodnight',goodnight,'big'));return}
   if(x.night==='tomorrow'){drawTomorrow(b,f);return}
@@ -1962,7 +1976,7 @@ function nextMorning(){if(busy())return;clearUndo();clearBlockUndo();const ev=ne
 /* the fire: the rules decide everything; this only plays their events in order */
 async function runFire(){if(ui.busy)return;clearUndo();clearBlockUndo();const k=K(),s=k.s,x=k.x,a=band(),CW=get('commissions')||{},WW=CW.window||{},SW=CW.spire||{};
   ui.busy=true;ui.sheet=null;ui.sel=null;S.disarm();S.hideGhosts();S.hidePlots();S.turnTo('centre');say(CT.fire('before',a));drawAll();
-  await S.wait(DB.speak?7000:2800);
+  await S.wait(DB.speak?7000:1800);
   /* look ahead with the rules, so every stone that is about to move is drawn on its own (the rest stay merged) */
   const fc=R.forecast(s),loose=[];
   fc.events.forEach(function(e){if(e.kind==='burn'||e.kind==='knock')loose.push(K3(e.wall,e.col,e.row,e.out));
@@ -1997,7 +2011,7 @@ async function runFire(){if(ui.busy)return;clearUndo();clearBlockUndo();const k=
   const fell=of('wallFall').map(function(e){return e.wall}),cave=of('caveIn').length>0,burned=of('burn').length,knocked=of('knock').length,rows=[];
   WALLS.forEach(function(w){if(!pre[w].straw&&!pre[w].br)return;
     if(cave||fell.indexOf(w)>=0)rows.push({ok:false,t:'The '+WALLNAME[w]+' FELL DOWN'+(pre[w].straw?' ('+pre[w].straw+' straw in it)':'')+'.'});
-    else if(pre[w].br&&pre[w].straw>=fa1)rows.push({ok:true,t:'The '+WALLNAME[w]+' stood, because you propped it up!'});
+    else if(pre[w].br&&pre[w].straw>=fa1)rows.push({ok:true,t:'The '+WALLNAME[w]+' stood, because you propped it up! The props were used up holding it.'});
     else if(pre[w].straw)rows.push({ok:true,t:'The '+WALLNAME[w]+' stood'+(ev.practice?' (practice fire)':ev.mercy?' (the breather after a cave-in)':'')+'.'})});
   x.fireTally={burned:burned,knocked:knocked,cave:cave,rows:rows};
   if(cave)showNews('\ud83d\udca5 The whole house caved in!',burned+' straw burned. The blocks are in the rubble pile: you can build it back.','bad');

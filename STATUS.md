@@ -177,3 +177,12 @@ Played the straw → fire → rebuild loop as a child. Before: one small line of
 - "My pieces" hides at night and while a sheet (Craft etc.) is open, so panels get full height; it never takes more than ~half the side.
 - Crafted items go onto laid gold/silver/gem blocks; craft pictures show them on gold.
 - ⟲ ⟳ turn buttons on the picture; two-finger twist turns the house.
+
+## v66 (21 Nov 2026) — overnight round 2 (from 3 agent reviews; round 1 overall 6.5/10)
+- Controls: a quick swipe from a glowing space now TURNS the house (a short 0.17s hold before a block shows); aiming is right under the finger (no jump up a row); calmer turning; two-finger twist only after a clear twist, zoom frozen while twisting.
+- Props hold for ONE fire: the blocks that carried the wall go to the rubble pile (rules brace.oneFire; theology: straw can't pile up behind props). Messages say so.
+- Wall signs: icon + word + "N straw · holds N" + boxes; tap a sign to prop that wall (or turn to its straw).
+- Last look: right reason for a cave-in ("two walls at once"), prop buttons always shown, propped walls named.
+- Fire: flame burst before straw turns to ash, ground shake on falls/cave-in, clack per landing block, shorter wait before it starts.
+- Rebuild: 12 fallen blocks a day (was 4), "Built back!" when the pile is empty; words say blocks wait in the rubble pile.
+- Crafted items 30% bigger on blocks. Portrait: pieces strip no longer cut off.

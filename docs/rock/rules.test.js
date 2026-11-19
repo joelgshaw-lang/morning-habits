@@ -461,14 +461,14 @@ test('fairness: a helped child has cracks that mend sooner', function () {
   newDay(s, 3); assert(R.fire(s).some(function (e) { return e.kind === 'mend'; }));
 });
 
-test('rubble (v6 blocks): 4 a day, 20 a day while the pile is over 16', function () {   // v5 was 2 / 6 over 8; 19 Nov 2026 big-pile 12 -> 20
+test('rubble (v6 blocks): 12 a day, 20 a day while the pile is over 16', function () {   // v5 was 2 / 6 over 8; 19 Nov 2026 big-pile 12 -> 20
   C.rubblePerDay = TUNED.rubblePerDay; C.rubbleBigPile = TUNED.rubbleBigPile;
   var s = kid(12); for (var i = 0; i < 40; i++) s.rubble.push({ id: 900 + i, t: 'S' });
   assert.equal(R.summary(s).rubbleLeftToday, 20);
   assert.equal(R.autoPlace(s).events.length, 20); assert.equal(s.rubble.length, 20);
   newDay(s); assert.equal(R.autoPlace(s).events.length, 20, 'still a big pile: 20 again');
   for (var j = 0; j < 10; j++) s.rubble.push({ id: 990 + j, t: 'S' }); newDay(s); s.rubble.length = 16;
-  assert.equal(R.summary(s).rubbleLeftToday, 4, 'pile is 16 now: back to 4 a day');
+  assert.equal(R.summary(s).rubbleLeftToday, 12, 'pile is 16 now: back to 12 a day');
 });
 
 test('knockNearestIfBare: a bare bale with nothing beside it takes the nearest stone in its wall', function () {
@@ -1325,5 +1325,16 @@ test('brace: good blocks outside a wall let it hold more straw, but straw still 
   assert.equal(R.braceOf(s, 'left'), 1);
   assert.notEqual(R.wobble(s).left, 2, 'propped up');
   var fc = R.forecast(s); assert(fc.wallFalls.indexOf('left') < 0, 'does not fall'); assert(fc.burns >= fa, 'straw still burns');
+});
+test('brace: the props that carry a wall through a fire are used up (rubble pile)', function () {
+  var s = kid(8), fa = R.summary(s).fallAt; s.stats.fires = 1; s.practiced = true; s.mercy = false;
+  for (var i = 0; i < fa; i++) set(s, 'left', i, 0, 'W');
+  for (var c = 0; c < 4; c++) s.extras.push({ wall: 'left', col: c, row: 0, out: 1, p: { id: 910 + c, t: 'G' } });
+  var rub = s.rubble.length, ev = R.fire(s);
+  assert(!ev.some(function (e) { return e.kind === 'wallFall'; }), 'the wall stood');
+  var spent = ev.filter(function (e) { return e.prop; }).length;
+  assert.equal(spent, 3, 'three props took the weight');
+  assert.equal(s.extras.filter(function (x) { return x.wall === 'left'; }).length, 1, 'the spare prop stays');
+  assert(s.rubble.length >= rub + 3, 'used props are in the rubble pile');
 });
 console.log(passed + ' tests passed' + (process.exitCode ? ', SOME FAILED' : ''));
