@@ -112,6 +112,7 @@ export function createQuick(ctx) {
     if (!q || q.status !== 'waiting') return false;
     q.status = ds.keep ? 'kept' : 'dropped';
     q.checkedAt = ctx.clock.now().toISOString();
+    ctx.sendToRock(q.kidId, { kind: 'night' });   // a night a grown-up checked: it counts toward the child's level in Build on the Rock (once a night)
     if (ds.keep) {
       // A kept moment is a coin change like the ones in Grown-ups → coins (it shows in their history), never below zero.
       const have = ctx.coinsOf(q.kidId);

@@ -88,6 +88,7 @@
     pullsMatchStrawCap: true,                       // pulls allowed a day = straw allowed a day for that age
     pullNeedsForgive: true,                         // the bale must carry the pearl mark first
     pullNeedsMadeRight: false,
+    levels: { at: [0, 10, 20, 35, 50], names: ['Apprentice', 'Builder', 'Craftsman', 'Master builder', 'Wise builder'], every: 25 },   // levels by NIGHTS a grown-up confirmed (21 Nov 2026, Joel): owning-up nights count, no streaks, nothing resets
     brace: { enabled: true, per: 3, max: 2, oneFire: true, marked: true },   // marked: only blocks laid on purpose with "Prop it up" count (markProp), so good blocks can't be stockpiled outside a wall in advance;   // oneFire (21 Nov 2026): props that carry a wall through a fire are used up (knocked to the rubble pile), so straw can't pile up behind them for ever.       // good blocks laid just OUTSIDE a wall prop it up: every 3 = it stands with 1 more straw (at most 2). Straw still burns and knocks.                      // true: markMadeRight() must be called before pull() works
     pullMode: 'settle',                             // 'settle' (wall drops, pearl seam) | 'pearlSlot'
     rubblePerDay: { 6: 12, 8: 12, 12: 12 },         // (21 Nov 2026: 4 -> 12, a usual fire knocks ~12 off: one day to put it back) fallen stones a child may re-lay each day
@@ -777,10 +778,28 @@
 
   /* spendStars(state, n, what): spend n stars on a sticker or decoration. what = {kind, building?} (building = the
      city building's n, default 'city'). Recorded in state.purchases for the screen to draw. No gameplay effect. */
+  /* countNight(state, key): one more night a grown-up confirmed (key = that night's date or day, so it counts once).
+     Never goes down. -> {ok, nights, levelUp: the new level or null} */
+  function countNight(state, key) {
+    var nd = state.nightsDone || (state.nightsDone = { n: 0, keys: [] });
+    key = String(key); if (nd.keys.indexOf(key) >= 0) return { ok: false, nights: nd.n, levelUp: null };
+    var before = level(state).idx; nd.n++; nd.keys.push(key); if (nd.keys.length > 21) nd.keys = nd.keys.slice(-21);
+    var L = level(state); return { ok: true, nights: nd.n, levelUp: L.idx > before ? L : null };
+  }
+  /* level(state) -> {idx, name, nights, at, nextAt, nextName, toNext}. After the last named level, a new step every `every` nights. */
+  function level(state) {
+    var C = CONFIG.levels, n = (state.nightsDone && state.nightsDone.n) || 0, i = 0;
+    while (i + 1 < C.at.length && n >= C.at[i + 1]) i++;
+    var last = C.at[C.at.length - 1], extra = n >= last ? Math.floor((n - last) / C.every) : 0, idx = i + extra;
+    var name = C.names[i] + (extra ? ' ' + '\u2605'.repeat(Math.min(extra, 5)) : ''), at = extra ? last + extra * C.every : C.at[i];
+    var nextAt = i + 1 < C.at.length ? C.at[i + 1] : last + (extra + 1) * C.every, nextName = i + 1 < C.at.length ? C.names[i + 1] : C.names[i] + ' ' + '\u2605'.repeat(Math.min(extra + 1, 5));
+    return { idx: idx, name: name, nights: n, at: at, nextAt: nextAt, nextName: nextName, toNext: nextAt - n };
+  }
   function spendStars(state, n, what) {
     ensure(state);
     if (!(n > 0) || n > state.starBalance) return fail('notEnough');
     var buy = { id: state.nextId++, kind: (what && what.kind) || String(what || 'sticker'), building: (what && what.building) || 'city', cost: n, day: state.day };
+    if (what && what.forWho) buy.forWho = String(what.forWho).slice(0, 24);   // furniture is made for someone real
     state.starBalance -= n; state.purchases.push(buy);
     return { ok: true, purchase: buy, events: [{ kind: 'purchase', purchase: buy, balance: state.starBalance }] };
   }
@@ -1048,8 +1067,8 @@
   /* confirmNight(state): the grown-up's one tap ("Yes, I saw that too") gives the night's gems. */
   function confirmNight(state) {
     if (!state.pendingNight || state.pendingNight.given) return fail('nothingPending');
-    var given = giveNight(state, false);
-    return { ok: true, pieces: given, events: given.map(function (p) { return { kind: 'tray', piece: p }; }) };
+    var given = giveNight(state, false), cn = countNight(state, 'day' + state.day);
+    return { ok: true, levelUp: cn.levelUp, pieces: given, events: given.map(function (p) { return { kind: 'tray', piece: p }; }) };
   }
   /* ownUp(state, cardId): after the sorry prayer for a card answered 'not' tonight. Never straw, never a new piece:
      the pearl brings back ONE block lost to fire (the newest in the rubble) into the tray, pearl-marked, to be laid next
@@ -1263,7 +1282,7 @@
   }
 
   return { CONFIG: CONFIG, newChild: newChild, startDay: startDay, addPiece: addPiece, legalSlots: legalSlots,
-    craft: craft, craftable: craftable, bracing: bracing, braceOf: braceOf, markProp: markProp, decorate: decorate, decoSlots: decoSlots, place: place, placeRubble: placeRubble, autoPlace: autoPlace, forgive: forgive, pull: pull, wobble: wobble,
+    craft: craft, craftable: craftable, bracing: bracing, braceOf: braceOf, markProp: markProp, countNight: countNight, level: level, decorate: decorate, decoSlots: decoSlots, place: place, placeRubble: placeRubble, autoPlace: autoPlace, forgive: forgive, pull: pull, wobble: wobble,
     windows: windows, forecast: forecast, isFireNight: isFireNight, callFire: callFire, fire: fire,
     endDay: endDay, summary: summary, addGospelShare: addGospelShare, addNeighbour: addNeighbour, prayFor: prayFor,
     strawTarget: strawTarget, isComplete: isComplete, at: at, tally: tally,

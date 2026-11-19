@@ -195,3 +195,11 @@ Played the straw → fire → rebuild loop as a child. Before: one small line of
 - A slow drag turns the house: a hold only starts when the finger stays still (6px) for 0.26s. Prop mode shows the row right against the wall first. ⌂ also turns the house back to the front.
 - Fire: the world darkens while it burns, longer flames + grey smoke, a wall shudders before it falls, the view steps back after a cave-in. Bigger torch flame.
 - Words: no "tonight is practice" on real fires; "forgiven, and the bale stays until you make it right"; Build it back says "tap"; the grown-up rule line no longer shows in the children's panel in the family app.
+
+## v68 (21 Nov 2026) — levels step 1 (Joel approved the levels plan in the other session: "Yes, build it"; plan in docs/levels-proposal.md)
+- Levels count NIGHTS a grown-up checked (rules countNight/level; once per night, never goes down): Apprentice 0, Builder 10, Craftsman 20, Master builder 35, Wise builder 50, then ★ every 25.
+- The family app sends {kind:'night'} to the game whenever a grown-up keeps or drops a moment in the night check (quick.js). Gems and straw that arrive also count that night. NOTE: a night with nothing waiting to check doesn't count yet.
+- 🔨 level badge in the game's top bar (tap = recipe book). Level-up message.
+- "📖 Recipe book" (was Craft): level bar, the 6 crafts, Furniture, and "Coming next" ? cards that flip with a chime when they open.
+- First furniture: a bench by the front door for 1 star, made "For Mum / Dad / my brother / my sister / a friend / a neighbour", with a name sign.
+- TO DO before any child reaches 10 nights (about 10 days): build bed + table and a pet (the cards say "coming to your island soon").

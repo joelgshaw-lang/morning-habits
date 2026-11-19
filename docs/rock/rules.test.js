@@ -1345,4 +1345,17 @@ test('brace: good blocks just lying outside a wall do not count, only ones laid 
   s.extras.forEach(function (x) { R.markProp(s, x.wall, x.col, x.row, x.out); });
   assert.equal(R.braceOf(s, 'left'), 1, 'marked as props: they hold');
 });
+test('levels: count confirmed nights once each, never go down, level up at 10', function () {
+  var s = kid(8);
+  assert.equal(R.level(s).name, 'Apprentice'); assert.equal(R.level(s).toNext, 10);
+  for (var i = 0; i < 9; i++) assert(R.countNight(s, '2026-11-' + (10 + i)).ok);
+  assert.equal(R.countNight(s, '2026-11-10').ok, false, 'the same night counts once');
+  var r = R.countNight(s, '2026-11-30'); assert.equal(r.nights, 10); assert.equal(r.levelUp.name, 'Builder');
+  s.nightsDone.n = 50; assert.equal(R.level(s).name, 'Wise builder'); s.nightsDone.n = 75; assert.equal(R.level(s).name, 'Wise builder \u2605'); assert.equal(R.level(s).nextAt, 100);
+});
+test('furniture is bought with stars and remembers who it is for', function () {
+  var s = kid(8); s.starBalance = 2; var tray = s.tray.length;
+  var r = R.spendStars(s, 1, { kind: 'bench', building: 'home', forWho: 'Mum' });
+  assert(r.ok); assert.equal(r.purchase.forWho, 'Mum'); assert.equal(s.starBalance, 1); assert.equal(s.tray.length, tray, 'never costs building blocks');
+});
 console.log(passed + ' tests passed' + (process.exitCode ? ', SOME FAILED' : ''));

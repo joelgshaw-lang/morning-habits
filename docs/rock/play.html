@@ -128,6 +128,13 @@ body.full #spinR{right:268px}
 #news b{font-size:26px;line-height:1.15}#news span{font-size:16px;opacity:.92}
 #news.bad{border-color:#ff5a3c;background:rgba(70,14,10,.93)}#news.good{border-color:#6be38a;background:rgba(10,52,30,.93)}
 @keyframes newsIn{from{transform:translateX(-50%) scale(.8);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
+#lvChip{cursor:pointer;background:rgba(232,183,48,.18);border:1px solid #e8b730;color:#ffe08a;font-weight:800}
+.lvhead{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border:1px solid #e8b730;border-radius:14px;background:rgba(232,183,48,.1)}.lvhead b{font-size:18px}.lvhead span{font-size:14px;opacity:.9}
+.lvbar{height:10px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}.lvbar i{display:block;height:100%;background:linear-gradient(90deg,#e8b730,#ffe08a)}
+h4.rb{margin:14px 0 6px;font-size:15px}.lockgrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.lock{border:1px dashed var(--line);border-radius:14px;padding:12px;min-height:84px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:4px;background:rgba(255,255,255,.03);opacity:.75}
+.lock b{font-size:26px}.lock.open{opacity:1;border-style:solid;border-color:#e8b730}.lock.open b{font-size:16px}.lock small{font-size:13px}
+.lock.flip{animation:flipIn .9s ease-out}@keyframes flipIn{0%{transform:rotateY(90deg)}100%{transform:rotateY(0)}}
 #aimDot{position:fixed;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--gold);box-shadow:0 0 0 3px rgba(0,0,0,.35);pointer-events:none;z-index:40}
 html{overscroll-behavior:none}
 .app,#toolsWrap,#modal{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -354,6 +361,7 @@ button.both{width:100%;min-height:52px;font-size:17px}
     <h1>Build on the Rock</h1>
     <div class="seg" role="group" aria-label="Whose turn" id="kids"></div>
     <span class="chip" id="dayChip"></span>
+    <button type="button" class="chip lv" id="lvChip" title="Your level: nights a grown-up checked. Tap for the recipe book."></button>
     <span class="chip" id="fireChip"><span class="candle" id="candle" aria-hidden="true"></span><span id="fireTxt"></span></span>
     <span class="chip" id="cityChip"></span>
     <button type="button" class="chip starchip" id="stars" title="Stars to spend"></button>
@@ -930,6 +938,8 @@ function render(s,x,p,opt){cancelAim();p=p||{};opt=opt||{};const sm=R.summary(s)
   /* decorations bought with stars */
   if(buys.flag&&!x.frameDown){hb.box(0.12,2.4,0.12,M.trim,G.px,Y0+G.Hf+1.5,3.5,true).box(1.3,0.8,0.08,M.cap,G.px+0.7,Y0+G.Hf+2.2,3.5,true)}
   if(buys.flowers)for(let i=0;i<Math.min(3,buys.flowers);i++){const fx0=[-3.4,3.4,-6.3][i];hb.box(1.8,0.35,0.5,M.wood,fx0,Y0+0.18,5.6,true);for(let j=0;j<4;j++)hb.box(0.26,0.34,0.26,M.fl[(i+j)%4],fx0-0.6+j*0.4,Y0+0.5,5.6,true)}
+  {const bn=(s.purchases||[]).filter(function(q){return q.kind==='bench'})[0];if(bn){const bx=2.3,bz=5.2;hb.box(1.9,0.16,0.6,M.wood,bx,Y0+0.55,bz,true).box(0.16,0.55,0.5,M.trim,bx-0.8,Y0+0.27,bz,true).box(0.16,0.55,0.5,M.trim,bx+0.8,Y0+0.27,bz,true).box(1.9,0.5,0.12,M.wood,bx,Y0+0.95,bz-0.28,true);
+    if(bn.forWho)sign(house,'For '+bn.forWho,3.2,bx,Y0+1.9,bz-0.3)}}   /* furniture: the bench by the door, made for someone */
   if(buys.lantern){hb.box(0.2,1.6,0.2,M.trim,8.3,1.9,3.5).box(0.4,0.5,0.4,M.lamp,8.3,2.95,3.5,true);glow(house,0xffb858,3.4,0.75,8.3,2.95,3.5)}
   /* lanterns from the prayer log (one for every 10 prayers) hang down the front pillars; they glow and never burn */
   const nl=Math.min(10,(sm.prayers&&sm.prayers.lanterns)||0);for(let i=0;i<nl&&!x.frameDown;i++){const lx=(i%2?G.px:-G.px)+(i%2?0.75:-0.75),ly=Y0+G.Hf-0.7-1.3*Math.floor(i/2);
@@ -1408,6 +1418,7 @@ function applyFull(){const on=!!(DB&&DB.full),x=K()&&X(),need=on&&(!!ui.sheet||u
 function drawBar(){const s=st(),x=X(),kids=$('kids');kids.textContent='';
   if(!LIVE)AGES.forEach(function(a){kids.appendChild(btn('Age '+a,function(){askSwitch(a)},null,{'aria-pressed':String(DB.cur===a)}))});
   $('dayChip').textContent=WEEK[s.weekday]+' \u00b7 Day '+s.day;
+  {const L=R.level(s);$('lvChip').textContent='\ud83d\udd28 '+L.name+' \u00b7 '+L.nights+(L.nights===1?' night':' nights')}
   const n=nightsToFire();$('fireTxt').textContent=n===0?(s.today.fired?'Fire is over':'Fire tonight'):n===1?'Fire tomorrow night':'Fire in '+n+' nights';
   $('fireChip').className='chip'+(n===0&&!s.today.fired?' fire':'');$('candle').style.setProperty('--left',Math.max(12,Math.round(n/7*100))+'%');
   $('cityChip').textContent='City: '+s.city.length;
@@ -1427,7 +1438,7 @@ function recolour(p,code){const r=R.setColour(st(),p.id,code);if(!r.ok){refuse(r
 function drawTray(){topUp();const _o=$('tray').querySelector('.tiles.stack'),_y=_o?_o.scrollTop:0;drawTray0();const _n=$('tray').querySelector('.tiles.stack');if(_n)_n.scrollTop=_y}
 function drawTray0(){const s=st(),t=$('tray'),sm=R.summary(s),tiles=trayTiles(s);t.textContent='';
   const can=tiles.length||(s.rubble.length&&sm.rubbleLeftToday>0);
-  t.appendChild(h('div',{class:'row'},[h('h2',{text:'My pieces'}),tiles.length?null:h('span',{class:'note',text:'Good things done in real life fill these up.'}),h('span',{class:'sp'}),btn('\ud83d\udee0\ufe0f Craft',function(){sfx('tap');openSheet({kind:'craft'})},'quiet'),can&&!DB.trayHide?btn('Lay the rest',layRest,'quiet'):null,
+  t.appendChild(h('div',{class:'row'},[h('h2',{text:'My pieces'}),tiles.length?null:h('span',{class:'note',text:'Good things done in real life fill these up.'}),h('span',{class:'sp'}),btn('\ud83d\udcd6 Recipes',function(){sfx('tap');openSheet({kind:'craft'})},'quiet'),can&&!DB.trayHide?btn('Lay the rest',layRest,'quiet'):null,
     btn(DB.trayHide?'\u25B4 Show pieces':'\u25BE Hide',function(){sfx('tap');DB.trayHide=!DB.trayHide;save();drawTray()},'quiet',{'aria-expanded':String(!DB.trayHide)})]));
   if(DB.trayHide){const sel=trayPiece();if(sel)t.appendChild(h('p',{class:'note',text:'Holding: '+kindName(sel)+'. Tap a glowing space.'}));return}
   t.appendChild(h('div',{class:'tiles stack'},trayGroups(s,tiles).map(function(g){return g.items.length?groupTile(g,'tray'):emptyTile(g.k)})));   /* always every kind, 0 = greyed */
@@ -1562,19 +1573,39 @@ function give(type,meta,line){if(busy())return false;undoPoint();const s=st(),r=
   sfx(isGem(type)?'gem':'tap');ui.sheet=null;say(line);drawAll();offerUndo();return true}
 /* things to spend stars on: no effect on the game, only lovely */
 const SHOP=[['flag','A flag on the pillar',1,'home',1],['flowers','A flower box',1,'home',3],['lantern','A lantern by the steps',1,'home',1],['banner','Bunting for the City',2,'city',1]];
+/* ---- levels (nights a grown-up checked) and the recipe book ---- */
+const UNLOCKS=[{at:10,e:'\ud83d\udecf\ufe0f',name:'Bed and table',line:'Furniture by the door.'},{at:10,e:'\ud83d\udc36',name:'A pet',line:'Someone to look after.'},
+  {at:20,e:'\ud83d\udd25',name:'Fireplace',line:'A warm place to sit together.'},{at:35,e:'\ud83d\udeaa',name:'The door opens',line:'A room inside: bookshelf, a cross facing the door, stained glass.'},
+  {at:50,e:'\ud83c\udf3f',name:'Mossy stone',line:'A new block style.'},{at:50,e:'\ud83c\udf7d\ufe0f',name:'Table for guests',line:'Where real neighbours sit.'}];
+const FOR_WHO=['Mum','Dad','my brother','my sister','a friend','a neighbour'];
+function levelHead(b,s){const L=R.level(s);b.appendChild(h('div',{class:'lvhead'},[h('b',{text:'\ud83d\udd28 '+L.name}),h('span',{text:L.nights+(L.nights===1?' night':' nights')+' checked by a grown-up. '+L.toNext+' more to '+L.nextName+'.'}),
+  h('div',{class:'lvbar'},[h('i',{style:'width:'+Math.round(100*(L.nights-L.at)/Math.max(1,L.nextAt-L.at))+'%'})])]))}
+function furnitureCards(b,s){const sm=R.summary(s),have=sm.purchases.filter(function(q){return q.kind==='bench'})[0];b.appendChild(h('h4',{class:'rb',text:'\ud83e\ude91 Furniture (paid with stars, made for someone real)'}));
+  const c=h('div',{class:'card'},[h('div',{class:'row'},[h('h3',{text:'\ud83e\ude91 A bench by the door'}),h('span',{class:'sp'}),h('span',{class:'note',text:have?'Made for '+(have.forWho||'someone'):'\u2605 1'})]),
+    h('p',{class:'note',text:have?'A place to sit and talk with '+(have.forWho||'them')+'.':'Who is it for? Make it for a real person, then spend time with them on it.'+(sm.starBalance<1?' Stars come when a building is finished.':'')})]);
+  if(!have)c.appendChild(h('div',{class:'row wrap'},FOR_WHO.map(function(w){return btn('For '+w,function(){buyBench(w)},'quiet',sm.starBalance<1?{disabled:true}:null)})));
+  b.appendChild(c)}
+function buyBench(w){if(busy())return;const s=st(),r=R.spendStars(s,1,{kind:'bench',building:'home',forWho:w});if(!r.ok){refuse(r.reason);return}
+  sfx('seal');ui.sheet=null;redraw();S.turnTo('front');showNews('\ud83e\ude91 A bench for '+w+'!','It is by your front door. Go and sit with '+(w.indexOf('my ')===0?'them':w)+' for a bit today.','good');drawAll()}
+function lockedCards(b,s){const L=R.level(s),seen=DB.lvSeen||0;b.appendChild(h('h4',{class:'rb',text:'\ud83d\udd12 Coming next'}));
+  const g=h('div',{class:'grid lockgrid'});UNLOCKS.forEach(function(u){const open=L.nights>=u.at,fresh=open&&u.at>seen;
+    g.appendChild(h('div',{class:'lock'+(open?' open':'')+(fresh?' flip':'')},open?[h('b',{text:u.e+' '+u.name}),h('small',{text:'Open! Coming to your island soon.'})]:[h('b',{text:'?'}),h('small',{text:'Opens at night '+u.at+' ('+(u.at-L.nights)+' to go)'})]))});
+  b.appendChild(g);if(UNLOCKS.some(function(u){return L.nights>=u.at&&u.at>seen})){sfx('pearl');DB.lvSeen=L.nights;save()}}
+function levelUp(L){if(!L)return;sfx('seal');showNews('\u2b50 Level up: '+L.name+'!','New things open in your recipe book. Tap the \ud83d\udd28 badge to see.','good');drawBar()}
 function buy(q){if(busy())return;const s=st(),r=R.spendStars(s,q[2],{kind:q[0],building:q[3]});if(!r.ok){refuse(r.reason);return}
   sfx('seal');say(q[1]+'. Lovely.');redraw();if(q[3]==='city'){S.turnTo('city');setTimeout(function(){if(X().night!=='plot')S.turnTo('centre')},3200)}}
 const SHEETS={
   /* crafting: combine pieces from My pieces into one special item (Minecraft-style) */
   craft:function(b,f,sh){const s=st(),list=R.craftable(s),have={};trayTiles(s).forEach(function(p){if(!p.pearl&&p.t!=='C'&&p.t!=='W')have[p.t]=(have[p.t]||0)+1});
-    title(b,'\ud83d\udee0\ufe0f Craft');b.appendChild(h('p',{class:'note',text:'Put pieces together to make something special, then put it onto a gold, silver or gem block in your house. Items never burn, but they fall if their wall falls.'}));
+    title(b,'\ud83d\udcd6 Recipe book');levelHead(b,s);b.appendChild(h('h4',{class:'rb',text:'\ud83d\udee0\ufe0f Crafts'}));b.appendChild(h('p',{class:'note',text:'Put pieces together to make something special, then put it onto a gold, silver or gem block in your house. Items never burn, but they fall if their wall falls.'}));
     const needWords=function(nd){return Object.keys(nd).map(function(c){const n=nd[c],nm=c==='gem'?'gems (any fruit, all one fruit shines brightest)':c==='G'?'gold':c==='S'?'silver':((FRUIT[c]&&FRUIT[c].name)||c);return n+' '+nm}).join(' + ')};
     list.forEach(function(r){const it=ITEMS[r.id]||{};
       const pic=S.itemPic?S.itemPic(r.id):null;
       b.appendChild(h('div',{class:'card'},[h('div',{class:'row',style:'flex-wrap:nowrap;align-items:flex-start'},[h('div',{class:'craftpic','aria-hidden':'true'},[pic?h('img',{src:pic,alt:''}):(it.e||'')]),
         h('div',{style:'flex:1;min-width:0;display:flex;flex-direction:column;gap:6px'},[h('div',{class:'row'},[h('h3',{text:(it.e||'')+' '+r.name}),h('span',{class:'sp'}),
           btn(r.ok?'Make it':'Not yet',function(){if(!r.ok)return;makeItem(r.id)},r.ok?null:'quiet',r.ok?null:{disabled:true})]),
-        h('p',{class:'note',text:'Needs '+needWords(r.need)+'. '+(it.line||'')})])])]))})},
+        h('p',{class:'note',text:'Needs '+needWords(r.need)+'. '+(it.line||'')})])])]))});
+    furnitureCards(b,s);lockedCards(b,s)},
   goal:function(b,f,sh){drawGoal(b,f)},
   who:function(b,f,sh){const by=QW('by')||{};title(b,QW('who'));
     b.appendChild(h('div',{class:'grid three'},['me','sibling','grownup'].map(function(w){return btn([h('span',{class:'t',text:by[w]||w})],function(){quickTap(sh.q,w,sh.card)},'pc')})))},
@@ -1880,7 +1911,7 @@ function answer(id,a){if(busy())return;const k=K(),x=k.x,nw=V('night')||{};x.ans
 function owedOwnUps(k){const pn=k.s.pendingNight;if(!pn||pn.day!==k.s.day)return [];return pn.not.filter(function(id){return pn.owned.indexOf(id)<0})}
 function ownUpAmen(){if(busy())return;const k=K();let n=0;owedOwnUps(k).forEach(function(id){const r=R.ownUp(k.s,id);if(r.ok&&r.restored)n++});sfx('pearl');   /* never straw, never a new piece: each pearl brings back one fallen block */
   say(n?(V('night.pearl')||'')+(n>1?' ('+n+' blocks)':''):(V('night.pearlShine')||''));drawAll()}
-function nightConfirm(){if(busy())return;const k=K(),x=k.x,r=R.confirmNight(k.s);x.confirmed=true;x.night='build';if(r.ok&&r.pieces.length)sfx('gem');say(sumsLine(),true);drawAll()}
+function nightConfirm(){if(busy())return;const k=K(),x=k.x,r=R.confirmNight(k.s);if(r.ok&&r.levelUp)setTimeout(function(){levelUp(r.levelUp)},900);x.confirmed=true;x.night='build';if(r.ok&&r.pieces.length)sfx('gem');say(sumsLine(),true);drawAll()}
 function strawLink(){return btn(V('night.addStraw')||'Grown-up: add one straw',function(){if(band()===6&&X().nightStraw>=1){refuse('nightStraw');return}openSheet({kind:'straw2',night:true})},'link')}
 function drawNight(b,f){const k=K(),s=k.s,x=k.x,a=band(),sm=R.summary(s),nw=V('night')||{};
   if(x.night==='check'){drawCheck(b,f);return}
@@ -2194,9 +2225,10 @@ function feedOne(s,it){const kind=it.kind,meta={label:String(it.label||DEFLABEL[
 function strawOnWalls(s){let n=0;WALLS.forEach(function(w){s.walls[w].forEach(function(col){col.forEach(function(p){if(p&&p.t==='W')n++})})});return n}
 function canSync(){return LIVE&&!ui.busy&&$('modal').hidden&&!(ui.sheet&&ui.sheet.kind==='fix'&&ui.sheet.armed)}
 function liveSync(){if(!canSync())return;
-  const k=K(),today=rockDate(),items=takeInbox(),done=items.map(function(){return false}),got=[],straw=[];let moved=0;
+  const k=K(),today=rockDate(),items=takeInbox(),done=items.map(function(){return false}),got=[],straw=[];let moved=0,lvUp=null;
   function itemDay(it){const d=new Date(it.t);return isNaN(d.getTime())?today:rockDate(d)}
   function feed(upTo){items.forEach(function(it,i){if(done[i]||(upTo!=null&&dayNum(itemDay(it))>upTo))return;done[i]=true;
+    if(it.kind==='night'||it.kind==='gem'||it.kind==='straw'){const cn=R.countNight(k.s,'r'+itemDay(it));if(cn.levelUp)lvUp=cn.levelUp;if(it.kind==='night')return}   /* a night a grown-up checked */
     let o=null;try{o=feedOne(k.s,it)}catch(e){o=null}if(!o||!o.r.ok)return;   /* over the daily cap: the rules say no, the piece is not given */
     (k.p.arrivals||(k.p.arrivals=[])).push({day:k.s.day,kind:o.kind,t:o.type,label:o.label,material:o.material});
     if(o.type==='W')o.r.events.forEach(function(e){if(e.kind==='strawLand')straw.push(e)});else got.push(o)})}
@@ -2206,7 +2238,8 @@ function liveSync(){if(!canSync())return;
     k.s.weekday=realWeekday();DB.lastDate=today;ui.sheet=null;ui.sel=null;S.hideGhosts()}
   feed(null);   /* today's items (and any stamped later by a clock that is ahead) */
   if(k.p.arrivals&&k.p.arrivals.length>40)k.p.arrivals=k.p.arrivals.slice(-40);
-  if(!got.length&&!straw.length&&!moved)return;
+  if(lvUp)setTimeout(function(){levelUp(lvUp)},1200);
+  if(!got.length&&!straw.length&&!moved){if(lvUp)save();return}
   const keys=straw.filter(function(e){const q=R.at(k.s,e.wall,e.col,e.row);return q&&q.id===e.piece.id}).map(function(e){return K3(e.wall,e.col,e.row)});
   redraw({loose:keys});
   if(keys.length){S.faceWall(straw[straw.length-1].wall);straw.forEach(function(e,i){if(keys.indexOf(K3(e.wall,e.col,e.row))<0)return;S.dropIn(e.wall,e.col,e.row,i*450).then(function(){sfx('straw');if(e.wobble===2)setTimeout(function(){sfx('creak')},350)})})}
@@ -2280,6 +2313,7 @@ $('testBlocks').addEventListener('click',function(){if(LIVE)return;const s=st();
 $('fireNow').addEventListener('click',function(){if((LIVE&&!SANDBOX)||busy())return;const x=X();clearUndo();clearBlockUndo();ui.sel=null;ui.sheet=null;S.hideGhosts();
   x.phase='night';x.night='lastlook';save();redraw();sfx('tap');say('Last look before the fire. Tap a straw bale to put it right, or light the fire.',true)});
 $('stars').addEventListener('click',function(){openSheet({kind:'decorate'})});
+$('lvChip').addEventListener('click',function(){sfx('tap');openSheet({kind:'craft'})});
 $('goal').addEventListener('click',function(){openSheet({kind:'goal'})});
 $('designBtn').addEventListener('click',function(){openSheet({kind:'design'})});
 $('toolsClose').addEventListener('click',hideTools);
