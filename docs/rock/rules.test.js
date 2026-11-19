@@ -926,7 +926,7 @@ test('v5: designs: pick only while the building is empty; 3 open, one more every
   var s = kid(6);
   var open = R.designs(s).filter(function (d) { return d.open; }).map(function (d) { return d.id; });
   assert.deepEqual(open, ['cottage', 'tower', 'barn']);
-  assert(R.chooseDesign(s, 'tower').ok); assert.equal(s.bp.style, 'tower'); assert.equal(s.walls.front.length, 5);   // v6: 5 narrow columns (v5: 3)
+  assert(R.chooseDesign(s, 'tower').ok); assert.equal(s.bp.style, 'tower'); assert.equal(s.walls.front.length, 8);   // v7: 8 columns (v6: 5, v5: 3)
   assert.equal(R.chooseDesign(s, 'chapel').reason, 'locked');
   assert.equal(R.chooseDesign(s, 'nope').reason, 'noDesign');
   R.addPiece(s, 'G'); R.place(s, 0, 'front', 0, 0);
@@ -947,13 +947,13 @@ test('v5: designs: pick only while the building is empty; 3 open, one more every
   assert(R.chooseDesign(s, 'bp1').ok); assert.equal(s.bp.style, 'lighthouse'); assert.equal(s.bp.tier, 1, 'grown by a row');
 });
 
-test('v6: every design is about 56 slots at age 6, 80 at age 8, 120 at age 12 (twice v5)', function () {
+test('v7: every design is about 1.9x the v6 sizes (56 / 80 / 120 at ages 6 / 8 / 12)', function () {
   tuned();
-  [[6, 56], [8, 80], [12, 120]].forEach(function (x) {
+  [[6, 120], [8, 120], [12, 120]].forEach(function (x) {   // 19 Nov: every age builds the large size
     var s = kid(x[0]); s.sealed = 99;   // every design open, so each one is really laid
     R.designs(s).filter(function (d) { return !d.named; }).forEach(function (d) {
       R.chooseDesign(s, d.id); var n = R.tally(s).total + s.free.length;
-      assert(Math.abs(n - x[1]) <= 1, d.id + ' at age ' + x[0] + ' has ' + n); assert.equal(n, d.slots);
+      assert(n >= x[1] * 1.7 && n <= x[1] * 2.3, d.id + ' at age ' + x[0] + ' has ' + n);   // v7: ~1.9x v6 assert.equal(n, d.slots);
     });
   });
 });
@@ -1043,7 +1043,7 @@ test('night account runs once a day (no second pearl or second gems)', function 
 
 /* ---- v6: each good act is a small stack of blocks; straw stays one ---- */
 test('v6: a good act gives blocksPerPiece blocks (gold, silver, gem, bonus, quick log, twin)', function () {
-  tuned(true); var B = C.blocksPerPiece; assert.equal(B, 2);
+  tuned(true); var B = C.blocksPerPiece; assert.equal(B, 4);
   var s = kid(8);
   ['G', 'S', 't'].forEach(function (t) { var r = R.addPiece(s, t, { x: 1 }); assert(r.ok); assert.equal(r.pieces.length, B); });
   assert.equal(s.tray.length, 3 * B);
@@ -1069,25 +1069,26 @@ test('v6: daily caps count acts, not blocks', function () {
   for (i = 0; i < C.strawCapByAge[8]; i++) assert(R.addPiece(s, 'W').ok);
   assert.equal(R.addPiece(s, 'W').reason, 'cap'); assert.equal(R.tally(s).straw, C.strawCapByAge[8]);
 });
-test('v6: building sizes doubled, named blueprints too', function () {
+test('v7: building sizes about 4x v5, named blueprints too', function () {
   tuned(true);
   var s = kid(8), v5 = { bp1: 45, bp2: 40, bp3: 48, bp4: 40, bp5: 66, bp6: 47, bp7: 49, bp8: 66, bp9: 40, bp10: 48, bp11: 50, bp12: 40 };
   R.designs(s).forEach(function (d) {
     var was = d.named ? v5[d.id] : 40, k = d.slots / was;
-    assert(k >= 1.85 && k <= 2.3, d.id + ' is ' + d.slots + ' slots, ' + k.toFixed(2) + 'x v5');
+    assert(k >= 3.3 && k <= 7, d.id + ' is ' + d.slots + ' slots, ' + k.toFixed(2) + 'x v5');
   });
 });
 test('v6: tapping lays one block at a time; the rest of the stack stays in the tray', function () {
   tuned(true); var s = kid(8);
-  R.addPiece(s, 'S'); assert.equal(s.tray.length, 2);
+  var B = C.blocksPerPiece; R.addPiece(s, 'S'); assert.equal(s.tray.length, B);
   var sl = R.legalSlots(s)[0]; assert(R.place(s, 0, sl.wall, sl.col, sl.row).ok);
-  assert.equal(s.tray.length, 1); assert.equal(s.tray[0].t, 'S');
+  assert.equal(s.tray.length, B - 1); assert.equal(s.tray[0].t, 'S');
 });
 test('v6: choosing a colour recolours the whole stack from that act; pure windows still need three the same', function () {
   tuned(true); var s = kid(8);
   R.addPiece(s, 't'); R.addPiece(s, 'k');
   assert(R.setColour(s, s.tray[0].id, 'l').ok);
-  assert.deepEqual(s.tray.map(function (p) { return p.t; }), ['l', 'l', 'k', 'k']);
+  var B = C.blocksPerPiece, want = []; for (var i = 0; i < B; i++) want.push('l'); for (i = 0; i < B; i++) want.push('k');
+  assert.deepEqual(s.tray.map(function (p) { return p.t; }), want);
 });
 test('v6: the pearl from owning up still brings back ONE fire-lost block', function () {
   tuned(true); var s = kid(8);
@@ -1145,20 +1146,20 @@ test('v7 pile: unchecked burns-up taps never become straw; unchecked seen arrive
 
 /* ---- nearby extras: one space out from the template ---- */
 function give(s, n) { for (var i = 0; i < n; i++) s.tray.push({ id: s.nextId++, t: 'S' }); }
-test('extras: free building up to two spaces out, never inside, and only with support under them', function () {
-  var s = kid(6); give(s, 6);
+test('extras: free building up to three spaces out, never inside, and only with support under them', function () {
+  var s = kid(6); give(s, 8);
   var xs = R.extraSlots(s);
   assert(xs.length > 0, 'some nearby spots on an empty plot');
   xs.forEach(function (q) {
     assert.equal(q.row, 0, 'on an empty plot only ground-level spots have support');
     var C2 = s.walls[q.wall].length, oc = q.col < 0 ? -q.col : (q.col >= C2 ? q.col - C2 + 1 : 0), out = oc + q.out;
-    assert(out >= 1 && out <= 2, 'one or two spaces out: ' + JSON.stringify(q));
+    assert(out >= 1 && out <= 3, 'one to three spaces out: ' + JSON.stringify(q));
   });
   assert(xs.some(function (q) { return q.out === 2; }), 'two spaces in front is open');
   assert(xs.some(function (q) { return q.col === -2; }), 'two spaces beside is open');
   assert(!xs.some(function (q) { return q.wall === 'front' && q.out > 0 && q.col === 2; }), 'the doorway stays clear');
-  assert(!R.place(s, 0, 'front', -3, 0, 0).ok, 'three spaces out is refused');
-  assert(!R.place(s, 0, 'front', -1, 0, 2).ok, 'one beside plus two in front is too far');
+  assert(!R.place(s, 0, 'front', -4, 0, 0).ok, 'four spaces out is refused');
+  assert(!R.place(s, 0, 'front', -1, 0, 3).ok, 'one beside plus three in front is too far');
   assert(!R.place(s, 0, 'front', 1, 1, 0).ok, 'a template slot is not an extra');
   assert(!R.place(s, 0, 'front', 0, 1, 1).ok, 'no floating porch stone');
   assert(!R.place(s, 0, 'front', 0, 3, 0).ok, 'nothing above an empty column');
@@ -1171,7 +1172,8 @@ test('extras: free building up to two spaces out, never inside, and only with su
   assert(!R.place(s, 0, 'front', 0, 4, 0).ok, 'no floating stone two above the top');
   assert(R.place(s, 0, 'front', 0, 3, 0).ok, 'a chimney stone on the full column');
   assert(R.place(s, 0, 'front', 0, 4, 0).ok, 'and a second on top of it');
-  assert(!R.place(s, 0, 'front', 0, 5, 0).ok, 'but not three high');
+  assert(R.place(s, 0, 'front', 0, 5, 0).ok, 'and a third');
+  assert(!R.place(s, 0, 'front', 0, 6, 0).ok, 'but not four high');
 });
 test('extras: straw never lands on an extra, and an extra cannot take straw', function () {
   var s = kid(6); give(s, 2);
@@ -1211,9 +1213,9 @@ test('extras: sealing needs only the template; extras go to the City copy', func
   var t = kid(6); fillAll(t); t.free = t.free.map(function () { return { id: t.nextId++, t: 'S' }; });
   assert(R.fire(t).some(function (e) { return e.kind === 'seal'; }), 'and without any extras');
 });
-test('extras: capped at about 60% of the template', function () {
+test('extras: capped at the size of the template', function () {
   var s = kid(6), cap = R.summary(s).extras.cap;
-  assert.equal(cap, Math.floor(32 * 0.6));
+  assert.equal(cap, Math.floor(32 * 1.0));
   give(s, cap + 1);
   for (var i = 0; i < cap; i++) { var q = R.extraSlots(s)[0]; assert(R.place(s, 0, q.wall, q.col, q.row, q.out).ok); }
   assert.equal(R.extraSlots(s).length, 0, 'no more spots at the cap');

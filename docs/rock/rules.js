@@ -27,11 +27,11 @@
     rowsByAge: { 6: 3, 8: 4, 12: 5 },               // (old tier blueprints only)
     gems: { l: 'love', j: 'joy', p: 'peace', t: 'patience', k: 'kindness', b: 'goodness',
             f: 'faithfulness', e: 'gentleness', r: 'self-control' },
-    blocksPerPiece: 2,
-    extraShare: 0.6,
-    extraReach: 2,                                  // free building: up to this many spaces out from the outline (beside, in front, above, or a mix)                               // "nearby" extra blocks: one space out from the template, at most this share of its slots                              // each good act (gold, silver, a gem, bonus) gives a small stack of this many blocks.
+    blocksPerPiece: 4,                              // v7: houses ~2x again (scale below), so each good act gives 4 blocks
+    extraShare: 1.0,
+    extraReach: 3,                                  // free building: up to this many spaces out from the outline (beside, in front, above, or a mix)                               // "nearby" extra blocks: one space out from the template, at most this share of its slots                              // each good act (gold, silver, a gem, bonus) gives a small stack of this many blocks.
                                                     // Straw, pearls and lamps stay one block. Daily caps count ACTS, not blocks.
-    knocksPerBurn: 2,                               // blocks a burning bale knocks out (= one act's worth, so straw costs what it did)
+    knocksPerBurn: 4,                               // blocks a burning bale knocks out (= one act's worth, so straw costs what it did)
     dailyCap: { G: 1, S: 2, gem: 6, L: 1 },         // v5: gems 9 -> 6 (3 night cards + 2 seen + 1 twin)
     /* v5 "This week's three": eight picture cards, each one fruit (rules gem code). Words live in content.js. */
     cards: [ { id: 'calm', fruit: 't' }, { id: 'kind', fruit: 'k' }, { id: 'peace', fruit: 'p' }, { id: 'work', fruit: 'j' },
@@ -60,6 +60,8 @@
         lighthouse: { 6: [5, 7, 1, 7, 8, 2], 8: [5, 10, 1, 10, 11, 2], 12: [5, 13, 2, 13, 4, 2] },
         castle:     { 6: [6, 4, 3, 5, 2, 2], 8: [6, 5, 3, 7, 10, 2], 12: [6, 8, 4, 8, 10, 2] }
       },
+      scale: { cols: 1.6, rows: 1.2, free: 2 },
+      sameSize: 12,                               // 19 Nov (Joel): all kids build the large, age-12 size   // v7: every design ~1.9x the slots (wider more than taller, so it fits the iPad picture)
       growRows: 1.5,                                // a named blueprint's `grow` is in v5 rows; with smaller blocks each counts this many rows (rounded)
       spire: { cottage: 2, tower: 3, barn: 1, chapel: 4, lighthouse: 3, castle: 2 },
       /* the 12 named blueprints from content.js (seasons), unlocked after all six designs */
@@ -318,11 +320,13 @@
     var D = CONFIG.designs, style = id, grow = 0, named = null;
     D.named.forEach(function (n) { if (n.id === id) named = n; });
     if (named) { style = named.style; grow = named.grow; }
-    var sh = D.shapes[style] && D.shapes[style][band(age)];
+    var sh = D.shapes[style] && D.shapes[style][D.sameSize || band(age)];   // sameSize: every child builds the same (large) house
     if (!sh) return null;
-    var gr = Math.round(grow * (D.growRows || 1));
-    return { id: id, style: style, grow: grow, name: named ? id : D.names[style], free: sh[4], spire: D.spire[style],
-      walls: { front: { cols: sh[0], rows: sh[1] + gr, door: sh[5] }, left: { cols: sh[2], rows: sh[3] + gr }, right: { cols: sh[2], rows: sh[3] + gr } } };
+    var gr = Math.round(grow * (D.growRows || 1)), k = D.scale || { cols: 1, rows: 1, free: 1 };
+    var fc = Math.round(sh[0] * k.cols), fr = Math.round(sh[1] * k.rows), sc = Math.max(1, Math.round(sh[2] * k.cols)), sr = Math.round(sh[3] * k.rows);
+    var door = k.cols === 1 ? sh[5] : Math.floor((fc - 1) / 2);   // keep the door in the middle of the wider front
+    return { id: id, style: style, grow: grow, name: named ? id : D.names[style], free: Math.round(sh[4] * k.free), spire: D.spire[style],
+      walls: { front: { cols: fc, rows: fr + gr, door: door }, left: { cols: sc, rows: sr + gr }, right: { cols: sc, rows: sr + gr } } };
   }
   /* designs(state) -> every design and named blueprint with {id, style, grow, open, sealsToOpen, slots}. */
   function designs(state) {
