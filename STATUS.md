@@ -210,3 +210,11 @@ Played the straw → fire → rebuild loop as a child. Before: one small line of
 - After the fire: a cave-in is one clear row ("two walls fell together"); "are cracked" grammar; no cracked warning during the breather after a cave-in.
 - Practice fire: only warns "this much straw falls" when a wall really has that much; fire words don't mention knocked blocks when none were.
 - While propping, a tap never opens a straw bale. Rebuild card shows progress ("N waiting · N back up today · N more today"). Old messages clear at goodnight.
+
+## v70 (21 Nov 2026) — bigger fire, easier taps (Joel chose this next)
+- Fire: the night goes dark and red; three flickering flames sit on each straw bale for ~2s, then a column of smoke; bales burn one after another (0.42s apart) with a live "🔥 Straw burning: 2 of 4"; "The ___ is shaking…"; a falling wall creaks and shudders 1.4s, crashes with a big shake and dust. Light comes back after (kept through the redraw).
+- Fallen blocks stay as heaps beside the house (both sides, up to 48 drawn) until they are built back.
+- Picking up a block (or Build it back) brings the view one step closer from the far view: spaces ~40% bigger under a finger.
+- Plain spaces just outside a wall with straw are hidden (they looked like props but weren't); use Prop it up there.
+- Age 6: wall signs say "👆 Tap me" instead of numbers. The front wall's sign sits higher, clear of the side ones.
+- Not checked on the iPad.
