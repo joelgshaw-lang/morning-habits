@@ -473,8 +473,9 @@
     var key = type === 'W' ? 'W' : isGem(type) ? 'gem' : type;
     if (key !== 'G' && key !== 'S' && key !== 'W' && key !== 'gem' && key !== 'P' && key !== 'L') return fail('type');
     var cap = key === 'W' ? CONFIG.strawCapByAge[band(state.profile.age)] : CONFIG.dailyCap[key];
-    if (cap != null && (state.today[key] || 0) >= cap) return fail('cap');
-    state.today[key] = (state.today[key] || 0) + 1;    // caps count acts, not blocks
+    var practice = !!(meta && meta.practice);         // a gold block earned by 3 practices a grown-up ticked: never blocked by the daily cap
+    if (!practice && cap != null && (state.today[key] || 0) >= cap) return fail('cap');
+    if (!practice) state.today[key] = (state.today[key] || 0) + 1;    // caps count acts, not blocks
     var pieces = stack(state, type, meta, key === 'W' || key === 'P' || key === 'L' ? 1 : CONFIG.blocksPerPiece);
     if (type === 'W') return { ok: true, piece: pieces[0], pieces: pieces, events: landStraw(state, pieces[0]) };
     state.tray = state.tray.concat(pieces);

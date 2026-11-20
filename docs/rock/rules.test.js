@@ -1365,4 +1365,10 @@ test('brace: on a cave-in night props are not "used up" first, they fall with th
   var ev = R.fire(s);
   if (ev.some(function (e) { return e.kind === 'caveIn'; })) assert.equal(ev.filter(function (e) { return e.prop; }).length, 0, 'no props used up on a cave-in');
 });
+test('practice gold: never blocked by the daily gold cap', function () {
+  var s = kid(8);
+  assert(R.addPiece(s, 'G', {}).ok, 'first gold of the day');
+  assert.equal(R.addPiece(s, 'G', {}).ok, false, 'second gold capped');
+  assert(R.addPiece(s, 'G', { practice: true }).ok, 'practice gold still arrives');
+});
 console.log(passed + ' tests passed' + (process.exitCode ? ', SOME FAILED' : ''));

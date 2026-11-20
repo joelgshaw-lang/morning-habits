@@ -14,7 +14,7 @@ export const GOOD = [
 ];
 // 1 Cor 3:12: wood, hay, stubble. Bigger things are wood, unkind words are hay, the small grumbles stubble.
 export const HARD = [
-  { id: 'tantrum', icon: '😡', label: 'Tantrum', material: 'stubble' },
+  { id: 'tantrum', icon: '😡', label: 'Tantrum', material: 'wood' },   // a blow-up: wood (content.js: wood = fights and blow-ups)
   { id: 'listen', icon: '🙉', label: "Didn't listen", material: 'stubble' },
   { id: 'unkind', icon: '🗯️', label: 'Unkind words', material: 'hay' },
   { id: 'rude', icon: '😤', label: 'Rude', material: 'hay' },

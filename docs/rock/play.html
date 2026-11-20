@@ -1749,7 +1749,7 @@ const SHEETS={
     if(!m.right){const person=!mir||mir.kind==='person';
       b.appendChild(h('p',{class:'note',text:rp.intro||get('straw.forgivenStillBurns')||''}));
       if(mir){b.appendChild(h('p',{class:'pray',text:fill(mir.label)}));if(mir.words)b.appendChild(h('p',{class:'note',text:'You could say: \u201c'+fill(mir.words)+'\u201d'}))}
-      else{const opts=(get('sorry.makeItRight')||{})[m.kind]||[];if(opts.length)b.appendChild(h('p',{class:'pray',text:fill(opts[0].label)}))}
+      else{const opts=(get('sorry.makeItRight')||{})[m.kind||m.material]||[];if(opts.length)b.appendChild(h('p',{class:'pray',text:fill(opts[0].label)}))}
       if(!m.went){const lab=person?((rp.didIt&&rp.didIt.label)||'I went and did it'):((rp.taskDone&&rp.taskDone.label)||'I did the job');
         f.appendChild(btn(six?'With a grown-up: '+lab:lab,function(){m.went=true;sfx('tap');drawAll()},'big'));return}
       b.appendChild(h('p',{class:'say',text:person?'Now pass the iPad to them, or to a grown-up.':'Now ask a grown-up to look.'}));
@@ -2246,7 +2246,7 @@ function takeInbox(){let a=null;try{const raw=localStorage.getItem(LINBOX);if(ra
   return Array.isArray(a)?a.filter(function(o){return o&&typeof o==='object'}):[]}
 const DEFLABEL={gold:'Time with God',silver:'Jobs done well',gem:'A good moment',straw:'Straw'};
 /* one inbox item -> rules pieces. Returns null for an item this page does not understand (it is dropped). */
-function feedOne(s,it){const kind=it.kind,meta={label:String(it.label||DEFLABEL[kind]||'').slice(0,48),at:String(it.t||''),app:kind};let type;
+function feedOne(s,it){const kind=it.kind,meta={label:String(it.label||DEFLABEL[kind]||'').slice(0,48),at:String(it.t||''),app:kind};if((kind==='gold'&&it.practice)||it.from==='prayer')meta.practice=true;   /* practice gold and "I prayed" pieces: the app already limits them (3 practices, 10 prayers a day), so the game's daily caps don't drop them */let type;
   if(kind==='gold')type='G';else if(kind==='silver')type='S';
   else if(kind==='gem')type=isGem(it.fruit)?it.fruit:'l';
   else if(kind==='straw'){type='W';meta.material=it.material==='wood'||it.material==='stubble'?it.material:'hay'}

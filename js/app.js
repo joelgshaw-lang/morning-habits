@@ -128,6 +128,7 @@ async function refreshSummary() {
   state.sum = summarize(state.settings, all, state.dinners, todayKey());
   state.coinAdjust = (await kvGet('coinAdjust')) || []; // coins a grown-up added or took away in the portal
   if (!state.quickLog) state.quickLog = (await kvGet('quickLog')) || []; // 🪙± moments from the front board (quick.js)
+  if (!state.practice) state.practice = (await kvGet('practice')) || {}; // 🏋️ practice drills: gold shards per child (portal.js)
   if (!state.farms) state.farms = (await kvGet('farms')) || {};
 }
 const farm = createFarm({
@@ -153,6 +154,7 @@ const portal = createPortal({
   version: () => state.appVersion || '', updateNow: () => updateNow(),
   quickSection: (k) => quick.sectionHTML(k), quickHandle: (b) => quick.handle(b), quickWaiting: (id) => quick.waitingFor(id).length,
   openRock: (id) => openRock(id), openRockTest: () => openRockTest(),
+  sendToRock: (...a) => sendToRock(...a),
 });
 const quick = createQuick({
   state, esc, kid: (id) => kid(id), clock, kvGet, kvSet, toast: (h) => toast(h), sheet: (...a) => sheet(...a), grownUp: (...a) => grownUp(...a),

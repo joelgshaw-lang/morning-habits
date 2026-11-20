@@ -82,7 +82,61 @@ export function createPortal(ctx) {
           <div class="gk-list">${waitingSection(k, true)}${ctx.quickSection(k)}
             ${asked ? `<div class="gk-note">🔔 Asked ${asked}× today</div>` : ''}</div>
         </div>`;
-      }).join('')}</div>`;
+      }).join('')}</div>${practiceSection()}`;
+  }
+
+  // ---------- 🏋️ Practice for gold (21 Nov 2026, Joel): a grown-up runs a short, fun drill; a ✓ gives a gold shard;
+  // 3 shards = a gold block sent to Build on the Rock (never blocked by its daily gold cap). At most 3 a day per child.
+  const DRILLS = {
+    obey: { icon: '🙋', name: 'Obey straight away', label: 'Practised obeying straight away',
+      intro: (n) => `Grown-up: give ${n} one small job, like “Please put your shoes by the door.”<br><b>${n}: do it the FIRST time, with a smile!</b>`, secs: 10 },
+    calm: { icon: '🧘', name: 'Calm down', label: 'Practised calming down',
+      intro: (n) => `${n}: let's practise calming down. Breathe slowly with the circle, three times.<br><b>Then say: “I'm calm.”</b>`, secs: 18 },
+  };
+  const PRACTICE_PER_DAY = 3, SHARDS_PER_GOLD = 3;
+  const pr = (id) => { const all = (state.practice ||= {}); const p = (all[id] ||= { shards: 0, day: '', today: 0, total: 0 });
+    const d = ctx.todayKey(); if (p.day !== d) { p.day = d; p.today = 0; } return p; };
+  const gems = (n) => '◆'.repeat(n) + '◇'.repeat(SHARDS_PER_GOLD - n);
+  function practiceSection() {
+    return `<div class="practice-card"><h3>🏋️ Practice for gold</h3>
+      <p class="note">A quick, fun practice. Tick ✓ when they did it well. Every ✓ is a gold shard: ${SHARDS_PER_GOLD} shards make a gold block in their building. Up to ${PRACTICE_PER_DAY} a day each.</p>
+      ${kids().map((k) => { const p = pr(k.id), done = p.today >= PRACTICE_PER_DAY;
+        return `<div class="practice-row" style="--kid:${k.color}"><span class="gk-av">${k.avatar}</span><b>${esc(k.name)}</b>
+          <span class="shards" title="${p.shards} of ${SHARDS_PER_GOLD} to a gold block">${gems(p.shards)}</span>
+          ${done ? '<small>All 3 done today 🎉</small>' : Object.entries(DRILLS).map(([id, d]) => `<button class="farm-btn small" data-practice="${k.id}:${id}">${d.icon} ${d.name}</button>`).join('')}</div>`; }).join('')}</div>`;
+  }
+  function runDrill(kidId, drillId) {
+    const k = ctx.kid(kidId), d = DRILLS[drillId]; if (!k || !d) return;
+    const ov = document.createElement('div'); ov.className = 'farm-ov practice-ov'; document.body.appendChild(ov);
+    let timer = null;
+    const close = () => { clearInterval(timer); ov.remove(); draw(); };
+    const show = (html) => { ov.innerHTML = `<div class="farm-sheet practice-sheet" style="--kid:${k.color}">${html}</div>`; };
+    const intro = () => { show(`<h2>${d.icon} ${d.name}</h2><p class="drill-intro">${d.intro(esc(k.name))}</p>
+      <div class="drill-btns"><button class="farm-btn big go" data-d="go">Ready… go!</button><button class="farm-btn small" data-d="close">Not now</button></div>`); };
+    const check = () => { clearInterval(timer); show(`<h2>${d.icon} How did ${esc(k.name)} go?</h2><p class="drill-intro">Grown-up: only tick if it was done well.</p>
+      <div class="drill-btns"><button class="farm-btn big ok" data-d="yes">✓ Did it!</button><button class="farm-btn small" data-d="again">↺ Try again</button></div>`); };
+    const go = () => {
+      let left = d.secs; ctx.speak && ctx.speak('Ready, go!');
+      const face = () => drillId === 'calm'
+        ? `<div class="pbreathe"><div class="pring"></div><b class="pword">${Math.floor((d.secs - left) / 3) % 2 ? 'Breathe out…' : 'Breathe in…'}</b></div>`
+        : `<div class="count">${left}</div><p class="drill-intro">First time. With a smile!</p>`;
+      const paint = () => show(`<h2>${d.icon} ${d.name}</h2>${face()}<div class="drill-btns"><button class="farm-btn big ok" data-d="done">${drillId === 'calm' ? "I'm calm 🙂" : 'Done!'}</button></div>`);
+      paint(); timer = setInterval(() => { left--; if (left <= 0) { clearInterval(timer); check(); return; }   // only the words change, so the breathing circle keeps its rhythm
+        const c = ov.querySelector('.count'), w = ov.querySelector('.pbreathe .pword'); if (c) c.textContent = left; if (w) w.textContent = Math.floor((d.secs - left) / 3) % 2 ? 'Breathe out…' : 'Breathe in…'; }, 1000);
+    };
+    const yes = async () => {
+      const p = pr(kidId); if (p.today >= PRACTICE_PER_DAY) return close();
+      p.today++; p.total++; p.shards++;
+      let gold = false; if (p.shards >= SHARDS_PER_GOLD) { p.shards = 0; gold = true; ctx.sendToRock(kidId, { kind: 'gold', label: d.label, practice: true }); }
+      await ctx.kvSet('practice', state.practice);
+      show(`<div class="cheer">${gold ? '🥇' : '🎉'}</div><h2>${gold ? `${SHARDS_PER_GOLD} shards = a GOLD BLOCK!` : '+1 gold shard!'}</h2>
+        <p class="drill-intro">${gold ? `It's on its way to ${esc(k.name)}'s building.` : `<span class="shards big">${gems(p.shards)}</span><br>${SHARDS_PER_GOLD - p.shards} more to a gold block.`}</p>
+        <div class="drill-btns"><button class="farm-btn big" data-d="close">Done</button></div>`);
+      ctx.speak && ctx.speak(gold ? 'A gold block!' : 'Well done!');
+    };
+    ov.addEventListener('click', (e) => { const b = e.target.closest('[data-d]'); if (!b) return;
+      ({ go, done: check, yes, again: intro, close })[b.dataset.d](); });
+    intro();
   }
 
   // One child's page: open farm, jobs to check, coins, fruit.
@@ -386,6 +440,7 @@ export function createPortal(ctx) {
     if (ds.openRock) { el.remove(); el = null; return ctx.openRock(ds.openRock); }
     if (ds.openRockTest) { el.remove(); el = null; return ctx.openRockTest(); }
     if (ds.keep || ds.drop) { if (await ctx.quickHandle(t)) draw(); return; }
+    if (ds.practice) { const [id, dr] = ds.practice.split(':'); return runDrill(id, dr); }
   }
 
   return { open, confirmClaim };

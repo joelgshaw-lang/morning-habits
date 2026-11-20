@@ -1199,3 +1199,26 @@ button.w2-it { pointer-events: auto; cursor: pointer; }
 .pray-kinds button span { font-size: 54px; line-height: 1; }
 .pray-kinds button b { font-size: 20px; }
 .pray-kinds button small { font-size: 14px; font-weight: 800; color: var(--muted); }
+/* 🏋️ Practice for gold (portal.js) */
+.practice-card { margin-top: 16px; padding: 14px; border-radius: 18px; background: #fff8e1; border: 2px solid #f5c542; }
+.practice-card h3 { margin: 0 0 4px; }
+.practice-card .note { margin: 0 0 10px; font-size: 15px; color: var(--muted); }
+.practice-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid #f1e2b0; }
+.practice-row b { min-width: 90px; color: var(--kid); }
+.practice-row .gk-av { font-size: 28px; }
+.shards { font-size: 20px; color: #d9a400; letter-spacing: 2px; white-space: nowrap; }
+.shards.big { font-size: 40px; }
+.practice-ov { z-index: 90; }
+.practice-sheet { text-align: center; border: 4px solid var(--kid); display: flex; flex-direction: column; align-items: center; gap: 6px; width: min(680px, 92vw); padding: 24px; }
+.practice-sheet h2 { font-size: 34px; margin: 6px 0 10px; }
+.drill-intro { font-size: 24px; line-height: 1.35; margin: 8px 0 16px; }
+.drill-btns { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; }
+.practice-sheet .go, .practice-sheet .ok { background: #ffd84a; }
+.practice-sheet .count, .practice-ov .count { font-size: 120px; font-weight: 900; line-height: 1; color: var(--kid); margin: 10px 0; }
+.practice-sheet .cheer { font-size: 110px; line-height: 1.1; animation: cheerPop .6s ease-out; }
+@keyframes cheerPop { from { transform: scale(.3) rotate(-20deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+.pbreathe { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 10px 0 18px; }
+.practice-sheet .pbreathe .pword { font-size: 30px; }
+.practice-sheet .pbreathe .pring { width: 160px; height: 160px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--kid) 35%, #fff), var(--kid)); animation: breathe 6s ease-in-out infinite; }
+@keyframes breathe { 0%, 100% { transform: scale(.55); } 50% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .practice-sheet .pbreathe .pring, .practice-sheet .cheer { animation: none; } }

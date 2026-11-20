@@ -30,6 +30,11 @@ Updated 17 Nov 2026.
 - **Committed** (checkpoint `9a39329`), **not pushed**. Build on the Rock files left alone. To put it live: push, then open the app twice on the iPad.
 - **For Joel to decide:** Bigger land 🪙 400 + ⭐ 40 (from Big Farm), Biggest land 🪙 900 + ⭐ 90 (from Dream Farm). Piglet 🪙 120 + ⭐ 12 (from Barnyard), feed 🪙 2, a truffle (🪙 15) every second job day, sells for 🪙 100, up to 2 pigs (4 with the big barn). Pigs are painted-farm only in the shop.
 
+### 🙏 I prayed (20 Nov 2026, app v72, LIVE)
+- The 🙏 Hold (breath prayer) button on each column is now **🙏 I prayed**: tap, then pick 🙌 Thank you, God (gold), 🤲 For someone (silver) or 💖 Sorry / help me grow (a precious stone in the colour of their fruit this week, love if none). No coins, no grown-up check. Up to 10 a day, at least 30 minutes apart (button shows "in N min", then "💛 Amen" after 10). Saved on the day as `prayed`; sent to `rock.inbox.<kid>` with `from: 'prayer'`.
+- **Needs the Build on the Rock chat:** the game's daily caps (gold 1, silver 2, gems 6) still apply, so extra prayer pieces are dropped until the game lets `from: 'prayer'` items past the caps. A message to that chat was held (different permission mode), so Joel passes it on.
+- Tested in a browser at iPad size: sheet, piece sent, 30-minute wait, second prayer after 31 min, 10-a-day limit. Not tried on the iPad.
+
 ### Look-and-feel cleanup (19 Nov 2026, app v55, LIVE)
 - Three reviewers (kids' view, visual design, grown-ups' view) looked at 8 screens at iPad size. Changes made from what they agreed on:
   - **Columns:** fixed the morning overlap (Fruit time and the small tiles sat on the big tile); small tiles stay on one line; removed the "Do it, then hold here" hint; white columns; one footer style; farm lock words short ("🔒 Farm after jobs"); the egg/farm line only shows in the daytime.
@@ -224,3 +229,10 @@ Played the straw → fire → rebuild loop as a child. Before: one small line of
 - Pet to look after (night 10, ★1): dog, cat or rabbit, sits by the front door.
 - "Coming next" ? cards now start at Craftsman (fireplace, night 20).
 - NEXT before any child reaches 20 nights: fireplace (Craftsman). Then the room inside at 35.
+
+### 🏋️ Practice for gold + fixes (21 Nov 2026, app v73)
+- Grown-ups home → **🏋️ Practice for gold**: per child, 🙋 *Obey straight away* (grown-up gives one small job; 10-second countdown, "first time, with a smile") or 🧘 *Calm down* (breathing circle, then "I'm calm"). Grown-up ticks ✓ Did it / ↺ Try again. Each ✓ = a gold shard ◆; 3 shards = a gold block sent to Build on the Rock ("Practised obeying straight away" / "Practised calming down"). Max 3 practices a day per child. Saved as `practice` (IndexedDB).
+- Build on the Rock: practice gold and "🙏 I prayed" pieces (`from:'prayer'`) now get past the game's daily caps (the app limits them already). Tested: an ordinary second gold is still capped.
+- Fix sheet step 2: straw sent from the app now gets its own make-it-right idea (wood: "Say sorry and ask 'Are you okay?'"…).
+- Front-board "Tantrum" now lands as wood (blow-ups), not stubble. "Disobeyed" left as wood (Joel's "bigger things are wood").
+- Checked (other chat): Undo block works 5 times; wood/hay/stubble land and burn. The 5-undo count resets when the game is reopened (left as is).
