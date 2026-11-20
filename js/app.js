@@ -7,7 +7,7 @@ import { createQuick } from './quick.js';
 import { createFarm } from './farm.js';
 import { askPin } from './pinpad.js';
 import { utterance } from './voice.js';
-import { initFruit, openFruitTime, skipFruitToday, runNightFruit, fruitTileHTML, fruitBadgeHTML, sayBadge } from './fruit.js';
+import { initFruit, openFruitTime, skipFruitToday, runNightFruit, fruitTileHTML, fruitBadgeHTML, sayBadge, fruitOfWeek } from './fruit.js';
 
 const app = document.getElementById('app');
 const overlay = document.getElementById('overlay');
@@ -539,6 +539,65 @@ async function logBreathPrayer(id) {
   setTimeout(() => { if (!state.farmKid && !state.prayer) renderKid(); }, 1800);
 }
 
+// ---------- 🙏 "I prayed" (20 Nov 2026): replaces the breath-prayer Hold button ----------
+// A child taps 🙏 after praying and says what kind of prayer it was. No coins (prayer isn't a way to earn),
+// but it sends Build on the Rock a piece: thank you = gold, for someone = silver, sorry / help me grow = a precious
+// stone in the colour of their fruit this week. Up to 10 a day, at least 30 minutes apart. No grown-up check.
+const PRAYED_PER_DAY = 10;
+const PRAYED_GAP_MS = 30 * 60000;
+const PRAYER_KINDS = [
+  { id: 'thanks', icon: '🙌', label: 'Thank you, God', rock: 'gold', piece: 'Gold', rockLabel: 'Thank-you prayer' },
+  { id: 'someone', icon: '🤲', label: 'For someone', rock: 'silver', piece: 'Silver', rockLabel: 'Prayed for someone' },
+  { id: 'grow', icon: '💖', label: 'Sorry / help me grow', rock: 'gem', piece: 'A precious stone', rockLabel: 'Sorry / help me grow prayer' },
+];
+const GEM_OF_FRUIT = { love: 'l', joy: 'j', peace: 'p', patience: 't', kindness: 'k', goodness: 'b', faithfulness: 'f', gentleness: 'e', selfcontrol: 'r' };
+const prayedList = (d) => d?.prayed || [];
+// ms until this child may tap "I prayed" again (0 = now), or null when today's 10 are used.
+function prayedWait(d) {
+  const list = prayedList(d);
+  if (list.length >= PRAYED_PER_DAY) return null;
+  const last = list.length ? new Date(list[list.length - 1].t).getTime() : 0;
+  return Math.max(0, last + PRAYED_GAP_MS - nowMs());
+}
+function prayedBtnHTML(d) {
+  const wait = prayedWait(d), n = prayedList(d).length;
+  const sub = wait === null ? '💛 Amen' : wait > 0 ? `in ${Math.ceil(wait / 60000)} min` : n ? `${n} today` : 'I prayed';
+  return `<button class="pray-btn ${wait === 0 ? '' : 'resting'}" data-action="i-prayed" aria-label="I prayed">🙏<small>${sub}</small></button>`;
+}
+function openPrayed(id) {
+  const k = kid(id), d = state.days[id];
+  const wait = prayedWait(d);
+  if (wait === null) { speakFor(id, `Ten prayers today, ${k.name}. Amen!`); return toast('💛 Ten prayers today. Amen!'); }
+  if (wait > 0) {
+    const at = clock.fmtTime(new Date(nowMs() + wait));
+    speakFor(id, `You can tell me again at ${at}. Keep talking to God any time!`);
+    return toast(`🙏 Tell me again at ${at}. You can talk to God any time!`);
+  }
+  unlockAudio();
+  speakFor(id, `What did you pray, ${k.name}?`);
+  const el = sheet(`<h2>🙏 What did you pray, ${esc(k.name)}?</h2>
+    <div class="pray-kinds">${PRAYER_KINDS.map((p) => `<button data-kind="${p.id}"><span>${p.icon}</span><b>${esc(p.label)}</b><small>${p.piece} for your building</small></button>`).join('')}</div>
+    <button class="farm-btn small" data-c="close">Not now</button>`, async (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.c) return el.remove();
+    const p = PRAYER_KINDS.find((x) => x.id === b.dataset.kind);
+    if (!p || prayedWait(state.days[id]) !== 0) return el.remove();
+    el.remove();
+    const day = state.days[id];
+    const t = clock.now().toISOString();
+    (day.prayed ||= []).push({ t, kind: p.id });
+    day.log.push({ t, habit: 'prayed', action: p.id });
+    await dayPut(day);
+    sendToRock(id, { kind: p.rock, label: p.rockLabel, from: 'prayer', ...(p.rock === 'gem' ? { fruit: GEM_OF_FRUIT[fruitOfWeek(id)] || 'l' } : {}) });
+    chime();
+    burst(app.querySelector(`[data-col="${id}"] .pray-btn`), 14);
+    speakFor(id, `Amen! ${p.piece} for your building.`);
+    toast(`🙏 Amen! ${p.icon} ${p.piece} for ${esc(k.name)}'s building`);
+    renderKid();
+  });
+}
+
 // ---------- "🌙 Going up!": the last iPad tap of the night ----------
 // After the after-dinner jobs, each child taps Going up. It runs the night fruit question (js/fruit.js),
 // then says goodnight. Bath, teeth and bed happen upstairs; next morning a grown-up says how bedtime went.
@@ -915,7 +974,7 @@ function columnHTML(k, d, r) {
       ${r === 'extras' ? `<div class="col-farm-line">${farm.tallyHTML(k.id)}<span class="col-goal">${farm.goalText(k.id, coinsOf(k.id))}</span></div>` : ''}
       <div class="col-foot">
         <button class="star-btn" data-action="extras-sheet" aria-label="Extra jobs">⭐</button>
-        <button class="breath-btn" aria-label="Hold for a breath prayer" ${breaths >= BREATHS_PER_DAY ? 'disabled' : ''}>🙏<small>${breaths >= BREATHS_PER_DAY ? '💛' : 'Hold'}</small></button>
+        ${prayedBtnHTML(d)}
         ${farmBtn}
       </div>
     </div>`;
@@ -1774,6 +1833,7 @@ document.addEventListener('click', async (e) => {
     case 'going-up': return goingUp(col.dataset.col);
     case 'last-night': return openLastNight(col?.dataset.col || state.settings.kids[0].id);
     case 'extras-sheet': return extrasSheet();
+    case 'i-prayed': return openPrayed(col?.dataset.col || state.kidId);
     case 'quick-add': return quick.openAdd(col?.dataset.col || state.kidId);
     case 'quick-check': return quick.openCheck();
     case 'start-night': return startNight();

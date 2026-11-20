@@ -92,6 +92,8 @@ function nightSet(id) {
 const ageOf = (k) => Number(k.age) || 8;
 const starMax = (k) => (ageOf(k) < 8 ? 3 : 5);
 const chosenFruit = (id) => (data(id).chosen ? fruitById(data(id).chosen.fruit) : null);
+// The fruit a child chose this week (its id, e.g. 'kindness'), or null. Used by "I prayed" for its precious stone.
+export const fruitOfWeek = (id) => chosenFruit(id)?.id || null;
 const weekIsUp = (id) => !!data(id).chosen && daysBetween(data(id).chosen.day, today()) >= WEEK_DAYS;
 
 // Keep the saved history small: drop days older than 60 days.
