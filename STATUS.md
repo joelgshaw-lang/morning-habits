@@ -218,3 +218,9 @@ Played the straw → fire → rebuild loop as a child. Before: one small line of
 - Plain spaces just outside a wall with straw are hidden (they looked like props but weren't); use Prop it up there.
 - Age 6: wall signs say "👆 Tap me" instead of numbers. The front wall's sign sits higher, clear of the side ones.
 - Not checked on the iPad.
+
+## v71 (21 Nov 2026) — Builder unlocks (10 nights): table, guest bed, pet
+- Recipe book Furniture: bench (night 0, ★1), table by the door (night 10, ★1), guest bed (night 10, ★2), each made "For" someone real with a name sign. Locked ones show "🔒 night 10 (N to go)".
+- Pet to look after (night 10, ★1): dog, cat or rabbit, sits by the front door.
+- "Coming next" ? cards now start at Craftsman (fireplace, night 20).
+- NEXT before any child reaches 20 nights: fireplace (Craftsman). Then the room inside at 35.
