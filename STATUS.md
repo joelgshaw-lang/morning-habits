@@ -1,6 +1,6 @@
 # Morning Habits app: status
 
-Updated 21 Nov 2026 (app v74 built, not pushed).
+Updated 21 Nov 2026 (app v74 LIVE). Next: Joel opens the app twice on the iPad and tries the 🌱 button, the farm and the Rebuild pack.
 
 ## Where it's up to
 - Live on GitHub Pages: Fruit time (3 fruits a day, this/not pictures, stars, quiz, pick your own fruit), Going up! night with the stay-in-bed bonus next morning, start by 7:15, −20 if asked, fair board, PIN every time, 3-minute grown-up cutoff, 🔊 voice chooser, kinder farm selling. Rules summary: README.md "Current rules".
@@ -12,7 +12,7 @@ Updated 21 Nov 2026 (app v74 built, not pushed).
 2. Joel to decide (docs/review-round3.md "For Joel to decide"): −20 for under-7s, 3-minute timer restarting on taps, farm money, farm visits per day, mine time, daily fire, speed bonuses, hand actions (Peace, Gentleness, Goodness "Thumbs up"), adding a 5-year-old.
 3. LATER list in docs/review-round3.md: only the right child can tick their column, redraw Peace and Faithfulness pictures, rebuild animals in Sticker Plus (3 first as a test), hide the PIN from the public code.
 
-### 🌱 Reminders update (21 Nov 2026, app v74, NOT LIVE yet: committed, not pushed)
+### 🌱 Reminders update (21 Nov 2026, app v74, LIVE)
 From the iPhone High Priority list and the Asana task "Kids app updates":
 - **Farm sells for less:** an animal sells for 70% of what was paid for it (🪙 30 egg hen → 🪙 20, 🪙 1500 dinosaur egg → 🪙 1050). Farm-born animals, gifts, friends and animals from before today use a lower table (mystery-egg animals 🪙 20, sheep 100, pig 80, cow 240). `sellPrice` in `js/farm.js`.
 - **Farm troubles, about once a week** (never two days in a row, one per opening, at most 2 waiting): ⛈️ storm damages a building (fix 🪙 15 to 40; no buildings = fence blown down), 🌊 flood (clean up 🪙 15, may wash away a garden bed), 🤒 sick animal (vet 🪙 15 / 30 / 50; makes nothing and doesn't grow until then), 🐛 caterpillars (a bed needs one more day), 💨 wind (up to 3 feed bags lost). While a storm or flood repair waits the animals make nothing. "Needs fixing" box on the farm panel. Nothing dies.
