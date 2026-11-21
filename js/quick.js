@@ -128,5 +128,31 @@ export function createQuick(ctx) {
     return true;
   }
 
-  return { load, chipHTML, openAdd, openCheck, sectionHTML, handle, waitingFor, waitingAll };
+  // 🌱 Growing bonus (21 Nov 2026, Joel): a child who had FEWER kept hard moments yesterday than the day before
+  // gets bonus coins the next day. Waits until yesterday's moments are all checked. Once per day per child
+  // (marked on the coin change with `grow: <yesterday>`), so it shows in their coin history like any other.
+  const GROW_BONUS = 3;
+  async function growBonus() {
+    if (!state.settings) return;
+    const start = state.settings.dayStartHour, now = ctx.clock.now().getTime();
+    const key = (ms) => ctx.clock.dayKey(new Date(ms), start);
+    const y = key(now - 86400000), d = key(now - 2 * 86400000);
+    const adj = state.coinAdjust || [];
+    let gave = false;
+    for (const k of state.settings.kids) {
+      if (adj.some((a) => a.kidId === k.id && a.grow === y)) continue;
+      const hard = (day) => list().filter((q) => q.kidId === k.id && q.n < 0 && q.status !== 'dropped' && key(Date.parse(q.t)) === day);
+      const yHard = hard(y);
+      if (yHard.some((q) => q.status === 'waiting')) continue; // not checked yet: decide once it is
+      const before = hard(d).length, after = yHard.length;
+      if (after >= before) continue;
+      adj.push({ kidId: k.id, n: GROW_BONUS, why: `🌱 Fewer hard moments (${before} → ${after})`, t: new Date(now).toISOString(), grow: y });
+      ctx.toast(`🌱 ${esc(k.name)}: fewer hard moments yesterday (${before} → ${after})! +${GROW_BONUS} 🪙`);
+      gave = true;
+    }
+    if (gave) { state.coinAdjust = adj; await ctx.kvSet('coinAdjust', adj); }
+    return gave;
+  }
+
+  return { load, chipHTML, openAdd, openCheck, sectionHTML, handle, waitingFor, waitingAll, growBonus };
 }

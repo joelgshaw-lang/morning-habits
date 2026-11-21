@@ -1371,4 +1371,16 @@ test('practice gold: never blocked by the daily gold cap', function () {
   assert.equal(R.addPiece(s, 'G', {}).ok, false, 'second gold capped');
   assert(R.addPiece(s, 'G', { practice: true }).ok, 'practice gold still arrives');
 });
+test('rebuild pack: fallen stones come back to the tray, newest first, outside the daily limit', function () {
+  var s = kid(8);
+  for (var i = 0; i < 15; i++) s.rubble.push({ id: 900 + i, t: 'S', seq: i, prop: true });
+  s.today.rubble = 99;
+  assert.equal(R.restoreRubble(s, 12), 12);
+  assert.equal(s.rubble.length, 3);
+  assert.equal(s.tray.length, 12);
+  assert.equal(s.tray[0].id, 914);
+  assert(!s.tray[0].prop);
+  assert.equal(R.restoreRubble(s, 12), 3);
+  assert.equal(R.restoreRubble(s, 12), 0);
+});
 console.log(passed + ' tests passed' + (process.exitCode ? ', SOME FAILED' : ''));

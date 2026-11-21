@@ -146,8 +146,37 @@ export function createPortal(ctx) {
         <span class="gk-coins">🪙 <span class="coin-num" data-coins-of="${k.id}">${ctx.coinsOf(k.id)}</span></span>
         <button class="farm-btn gk-farm" data-open-farm="${k.id}">🐔 Open farm</button>
         <button class="farm-btn gk-farm gk-rock" data-open-rock="${k.id}">🏰 Open building</button></div>
+      ${rebuildHTML(k)}
       ${waitingSection(k)}${ctx.quickSection(k)}${coinsSection(k)}${tickSection(k)}${recentHTML(k)}
       <h3>🍓 Fruit</h3>${fruitPortalHTML(k, esc)}`;
+  }
+
+  // 🧱 Rebuild pack (21 Nov 2026, Joel): coins buy back up to 12 fallen blocks in Build on the Rock, straight into the
+  // tray, outside the game's daily rebuild limit. Only shows when the building has fallen blocks to give back.
+  const REBUILD = { price: 20, blocks: 12 };
+  function fallenBlocks(id) {
+    try {
+      const db = JSON.parse(localStorage.getItem(`rock-live.${id}`) || 'null');
+      const pile = db?.kids?.me?.s?.rubble?.length || 0;
+      const queued = JSON.parse(localStorage.getItem(`rock.inbox.${id}`) || '[]').filter((x) => x.kind === 'rebuild').reduce((n, x) => n + (x.n || 0), 0);
+      return Math.max(0, pile - queued);
+    } catch { return 0; }
+  }
+  function rebuildHTML(k) {
+    const n = fallenBlocks(k.id);
+    if (!n) return '';
+    const can = ctx.coinsOf(k.id) >= REBUILD.price;
+    return `<div class="claim-row gk-rebuild"><span>🧱</span><b>Rebuild pack</b><small>${n} fallen block${n === 1 ? '' : 's'} · get back ${Math.min(n, REBUILD.blocks)} now</small>
+      <button class="farm-btn small ok" data-rebuild="${k.id}" ${can ? '' : 'disabled'}>🪙 ${REBUILD.price}</button></div>`;
+  }
+  async function buyRebuild(id) {
+    const n = Math.min(fallenBlocks(id), REBUILD.blocks);
+    if (!n || ctx.coinsOf(id) < REBUILD.price) return;
+    state.coinAdjust = [...(state.coinAdjust || []), { kidId: id, n: -REBUILD.price, why: '🧱 Rebuild pack', t: ctx.clock.now().toISOString() }];
+    await ctx.kvSet('coinAdjust', state.coinAdjust);
+    ctx.sendToRock(id, { kind: 'rebuild', n, label: 'Rebuild pack' });
+    await ctx.refreshSummary();
+    ctx.toast(`🧱 ${n} fallen blocks are waiting in ${esc(ctx.kid(id).name)}'s building. Open it to lay them!`);
   }
 
   function waitingSection(k, short = false) {
@@ -438,6 +467,7 @@ export function createPortal(ctx) {
     }
     if (ds.openFarm) { el.remove(); el = null; return ctx.openFarm(ds.openFarm); }
     if (ds.openRock) { el.remove(); el = null; return ctx.openRock(ds.openRock); }
+    if (ds.rebuild) { await buyRebuild(ds.rebuild); return draw(); }
     if (ds.openRockTest) { el.remove(); el = null; return ctx.openRockTest(); }
     if (ds.keep || ds.drop) { if (await ctx.quickHandle(t)) draw(); return; }
     if (ds.practice) { const [id, dr] = ds.practice.split(':'); return runDrill(id, dr); }

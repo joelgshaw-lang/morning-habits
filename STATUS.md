@@ -1,6 +1,6 @@
 # Morning Habits app: status
 
-Updated 17 Nov 2026.
+Updated 21 Nov 2026 (app v74 built, not pushed).
 
 ## Where it's up to
 - Live on GitHub Pages: Fruit time (3 fruits a day, this/not pictures, stars, quiz, pick your own fruit), Going up! night with the stay-in-bed bonus next morning, start by 7:15, −20 if asked, fair board, PIN every time, 3-minute grown-up cutoff, 🔊 voice chooser, kinder farm selling. Rules summary: README.md "Current rules".
@@ -11,6 +11,17 @@ Updated 17 Nov 2026.
 1. Joel's iPad check of Ready, set, go → Fruit time, and Going up! at night. Fix what he finds.
 2. Joel to decide (docs/review-round3.md "For Joel to decide"): −20 for under-7s, 3-minute timer restarting on taps, farm money, farm visits per day, mine time, daily fire, speed bonuses, hand actions (Peace, Gentleness, Goodness "Thumbs up"), adding a 5-year-old.
 3. LATER list in docs/review-round3.md: only the right child can tick their column, redraw Peace and Faithfulness pictures, rebuild animals in Sticker Plus (3 first as a test), hide the PIN from the public code.
+
+### 🌱 Reminders update (21 Nov 2026, app v74, NOT LIVE yet: committed, not pushed)
+From the iPhone High Priority list and the Asana task "Kids app updates":
+- **Farm sells for less:** an animal sells for 70% of what was paid for it (🪙 30 egg hen → 🪙 20, 🪙 1500 dinosaur egg → 🪙 1050). Farm-born animals, gifts, friends and animals from before today use a lower table (mystery-egg animals 🪙 20, sheep 100, pig 80, cow 240). `sellPrice` in `js/farm.js`.
+- **Farm troubles, about once a week** (never two days in a row, one per opening, at most 2 waiting): ⛈️ storm damages a building (fix 🪙 15 to 40; no buildings = fence blown down), 🌊 flood (clean up 🪙 15, may wash away a garden bed), 🤒 sick animal (vet 🪙 15 / 30 / 50; makes nothing and doesn't grow until then), 🐛 caterpillars (a bed needs one more day), 💨 wind (up to 3 feed bags lost). While a storm or flood repair waits the animals make nothing. "Needs fixing" box on the farm panel. Nothing dies.
+- **🌱 Growing bonus:** fewer kept hard moments yesterday than the day before = +🪙 3 the next day (waits until yesterday's moments are checked). `growBonus` in `js/quick.js`.
+- **🧱 Rebuild pack** on the child's Grown-ups page (only when the building has fallen blocks): 🪙 20 brings back up to 12 fallen blocks into the tray, outside the daily rebuild limit. `restoreRubble` in `docs/rock/rules.js` (+1 test, 119 pass).
+- **🌱 button on each column** (`js/grow.js`): 📖 memory verse word game (words disappear in 4 steps, tap a gap to peek; 🪙 1 a day for practising; after 3 days a grown-up hears it with the PIN: 🪙 10 and the next verse), 🌱 growing in / 💪 working on (last 7 days of kept moments), 📝 plan for tomorrow (pick a fruit, its "I will" step; asked before Build on the Rock opens after 3pm), 🌅 picture it (60 seconds the next morning → a precious stone in that fruit's colour for the building).
+- Verses (kid wording, change in `js/grow.js`): Galatians 5:22–23, Philippians 2:14, John 15:5, 1 Corinthians 3:13, Matthew 28:19–20, 2 Corinthians 3:18.
+- **Tested:** logic only, in Node (a simulated year of farm troubles, sell prices, growing bonus, plan/goal button, rebuild pack rule). **Not tested in a browser or on the iPad** (the local test server was blocked by a permission check this session).
+- **For Joel to decide:** bonus 🪙 3, rebuild pack 🪙 20 for 12 blocks, verse coins (1 a day, 10 learned), repair/vet prices, which verse "love you" meant in the reminder.
 
 ## Farm revamp: painted, build-your-own farm (16 Nov 2026)
 - **Updates (16 Nov, v47):** the app version shows tiny in the bottom-right corner of every screen and in Grown-ups → 🔓 Farm & mine, with an **Update now** button there. The app also checks for updates when it comes to the front and every 30 minutes. Joel's iPad was still on the old version (no 'New painted farm' row) after v46 went live; cause not proven (my own browser with an old copy updated fine; no iPad simulator on this Mac without Xcode). Best lead: v46 and v47 made the update wait for all 69 farm pictures in one all-or-nothing download. **v48** installs from the 23 app files only and fetches the pictures afterwards. If the iPad still doesn't update, next questions: does Grown-ups show the 🔊 Voice tab (added 16 Nov 14:30)? Is the iPad on Wi-Fi? Never delete and re-add the home screen icon (it wipes the kids' data).

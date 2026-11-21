@@ -528,6 +528,15 @@
   }
   /* place(state, trayIndex, wall, col, row): lay a tray piece (wall may also be 'free' or 'spire'). Never limited. */
   function place(state, trayIndex, wall, col, row, out) { return lay(state, state.tray, trayIndex, wall, col, row, false, out); }
+  /* restoreRubble(state, n): a rebuild pack bought with coins in the family app (21 Nov 2026, Joel). Up to n fallen
+     stones (newest first) go straight back to the tray, outside the daily rubble limit, to be laid like new pieces.
+     Returns how many came back (0 when the pile is empty). */
+  function restoreRubble(state, n) {
+    var back = state.rubble.splice(Math.max(0, state.rubble.length - Math.max(0, n | 0)));
+    back.forEach(function (p) { delete p.prop; });
+    state.tray = state.tray.concat(back.reverse());
+    return back.length;
+  }
   /* placeRubble(state, rubbleIndex, wall, col, row): re-lay a fallen stone; at most summary().rubbleLeftToday a day. */
   function placeRubble(state, rubbleIndex, wall, col, row, out) {
     if (state.today.rubble >= rubbleCap(state)) return fail('rubbleCap');
@@ -1285,7 +1294,7 @@
   }
 
   return { CONFIG: CONFIG, newChild: newChild, startDay: startDay, addPiece: addPiece, legalSlots: legalSlots,
-    craft: craft, craftable: craftable, bracing: bracing, braceOf: braceOf, markProp: markProp, countNight: countNight, level: level, decorate: decorate, decoSlots: decoSlots, place: place, placeRubble: placeRubble, autoPlace: autoPlace, forgive: forgive, pull: pull, wobble: wobble,
+    craft: craft, craftable: craftable, bracing: bracing, braceOf: braceOf, markProp: markProp, countNight: countNight, level: level, decorate: decorate, decoSlots: decoSlots, place: place, placeRubble: placeRubble, restoreRubble: restoreRubble, autoPlace: autoPlace, forgive: forgive, pull: pull, wobble: wobble,
     windows: windows, forecast: forecast, isFireNight: isFireNight, callFire: callFire, fire: fire,
     endDay: endDay, summary: summary, addGospelShare: addGospelShare, addNeighbour: addNeighbour, prayFor: prayFor,
     strawTarget: strawTarget, isComplete: isComplete, at: at, tally: tally,

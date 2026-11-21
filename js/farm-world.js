@@ -104,7 +104,7 @@ const WIDE = { pig: 0.62, chicken: 0.4, duck: 0.4, sheep: 0.62, cow: 0.85, lizar
 /** Same call as animalArt() in farm-art.js, so the farm can swap one for the other. */
 export function paintArt(type, isGrown = true, wool = 0, mood = 'happy') {
   const own = !isGrown && BABY[type];
-  const bubble = mood === 'sleepy' ? '<i class="pa-b">💤</i>' : mood === 'hungry' ? '<i class="pa-b">🍽️</i>' : '';
+  const bubble = mood === 'sick' ? '<i class="pa-b">🤒</i>' : mood === 'sleepy' ? '<i class="pa-b">💤</i>' : mood === 'hungry' ? '<i class="pa-b">🍽️</i>' : '';
   return `<span class="art pa pa-${mood}${!isGrown && !own ? ' pa-small' : ''}"><img src="${ART}a-${own || IMG[type] || type}.webp" alt="" draggable="false">${bubble}</span>`;
 }
 

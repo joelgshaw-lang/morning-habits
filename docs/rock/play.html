@@ -2246,7 +2246,7 @@ function takeInbox(){let a=null;try{const raw=localStorage.getItem(LINBOX);if(ra
   return Array.isArray(a)?a.filter(function(o){return o&&typeof o==='object'}):[]}
 const DEFLABEL={gold:'Time with God',silver:'Jobs done well',gem:'A good moment',straw:'Straw'};
 /* one inbox item -> rules pieces. Returns null for an item this page does not understand (it is dropped). */
-function feedOne(s,it){const kind=it.kind,meta={label:String(it.label||DEFLABEL[kind]||'').slice(0,48),at:String(it.t||''),app:kind};if((kind==='gold'&&it.practice)||it.from==='prayer')meta.practice=true;   /* practice gold and "I prayed" pieces: the app already limits them (3 practices, 10 prayers a day), so the game's daily caps don't drop them */let type;
+function feedOne(s,it){const kind=it.kind,meta={label:String(it.label||DEFLABEL[kind]||'').slice(0,48),at:String(it.t||''),app:kind};if((kind==='gold'&&it.practice)||it.from==='prayer'||it.from==='goal')meta.practice=true;   /* practice gold and "I prayed" pieces: the app already limits them (3 practices, 10 prayers a day), so the game's daily caps don't drop them */let type;
   if(kind==='gold')type='G';else if(kind==='silver')type='S';
   else if(kind==='gem')type=isGem(it.fruit)?it.fruit:'l';
   else if(kind==='straw'){type='W';meta.material=it.material==='wood'||it.material==='stubble'?it.material:'hay'}
@@ -2258,6 +2258,7 @@ function liveSync(){if(!canSync())return;
   const k=K(),today=rockDate(),items=takeInbox(),done=items.map(function(){return false}),got=[],straw=[];let moved=0,lvUp=null;
   function itemDay(it){const d=new Date(it.t);return isNaN(d.getTime())?today:rockDate(d)}
   function feed(upTo){items.forEach(function(it,i){if(done[i]||(upTo!=null&&dayNum(itemDay(it))>upTo))return;done[i]=true;
+    if(it.kind==='rebuild'){const n=R.restoreRubble(k.s,it.n||12);if(n)got.push({type:'S',kind:'rebuild',label:n+' fallen blocks back to build with'});return}   /* a rebuild pack bought with coins in the app (21 Nov 2026) */
     if(it.kind==='night'||it.kind==='gem'||it.kind==='straw'){const cn=R.countNight(k.s,'r'+itemDay(it));if(cn.levelUp)lvUp=cn.levelUp;if(it.kind==='night')return}   /* a night a grown-up checked */
     let o=null;try{o=feedOne(k.s,it)}catch(e){o=null}if(!o||!o.r.ok)return;   /* over the daily cap: the rules say no, the piece is not given */
     (k.p.arrivals||(k.p.arrivals=[])).push({day:k.s.day,kind:o.kind,t:o.type,label:o.label,material:o.material});

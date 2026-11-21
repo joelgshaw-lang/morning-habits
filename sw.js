@@ -1,6 +1,6 @@
 // Offline support: serve from cache first, refresh the cache in the background.
 // Bump VERSION when you deploy a change so old files are cleared.
-const VERSION = 'v73';
+const VERSION = 'v74';
 const CACHE = `morning-${VERSION}`;
 // The app itself. An update only installs if every one of these downloads, so keep this list short.
 const ASSETS = [
@@ -19,6 +19,7 @@ const ASSETS = [
   './js/farm-world.js',
   './js/portal.js',
   './js/quick.js',
+  './js/grow.js',
   './js/voice.js',
   './js/fruit.js',
   './js/fruits.js',

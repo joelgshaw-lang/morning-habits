@@ -4,6 +4,7 @@ import { DEFAULT_SETTINGS, GROWN_PIN, BREATHS_PER_DAY, BREATH_MS } from './confi
 import { summarize, startOffer, startCoins, fmtMinutes, nightFinishedAt, morningStart, houseJobsFor, planFor, COINS, EXTRAS_DAY_CAP, startByMs, bedtimeBonus, practiceMs } from './family.js';
 import { createPortal } from './portal.js';
 import { createQuick } from './quick.js';
+import { createGrow } from './grow.js';
 import { createFarm } from './farm.js';
 import { askPin } from './pinpad.js';
 import { utterance } from './voice.js';
@@ -128,8 +129,10 @@ async function refreshSummary() {
   state.sum = summarize(state.settings, all, state.dinners, todayKey());
   state.coinAdjust = (await kvGet('coinAdjust')) || []; // coins a grown-up added or took away in the portal
   if (!state.quickLog) state.quickLog = (await kvGet('quickLog')) || []; // 🪙± moments from the front board (quick.js)
-  if (!state.practice) state.practice = (await kvGet('practice')) || {}; // 🏋️ practice drills: gold shards per child (portal.js)
+  if (!state.practice) state.practice = (await kvGet('practice')) || {};
+  if (!state.grow) state.grow = (await kvGet('grow')) || {}; // 🌱 memory verses, plans, picture-it (grow.js) // 🏋️ practice drills: gold shards per child (portal.js)
   if (!state.farms) state.farms = (await kvGet('farms')) || {};
+  await quick.growBonus(); // 🌱 fewer hard moments than the day before = bonus coins today
 }
 const farm = createFarm({
   state, esc, kid: (id) => kid(id), todayKey: () => todayKey(), kvSet, earned: (id) => (state.sum?.coins[id] || 0) + (state.coinAdjust || []).filter((a) => a.kidId === id).reduce((n, a) => n + a.n, 0),
@@ -161,6 +164,13 @@ const quick = createQuick({
   coinsOf: (id) => coinsOf(id), refreshSummary: () => refreshSummary(), renderKid: () => renderKid(), sendToRock: (...a) => sendToRock(...a),
 });
 
+const grow = createGrow({
+  state, esc, kid: (id) => kid(id), clock, todayKey: () => todayKey(), kvSet, refreshSummary: () => refreshSummary(),
+  sheet: (...a) => sheet(...a), speak: (...a) => speak(...a), speakFor: (...a) => speakFor(...a), unlockAudio: () => unlockAudio(),
+  chime: () => chime(), toast: (h) => toast(h), renderKid: () => renderKid(), grownUp: (...a) => grownUp(...a),
+  sendToRock: (...a) => sendToRock(...a), fast: () => clock.fastTimers(),
+});
+
 // ---------- Build on the Rock (docs/rock/play.html in live mode, shown in a frame) ----------
 // Real life sends it pieces through a small inbox in localStorage (the page collects them):
 // gold = a finished prayer timer, silver = a finished morning or night routine (once each a day),
@@ -180,7 +190,9 @@ function openRockTest() {
   el.innerHTML = `<iframe src="./docs/rock/play.html?${q}" title="Build on the Rock: test space" allow="autoplay"></iframe>`;
   document.body.appendChild(el);
 }
-function openRock(id) {
+// After 3pm the child makes tomorrow's plan first (grow.js), then builds.
+function openRock(id) { grow.beforeRock(id, () => openRockNow(id)); }
+function openRockNow(id) {
   const k = kid(id);
   state.rockTest = false;
   state.rockOpen = true;
@@ -977,6 +989,7 @@ function columnHTML(k, d, r) {
       <div class="col-foot">
         <button class="star-btn" data-action="extras-sheet" aria-label="Extra jobs">⭐</button>
         ${prayedBtnHTML(d)}
+        ${grow.btnHTML(k.id)}
         ${farmBtn}
       </div>
     </div>`;
@@ -1836,6 +1849,7 @@ document.addEventListener('click', async (e) => {
     case 'last-night': return openLastNight(col?.dataset.col || state.settings.kids[0].id);
     case 'extras-sheet': return extrasSheet();
     case 'i-prayed': return openPrayed(col?.dataset.col || state.kidId);
+    case 'grow': return grow.open(col?.dataset.col || state.kidId);
     case 'quick-add': return quick.openAdd(col?.dataset.col || state.kidId);
     case 'quick-check': return quick.openCheck();
     case 'start-night': return startNight();

@@ -544,6 +544,9 @@ svg.bld { width: 70px; height: 70px; }
 .basket-btns { display: flex; gap: 8px; margin-top: 6px; }
 .farm-fence { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: #fff; border-radius: 22px; box-shadow: var(--shadow); padding: 6px 6px 6px 14px; font-size: 19px; font-weight: 800; }
 .farm-fence.warn { background: #fee2e2; color: #991b1b; }
+/* Farm troubles: storm, flood, sick animal (21 Nov 2026) */
+.farm-trouble { display: grid; gap: 6px; background: #fff7ed; border: 3px solid #fdba74; border-radius: 22px; padding: 8px; }
+.farm-trouble .trouble-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 18px; font-weight: 800; color: #9a3412; padding-left: 6px; }
 .farm-ov { position: fixed; inset: 0; z-index: 65; background: rgba(20, 30, 10, 0.6); display: grid; place-items: center; }
 .farm-sheet { background: #fffdf5; border-radius: 32px; padding: 26px 30px; width: min(560px, 92vw); max-height: 90vh; overflow: auto; text-align: center; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35); }
 .farm-ov.shop .farm-sheet { width: min(760px, 94vw); text-align: left; }
@@ -1222,3 +1225,38 @@ button.w2-it { pointer-events: auto; cursor: pointer; }
 .practice-sheet .pbreathe .pring { width: 160px; height: 160px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--kid) 35%, #fff), var(--kid)); animation: breathe 6s ease-in-out infinite; }
 @keyframes breathe { 0%, 100% { transform: scale(.55); } 50% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .practice-sheet .pbreathe .pring, .practice-sheet .cheer { animation: none; } }
+
+/* 🌱 Growing: memory verses, how I'm growing, plan for tomorrow, picture it (21 Nov 2026, grow.js) */
+.grow-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+.grow-card { border-radius: 20px; padding: 12px; display: grid; gap: 2px; }
+.grow-card b { font-size: 26px; }
+.grow-card small { font-size: 14px; font-weight: 800; color: var(--muted); }
+.grow-card.good { background: #ecfdf5; border: 3px solid #6ee7b7; }
+.grow-card.work { background: #fff7ed; border: 3px solid #fdba74; }
+.grow-goal { display: grid; gap: 4px; background: #fffbeb; border: 3px solid #fcd34d; border-radius: 20px; padding: 12px; margin: 10px 0; }
+.grow-goal b { font-size: 26px; }
+.grow-goal span { font-size: 19px; font-weight: 700; }
+.grow-goal small { font-size: 14px; font-weight: 800; color: var(--muted); }
+.grow-actions { display: grid; gap: 8px; margin: 12px 0 6px; }
+.grow-actions small { display: block; font-size: 14px; color: var(--muted); }
+.verse-steps { display: flex; justify-content: center; gap: 8px; margin: 6px 0 2px; }
+.verse-steps i { width: 34px; height: 10px; border-radius: 6px; background: #e7e0d4; }
+.verse-steps i.on { background: #22c55e; }
+.farm-sheet p.verse-say { font-size: 20px; color: #374151; margin: 8px 0; }
+.verse-text { font-size: 28px; line-height: 1.7; font-weight: 800; background: #fff; border-radius: 20px; padding: 16px; box-shadow: var(--shadow); }
+.verse-text .vw { font: inherit; letter-spacing: 2px; color: #9ca3af; background: #f3f4f6; border: 0; border-radius: 8px; padding: 0 4px; }
+.verse-text .vw.peeked { color: #2563eb; letter-spacing: 0; background: #dbeafe; }
+.verse-ref { font-size: 18px; font-weight: 900; color: var(--muted); margin-top: 8px; }
+.plan-fruits { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.plan-fruits button { display: grid; justify-items: center; gap: 2px; padding: 8px 4px; border-radius: 18px; border: 3px solid #e7e0d4; background: #fff; font: inherit; }
+.plan-fruits button svg { width: 52px; height: 52px; }
+.plan-fruits button b { font-size: 15px; }
+.plan-fruits button.on { border-color: #22c55e; background: #ecfdf5; }
+.picture-ring { position: relative; width: 170px; height: 170px; margin: 10px auto; }
+.picture-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.picture-ring circle { fill: none; stroke-width: 10; }
+.picture-ring .pr-bg { stroke: #fde68a; }
+.picture-ring .pr-fg { stroke: #f59e0b; stroke-dasharray: 100; stroke-dashoffset: 0; stroke-linecap: round; transition: stroke-dashoffset .25s linear; }
+.picture-ring .pr-num { position: absolute; inset: 0; display: grid; place-items: center; font-size: 46px; font-weight: 900; }
+.col-foot .grow-btn:not(.resting) { border-color: #86efac; background: #f0fdf4; }
+.gk-rebuild { background: #f5f3ff; }

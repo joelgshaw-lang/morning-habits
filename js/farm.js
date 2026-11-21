@@ -74,11 +74,19 @@ const RAINBOW_CHANCE = 0.03;
 
 // What a child gets for selling a grown animal. They choose which one, say goodbye, and can bring it back
 // within 10 seconds (see "selling an animal" below).
-// The new friends sell for well under what they cost, so buying and selling them never makes coins.
-export const SELL = { chicken: 40, duck: 50, lizard: 75, snake: 75, croc: 120, sheep: 120, pig: 100, cow: 280, dino: 400,
+// 21 Nov 2026 (Joel): an animal always sells for LESS than it cost, so buying and selling never makes coins.
+// An animal remembers what was paid for it (`paid`) and sells for 70% of that (a 🪙 30 egg hen sells for 🪙 20,
+// a 🪙 1500 dinosaur egg dinosaur for 🪙 1050). Animals born on the farm, gifts, new friends and animals from
+// before 21 Nov use this table, which sits under the cheapest way to get each one (mystery egg 🪙 30,
+// piglet 120, lamb 150, calf 350; the new friends' homes cost 150 to 450).
+const SELL_SHARE = 0.7;
+export const SELL = { chicken: 20, duck: 20, lizard: 20, snake: 20, croc: 20, sheep: 100, pig: 80, cow: 240, dino: 20,
   platypus: 60, echidna: 60, kookaburra: 60, wombat: 80, koala: 100, roo: 120,
   crab: 80, turtle: 70, squid: 70, puffer: 70, octopus: 70, manta: 150 };
 // "hen" reads better than "chicken" when saying goodbye.
+export const sellPrice = (a) => (a.paid > 0 ? Math.max(5, Math.floor((a.paid * SELL_SHARE) / 5) * 5) : SELL[a.type]);
+// What each egg costs, so a hatched animal knows what was paid for it.
+const EGG_PAID = { mystery: 30, rare: 90, dino: 1500, bush: 150, pool: 150 };
 const animalWord = (type) => (type === 'chicken' ? 'hen' : KINDS[type].name.toLowerCase());
 // The words for saying goodbye: "your hen" for farm animals, "Kip the koala" for the named friends.
 function byeWords(type) {
@@ -167,6 +175,70 @@ const missingOf = (f, list) => list.filter((t) => roomFor(f, t));
 const feedCost = (f, a) => Math.max(0, KINDS[a.type].feed - (f.built.mill ? 1 : 0));
 const hasGrown = (f, type) => f.animals.some((a) => a.type === type && grown(a));
 
+// ---------- Farm troubles (21 Nov 2026, Joel) ----------
+// About once a week something goes wrong: a storm, a flood, a sick animal, pests in the garden or wind.
+// Never two days in a row, at most one new trouble each time the farm is opened, and at most 2 waiting.
+// While a storm or flood repair waits, the animals are too unsettled to make anything (they still eat and grow).
+// A sick animal makes nothing and doesn't grow until the vet comes. Nothing ever dies.
+const TROUBLE_CHANCE = 1 / 6;   // about 1 in 6 days; with "never two in a row" this lands near once a week
+const STORM_HITS = { coop: 'chicken coop', barn: 'big barn', house: 'farmhouse', manor: 'big farmhouse', hive: 'beehive', mill: 'windmill', pond: 'duck pond', veg: 'vegetable patch' };
+const STORM_COST = { coop: 20, barn: 40, house: 30, manor: 40, hive: 20, mill: 30, pond: 20, veg: 15 };
+const FLOOD_COST = 15;
+export const vetCost = (type) => (type === 'cow' || type === 'dino' || type === 'croc' ? 50 : type === 'sheep' || type === 'pig' || KINDS[type].group ? 30 : 15);
+
+function rollTrouble(f, day) {
+  f.trouble ||= [];
+  if (f.trouble.length >= 2 || f.animals.length < 2) return null;
+  if (f.troubleDay != null && day - f.troubleDay < 2) return null; // never two days in a row
+  if (Math.random() >= TROUBLE_CHANCE) return null;
+  const hits = Object.keys(STORM_HITS).filter((b) => f.built[b] && !f.trouble.some((t) => t.hit === b));
+  const beds = (f.world?.beds || []).filter((b) => b.crop);
+  const sickable = f.animals.filter((a) => grown(a) && !a.sick);
+  const choices = [];
+  if (hits.length || (!f.built.strong && f.fenceDays > 0)) choices.push(['storm', 3]);
+  if (sickable.length) choices.push(['sick', 3]);
+  if (!f.trouble.some((t) => t.kind === 'flood')) choices.push(['flood', 2]);
+  if (beds.length) choices.push(['pests', 1]);
+  if (f.feedPacks >= 2) choices.push(['wind', 1]);
+  let r = Math.random() * choices.reduce((n, c) => n + c[1], 0);
+  const kind = (choices.find((c) => (r -= c[1]) < 0) || choices[0] || [])[0];
+  if (!kind) return null;
+  f.troubleDay = day;
+  const id = (f.troubleId = (f.troubleId || 0) + 1);
+  if (kind === 'storm') {
+    if (!hits.length) { // no buildings yet: the storm blows the fence down (the strong fence stands firm)
+      f.fenceDays = 0;
+      return { icon: '⛈️', text: 'A big storm blew your fence down! Fix the fence before the fox finds the gap.' };
+    }
+    const hit = hits[rnd(hits.length)];
+    f.trouble.push({ id, kind, hit, icon: '⛈️', name: `Fix the ${STORM_HITS[hit]}`, cost: STORM_COST[hit] });
+    return { icon: '⛈️', text: `A big storm damaged your ${STORM_HITS[hit]}! Your animals are too unsettled to make anything until it's fixed.` };
+  }
+  if (kind === 'sick') {
+    const a = sickable[rnd(sickable.length)];
+    a.sick = true;
+    const nm = KINDS[a.type].who || `your ${KINDS[a.type].name.toLowerCase()}`;
+    f.trouble.push({ id, kind, animal: a.id, icon: '🤒', name: `Vet for ${nm}`, cost: vetCost(a.type) });
+    return { icon: '🤒', text: `Oh no, ${nm} is sick! Call the vet to make ${KINDS[a.type].who ? 'them' : 'it'} better.` };
+  }
+  if (kind === 'flood') {
+    const lost = beds.length ? beds[rnd(beds.length)] : null;
+    if (lost) { lost.crop = null; lost.growth = 0; }
+    f.trouble.push({ id, kind, icon: '🌊', name: 'Clean up after the flood', cost: FLOOD_COST });
+    return { icon: '🌊', text: `Heavy rain flooded the paddock${lost ? ' and washed away one garden bed' : ''}! Clean up the mud so your animals can get back to work.` };
+  }
+  if (kind === 'pests') {
+    const b = beds[rnd(beds.length)];
+    b.growth = Math.max(0, (b.growth || 0) - 1);
+    return { icon: '🐛', text: 'Hungry caterpillars nibbled a garden bed, so it needs one more job day to grow.' };
+  }
+  const blown = Math.min(3, f.feedPacks);
+  f.feedPacks -= blown;
+  return { icon: '💨', text: `A strong wind blew ${blown} bags of feed away!` };
+}
+// Storm and flood repairs that are still waiting stop the farm making things.
+const unsettled = (f) => (f.trouble || []).some((t) => t.kind !== 'sick');
+
 // Days since the farm was last opened: eggs in the nest hatch, the fence wears out, and the fox may visit.
 // The fox takes at most one animal per absence, so a few missed days never wipe out a farm.
 // gentle (children under 8): the fox only gives the animals a fright, so hens and ducks lay no eggs today.
@@ -204,6 +276,8 @@ export function catchUp(f, today, { gentle = false } = {}) {
       f.events.push({ icon: '🦊', fox: true, text: `A fox sneaked through the broken fence and took a ${KINDS[gone.type].name.toLowerCase()}. Fix the fence to keep your animals safe.` });
     }
   }
+  const ev = rollTrouble(f, dayNum(today));
+  if (ev) f.events.push(ev);
   f.lastDay = today;
   return true;
 }
@@ -550,7 +624,7 @@ export function createFarm(ctx) {
     return s.nightOpen ? now >= clock.atTime(s.nightOpen, startH) : now.getHours() >= 18;
   }
   // The face each animal's picture shows: hungry until fed today, sleepy at night, otherwise happy.
-  const moodOf = (a) => (a.fedDay !== today() ? 'hungry' : isNight() ? 'sleepy' : 'happy');
+  const moodOf = (a) => (a.sick ? 'sick' : a.fedDay !== today() ? 'hungry' : isNight() ? 'sleepy' : 'happy');
   const nameOf = (a) => { const k = KINDS[a.type]; return k.full || (grown(a) ? k.name : k.baby); };
 
   function animalHTML(f, a, where) {
@@ -673,7 +747,39 @@ export function createFarm(ctx) {
       <div class="farm-fence ${f.fenceDays <= 2 ? 'warn' : ''}">
         🪵 ${f.fenceDays ? `Fence: ${f.fenceDays} day${f.fenceDays === 1 ? '' : 's'} left` : 'Fence broken! 🦊'}
         <button class="farm-btn small" data-action="farm-buy" data-item="repair" ${f.fenceDays >= 5 ? 'disabled' : ''}>${f.fenceDays >= 5 ? 'OK ✓' : `Fix 🪙 ${SHOP.find((x) => x.id === 'repair').price}`}</button>
-      </div>`;
+      </div>
+      ${troubleHTML(f, coins)}`;
+  }
+
+  // "Needs fixing": each storm, flood or sick animal with its own Fix button.
+  function troubleHTML(f, coins) {
+    const list = f.trouble || [];
+    if (!list.length) return '';
+    return `<div class="farm-trouble">${list.map((t) => `
+      <div class="trouble-row"><span>${t.icon} ${esc(t.name)}</span>
+        <button class="farm-btn small warn" data-action="farm-fix" data-t="${t.id}" ${coins < t.cost ? 'disabled' : ''}>Fix 🪙 ${t.cost}</button></div>`).join('')}</div>`;
+  }
+
+  function fixTrouble(k, tid) {
+    const f = farmOf(k.id);
+    const t = (f.trouble || []).find((x) => x.id === tid);
+    if (!t) return;
+    if (balance(k.id) < t.cost) {
+      ctx.speak(`You need ${t.cost - balance(k.id)} more coins. Do some jobs to earn them!`, true);
+      return ctx.toast(`🪙 You need ${t.cost - balance(k.id)} more coins.`);
+    }
+    f.spent += t.cost;
+    f.trouble = f.trouble.filter((x) => x !== t);
+    let said = 'All fixed!';
+    if (t.kind === 'sick') {
+      const a = f.animals.find((x) => x.id === t.animal);
+      if (a) { a.sick = false; said = `The vet came. ${KINDS[a.type].who || `Your ${KINDS[a.type].name.toLowerCase()}`} is all better!`; SOUNDS[KINDS[a.type].sound](); }
+    } else said = unsettled(f) ? 'Fixed! One more thing to fix.' : 'All fixed! Your animals can get back to work.';
+    save();
+    SOUNDS.coins();
+    ctx.renderKid();
+    ctx.speak(said, true);
+    ctx.toast(`${t.icon} ${esc(said)}`);
   }
 
   // Which hungry animals the free feeds cover first, and what the rest cost.
@@ -765,6 +871,7 @@ export function createFarm(ctx) {
           ${f.gift ? '<button class="farm-btn feed" data-action="farm-gift">🎁 Open your gift egg!</button>' : ''}
           ${hungry ? `<button class="farm-btn feed" data-action="farm-feed">🌾 Feed ${plan.free ? `<small>${plan.free} free</small>` : ''} <small>🪙 ${plan.coins}</small></button>` : f.animals.length ? '<div class="mini-note">✓ Everyone is fed</div>' : ''}
           ${value ? `<button class="farm-btn sell" data-action="farm-sell">🧺 Sell for 🪙 ${value}</button>` : ''}
+          ${(f.trouble || []).map((t) => `<button class="farm-btn warn" data-action="farm-fix" data-t="${t.id}">${t.icon} ${esc(t.name)} 🪙 ${t.cost}</button>`).join('')}
           ${f.fenceDays <= 2 && f.animals.length ? `<button class="farm-btn warn" data-action="farm-buy" data-item="repair">🪵 Fix the fence 🪙 ${SHOP.find((x) => x.id === 'repair').price}</button>` : ''}
           ${it ? `<div class="farm-goal ${pct >= 1 ? 'ready' : ''}">
             <span>${pct >= 1 ? '✅' : 'Saving for'} ${it.icon} ${it.name}</span>
@@ -829,7 +936,7 @@ export function createFarm(ctx) {
   }
 
   // Tap the egg three times to crack it open.
-  function hatchMystery(f, title = 'A mystery egg!', { gift = false, kind = 'mystery' } = {}) {
+  function hatchMystery(f, title = 'A mystery egg!', { gift = false, kind = 'mystery', paid = gift ? 0 : EGG_PAID[kind] } = {}) {
     return new Promise((resolve) => {
       let taps = 0;
       let type = rollEgg(kind, f);
@@ -837,7 +944,7 @@ export function createFarm(ctx) {
       if (gift) while (type === 'dino') type = rollMystery(); // a starter egg is never a dinosaur
       if (type === 'dino' && !roomFor(f, 'dino')) type = 'croc';
       // Saved before the animation, so closing the app mid-hatch never loses the animal or the coins.
-      const a = { id: f.nextId++, type, growth: 0 };
+      const a = { id: f.nextId++, type, growth: 0, paid };
       f.animals.push(a);
       save();
       ctx.speak(`${title} Tap it three times to crack it open!`);
@@ -911,7 +1018,7 @@ export function createFarm(ctx) {
       const el = overlay('<h2>A mystery box!</h2><p>Tap it to open!</p><button class="big-egg box" data-open>🎁</button>', async (e) => {
         if (!e.target.closest('[data-open]')) return;
         SOUNDS.crack();
-        if (prize.kind === 'egg') { el.remove(); await hatchMystery(f, 'A mystery egg was inside!'); return resolve(); }
+        if (prize.kind === 'egg') { el.remove(); await hatchMystery(f, 'A mystery egg was inside!', { paid: 45 }); return resolve(); }
         let icon;
         let text;
         if (prize.kind === 'feed') { f.feedPacks += 5; icon = '🌾'; text = 'A bag of feed! 5 free feeds.'; }
@@ -920,8 +1027,8 @@ export function createFarm(ctx) {
           if (baby) { baby.growth = KINDS[baby.type].grow; icon = '🌽'; text = `Golden corn! Your ${KINDS[baby.type].baby.toLowerCase()} grew up straight away!`; }
           else { f.feedPacks += 5; icon = '🌽'; text = 'Golden corn! 5 free feeds.'; }
         }
-        if (prize.kind === 'lamb') { f.animals.push({ id: f.nextId++, type: 'sheep', growth: 0 }); icon = '🐑'; text = 'A baby lamb!'; SOUNDS.baa(); }
-        if (prize.kind === 'calf') { f.animals.push({ id: f.nextId++, type: 'cow', growth: 0 }); icon = '🐮'; text = 'Super rare! A baby calf!'; SOUNDS.moo(); }
+        if (prize.kind === 'lamb') { f.animals.push({ id: f.nextId++, type: 'sheep', growth: 0, paid: 45 }); icon = '🐑'; text = 'A baby lamb!'; SOUNDS.baa(); }
+        if (prize.kind === 'calf') { f.animals.push({ id: f.nextId++, type: 'cow', growth: 0, paid: 45 }); icon = '🐮'; text = 'Super rare! A baby calf!'; SOUNDS.moo(); }
         if (prize.kind === 'decor') { f.decor.push(prize.icon); icon = prize.icon; text = 'Something pretty for your farm!'; }
         const up = levelUp(f);
         save();
@@ -989,8 +1096,11 @@ export function createFarm(ctx) {
     // After a fox fright (gentle fox), hens and ducks are too scared to lay today.
     const scared = f.scaredDay === today();
     if (scared && worked && hungry.some((a) => grown(a) && (a.type === 'chicken' || a.type === 'duck'))) msgs.push('🦊 Your hens and ducks are still a bit scared, so no eggs today. Fix the fence!');
+    const upset = unsettled(f);
+    if (upset && worked && hungry.length) msgs.push('🛠️ Your animals are too unsettled to make anything. Fix what the weather broke!');
+    if (hungry.some((a) => a.sick)) msgs.push('🤒 A sick animal needs the vet before it can grow or make anything.');
     // Gardens, orchard and bees: once a day, when the animals are fed.
-    if (worked && hungry.length && f.prodDay !== today()) {
+    if (worked && !upset && hungry.length && f.prodDay !== today()) {
       f.prodDay = today();
       if (f.built.veg) { f.feedPacks += 2; msgs.push('🥕 Your vegetable patch grew 2 free feeds!'); }
       if (f.built.orchard) { f.basket.apple = (f.basket.apple || 0) + 2; msgs.push('🍎 You picked 2 apples!'); }
@@ -1013,12 +1123,13 @@ export function createFarm(ctx) {
       a.fedDay = today();
       fed++;
       const kind = KINDS[a.type];
+      if (a.sick) continue;
       if (!grown(a)) {
         a.growth++;
         if (grown(a)) msgs.push(kind.who ? `${kind.who} is all grown up!` : `Your ${kind.baby.toLowerCase()} grew into a ${kind.name.toLowerCase()}!`);
         continue;
       }
-      if (!worked) continue;
+      if (!worked || upset) continue;
       if (scared && (a.type === 'chicken' || a.type === 'duck')) continue;
       if (a.type === 'chicken') {
         const r = Math.random();
@@ -1081,7 +1192,7 @@ export function createFarm(ctx) {
     ctx.speak('Which animal will go to a happy new farm? Tap one.', true);
     const el = overlay(`<h2>Which animal?</h2><p>Tap the one that will go to a happy new farm.</p>
       <div class="pals" style="flex-wrap:wrap;justify-content:center;overflow:visible">${list.map((a) => `
-        <button class="pal" data-pick="${a.id}">${animalArt(a.type, true, a.wool || 0, 'happy')}<b>${KINDS[a.type].who || KINDS[a.type].name}</b><small>+ 🪙 ${SELL[a.type]}</small></button>`).join('')}</div>
+        <button class="pal" data-pick="${a.id}">${animalArt(a.type, true, a.wool || 0, 'happy')}<b>${KINDS[a.type].who || KINDS[a.type].name}</b><small>+ 🪙 ${sellPrice(a)}</small></button>`).join('')}</div>
       <button class="farm-btn" data-close>Keep them all 💛</button>`, (e) => {
       if (e.target.closest('[data-close]') || e.target === el) return el.remove();
       const b = e.target.closest('[data-pick]');
@@ -1094,7 +1205,7 @@ export function createFarm(ctx) {
 
   // Step 2: "Say goodbye to your snake?" with its picture. Hold the button to sell, or keep it.
   function sayGoodbye(k, a) {
-    const b = byeWords(a.type), price = SELL[a.type];
+    const b = byeWords(a.type), price = sellPrice(a);
     SOUNDS[KINDS[a.type].sound]();
     ctx.speak(`Say goodbye to ${b.yours}? ${b.It} ${b.goes} to a happy new ${b.place}, and you get ${price} coins. Hold the button to sell.`, true);
     const el = overlay(`<div class="reveal-animal">${animalArt(a.type, true, a.wool || 0, 'happy')}</div>
@@ -1131,9 +1242,10 @@ export function createFarm(ctx) {
     const f = farmOf(k.id);
     const at = f.animals.indexOf(a);
     if (at < 0) return;
-    const b = byeWords(a.type), price = SELL[a.type];
+    const b = byeWords(a.type), price = sellPrice(a);
     f.animals.splice(at, 1);
     f.sold += price;
+    if (a.sick) f.trouble = (f.trouble || []).filter((t) => t.animal !== a.id); // the new farm's vet takes over
     save(); // saved straight away: closing the app now keeps the sale
     SOUNDS.coins();
     ctx.renderKid();
@@ -1328,7 +1440,7 @@ export function createFarm(ctx) {
     }
     else if (id === 'lamb' || id === 'calf' || id === 'piglet') {
       const type = id === 'lamb' ? 'sheep' : id === 'piglet' ? 'pig' : 'cow';
-      f.animals.push({ id: f.nextId++, type, growth: 0 });
+      f.animals.push({ id: f.nextId++, type, growth: 0, paid: it.price });
       SOUNDS[KINDS[type].sound]();
       ctx.speak(`Welcome, little ${KINDS[type].baby.toLowerCase()}!`);
     } else if (it.building) {
@@ -1367,6 +1479,7 @@ export function createFarm(ctx) {
     ctx.unlockAudio();
     switch (a) {
       case 'farm-feed': return feedAll(k);
+      case 'farm-fix': return fixTrouble(k, Number(el.dataset.t));
       case 'farm-sell': return sellAll(k);
       case 'farm-hatch': return hatchEgg(k);
       case 'farm-tap': return tapAnimal(k, el);
