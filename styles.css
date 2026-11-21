@@ -1260,3 +1260,8 @@ button.w2-it { pointer-events: auto; cursor: pointer; }
 .picture-ring .pr-num { position: absolute; inset: 0; display: grid; place-items: center; font-size: 46px; font-weight: 900; }
 .col-foot .grow-btn:not(.resting) { border-color: #86efac; background: #f0fdf4; }
 .gk-rebuild { background: #f5f3ff; }
+/* four buttons in the footer now (⭐ 🙏 🌱 farm): keep room for the farm button */
+.col-foot .pray-btn { min-width: 64px; padding-left: 2px; padding-right: 2px; }
+.col-foot .star-btn { flex: 0 0 52px; min-width: 52px; }
+.col-foot .pray-btn small { font-size: 12px; }
+.grow-actions .farm-btn { width: 100%; }

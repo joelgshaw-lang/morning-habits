@@ -154,6 +154,8 @@ export function createPortal(ctx) {
   // 🧱 Rebuild pack (21 Nov 2026, Joel): coins buy back up to 12 fallen blocks in Build on the Rock, straight into the
   // tray, outside the game's daily rebuild limit. Only shows when the building has fallen blocks to give back.
   const REBUILD = { price: 20, blocks: 12 };
+  // A smaller pack (fewer than 12 blocks fallen) costs less: 🪙 5 for every 3 blocks, up to 🪙 20.
+  const rebuildPrice = (n) => Math.min(REBUILD.price, Math.max(5, Math.ceil(n / 3) * 5));
   function fallenBlocks(id) {
     try {
       const db = JSON.parse(localStorage.getItem(`rock-live.${id}`) || 'null');
@@ -165,14 +167,15 @@ export function createPortal(ctx) {
   function rebuildHTML(k) {
     const n = fallenBlocks(k.id);
     if (!n) return '';
-    const can = ctx.coinsOf(k.id) >= REBUILD.price;
-    return `<div class="claim-row gk-rebuild"><span>🧱</span><b>Rebuild pack</b><small>${n} fallen block${n === 1 ? '' : 's'} · get back ${Math.min(n, REBUILD.blocks)} now</small>
-      <button class="farm-btn small ok" data-rebuild="${k.id}" ${can ? '' : 'disabled'}>🪙 ${REBUILD.price}</button></div>`;
+    const get = Math.min(n, REBUILD.blocks), price = rebuildPrice(get);
+    const can = ctx.coinsOf(k.id) >= price;
+    return `<div class="claim-row gk-rebuild"><span>🧱</span><b>Rebuild pack</b><small>${n} fallen block${n === 1 ? '' : 's'} · get back ${get} now</small>
+      <button class="farm-btn small ok" data-rebuild="${k.id}" ${can ? '' : 'disabled'}>🪙 ${price}</button></div>`;
   }
   async function buyRebuild(id) {
-    const n = Math.min(fallenBlocks(id), REBUILD.blocks);
-    if (!n || ctx.coinsOf(id) < REBUILD.price) return;
-    state.coinAdjust = [...(state.coinAdjust || []), { kidId: id, n: -REBUILD.price, why: '🧱 Rebuild pack', t: ctx.clock.now().toISOString() }];
+    const n = Math.min(fallenBlocks(id), REBUILD.blocks), price = rebuildPrice(n);
+    if (!n || ctx.coinsOf(id) < price) return;
+    state.coinAdjust = [...(state.coinAdjust || []), { kidId: id, n: -price, why: '🧱 Rebuild pack', t: ctx.clock.now().toISOString() }];
     await ctx.kvSet('coinAdjust', state.coinAdjust);
     ctx.sendToRock(id, { kind: 'rebuild', n, label: 'Rebuild pack' });
     await ctx.refreshSummary();

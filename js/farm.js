@@ -727,6 +727,7 @@ export function createFarm(ctx) {
     const canHatch = (f.basket.egg || 0) > 0 && f.nest.length < 2 && roomFor(f, 'chicken');
     return `
       <div class="farm-coins">🪙 <b>${coins}</b> <span class="farm-stars">⭐ ${starsLeft(k.id)}</span></div>
+      ${troubleHTML(f, coins)}
       <button class="farm-btn shop" data-action="farm-shop">🛒 Shop</button>
       ${goalHTML(k, f, coins)}
       <div class="farm-level">
@@ -747,8 +748,7 @@ export function createFarm(ctx) {
       <div class="farm-fence ${f.fenceDays <= 2 ? 'warn' : ''}">
         🪵 ${f.fenceDays ? `Fence: ${f.fenceDays} day${f.fenceDays === 1 ? '' : 's'} left` : 'Fence broken! 🦊'}
         <button class="farm-btn small" data-action="farm-buy" data-item="repair" ${f.fenceDays >= 5 ? 'disabled' : ''}>${f.fenceDays >= 5 ? 'OK ✓' : `Fix 🪙 ${SHOP.find((x) => x.id === 'repair').price}`}</button>
-      </div>
-      ${troubleHTML(f, coins)}`;
+      </div>`;
   }
 
   // "Needs fixing": each storm, flood or sick animal with its own Fix button.
