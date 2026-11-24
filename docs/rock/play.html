@@ -1448,7 +1448,8 @@ function tile(p,list){const sel=ui.sel&&ui.sel.id===p.id,c=p.m&&p.m.card&&CARD[p
 function palette(p){return h('div',{class:'row'},[h('span',{class:'note',text:V('colours.pick')||'Choose its colour'}),h('div',{class:'palette'},FRUITS.map(function(fr){
   return btn('',function(){recolour(p,fr.code)},null,{style:'background:'+css(fr.code),'aria-label':fr.name,title:fr.name,'aria-pressed':String(p.t===fr.code)})}))])}
 function recolour(p,code){const r=R.setColour(st(),p.id,code);if(!r.ok){refuse(r.reason);return}sfx('tap');showSlots();drawTray();save()}
-function drawTray(){topUp();const _o=$('tray').querySelector('.tiles.stack'),_y=_o?_o.scrollTop:0;drawTray0();const _n=$('tray').querySelector('.tiles.stack');if(_n)_n.scrollTop=_y}
+function drawTray(){topUp();const _o=$('tray').querySelector('.tiles.stack'),_y=_o?_o.scrollTop:0;drawTray0();const _n=$('tray').querySelector('.tiles.stack');if(_n)_n.scrollTop=_y;
+  const _s=$('tray').querySelector('.tile[aria-pressed="true"]');if(_s&&_s.scrollIntoView)_s.scrollIntoView({block:'nearest',inline:'nearest'})}   /* 24 Nov 2026 (Joel): the block being laid is always in reach */
 function drawTray0(){const s=st(),t=$('tray'),sm=R.summary(s),tiles=trayTiles(s);t.textContent='';
   const can=tiles.length||(s.rubble.length&&sm.rubbleLeftToday>0);
   t.appendChild(h('div',{class:'row'},[h('h2',{text:'My pieces'}),tiles.length?null:h('span',{class:'note',text:'Good things done in real life fill these up.'}),h('span',{class:'sp'}),btn('\ud83d\udcd6 Recipes',function(){sfx('tap');openSheet({kind:'craft'})},'quiet'),can&&!DB.trayHide?btn('Lay the rest',layRest,'quiet'):null,
@@ -1862,13 +1863,14 @@ function propAfter(s){const w=ui.prop;if(!w)return;const need=propNeed(s,w);
 function showNews(big,small,kind){const n=$('news');n.className='news '+(kind||'');n.textContent='';n.appendChild(h('b',{text:big}));if(small)n.appendChild(h('span',{text:small}));n.hidden=false;
   clearTimeout(showNews.t);showNews.t=setTimeout(function(){n.hidden=true},kind==='bad'?6000:4200)}
 function layAt(slot){if(!ui.sel)return;if(slot.deco){decoAt(slot);return}clearUndo();const snap=JSON.stringify(K());const k=K(),s=k.s,list=ui.sel.list==='tray'?s.tray:s.rubble,i=list.findIndex(function(p){return p.id===ui.sel.id});if(i<0)return;
+  const kindKey=function(p){return p.pearl||p.t==='P'?'P~':p.t==='C'?'C:'+p.c+(p.pure?'!':''):p.t},laidKey=kindKey(list[i]);   /* 24 Nov 2026 (Joel): stay on this kind until it is all laid */
   const before=R.windows(s).total,was=goalDone(),r=ui.sel.list==='tray'?R.place(s,i,slot.wall,slot.col,slot.row,slot.out):R.placeRubble(s,i,slot.wall,slot.col,slot.row,slot.out);
   if(!r.ok){refuse(r.reason);return}
   if(ui.prop&&slot.out>=1&&slot.wall===ui.prop)R.markProp(s,slot.wall,slot.col,slot.row,slot.out);   /* before the redraw, so the sign changes at once */
   bundo.stack.push(snap);if(bundo.stack.length>20)bundo.stack.shift();drawUndoBlock();
   const ev=r.events[0],kind=ui.sel.list,laid=ui.sel.id;ui.sel=null;
   /* keep the flow going: pick up the next piece of the same kind */
-  const next=(kind==='tray'?trayTiles(s):s.rubble)[0];
+  const pool=kind==='tray'?trayTiles(s):s.rubble,next=pool.filter(function(p){return kindKey(p)===laidKey})[0]||pool[0];
   if(next&&next.id!==laid&&!(kind==='rubble'&&R.summary(s).rubbleLeftToday<=0))ui.sel={id:next.id,list:kind};
   const fk=K3(slot.wall,slot.col,slot.row,slot.out);falling[fk]=1;draw3({loose:Object.keys(falling)});reGhost();
   S.dropIn(slot.wall,slot.col,slot.row,0,slot.out).then(function(){delete falling[fk];sfx(isGem(ev.piece.t)?'gem':'place')});

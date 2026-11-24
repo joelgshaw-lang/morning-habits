@@ -110,10 +110,10 @@ const homeFor = (type, KINDS, built) => {
 const HERD_SPOTS = { 1: [[0.6, 0.6]], 2: [[0.6, 0.6], [1.5, 0.75], [0.75, 1.5], [1.6, 1.65]] };
 
 // ---------- painted animal pictures ----------
-const BABY = { pig: 'piglet', chicken: 'chick', duck: 'duckling', sheep: 'lamb', cow: 'calf', lizard: 'lizardbaby', croc: 'crocbaby', snake: 'snakebaby', dino: 'dinobaby' };
+const BABY = { komodo: 'komodobaby', pig: 'piglet', chicken: 'chick', duck: 'duckling', sheep: 'lamb', cow: 'calf', lizard: 'lizardbaby', croc: 'crocbaby', snake: 'snakebaby', dino: 'dinobaby' };
 const IMG = { chicken: 'hen', roo: 'roojoey' };
 // How wide each grown animal is on the farm, in squares.
-const WIDE = { pig: 0.62, chicken: 0.4, duck: 0.4, sheep: 0.62, cow: 0.85, lizard: 0.55, snake: 0.5, croc: 0.85, dino: 0.8, koala: 0.5, roo: 0.55, wombat: 0.62,
+const WIDE = { komodo: 0.9, pig: 0.62, chicken: 0.4, duck: 0.4, sheep: 0.62, cow: 0.85, lizard: 0.55, snake: 0.5, croc: 0.85, dino: 0.8, koala: 0.5, roo: 0.55, wombat: 0.62,
   platypus: 0.62, kookaburra: 0.42, echidna: 0.55, crab: 0.5, squid: 0.42, turtle: 0.6, puffer: 0.45, octopus: 0.52, manta: 0.7 };
 
 /** Same call as animalArt() in farm-art.js, so the farm can swap one for the other. */

@@ -573,7 +573,42 @@ const PRAYER_KINDS = [
   { id: 'thanks', icon: '🙌', label: 'Thank you, God', rock: 'gold', piece: 'Gold', rockLabel: 'Thank-you prayer' },
   { id: 'someone', icon: '🤲', label: 'For someone', rock: 'silver', piece: 'Silver', rockLabel: 'Prayed for someone' },
   { id: 'grow', icon: '💖', label: 'Sorry / help me grow', rock: 'gem', piece: 'A precious stone', rockLabel: 'Sorry / help me grow prayer' },
+  // 24 Nov 2026 (Joel): breath prayer is back, as a guided choice here (three slow breaths with a short prayer).
+  { id: 'breath', icon: '🌬️', label: 'Breath prayer', rock: 'gold', piece: 'Gold', rockLabel: 'Breath prayer', guided: true },
 ];
+// Breath prayer lines: breathe in on the first half, out on the second (from Build on the Rock's content.js).
+const BREATH_LINES = [['Jesus,', 'calm my heart'], ['Jesus,', 'You are with me'], ['Jesus,', 'help me wait'], ['Jesus,', 'make me gentle'],
+  ['Jesus,', 'thank You for today'], ['Jesus,', 'guard my mouth'], ['Jesus,', 'give me strength'], ['Jesus,', 'help me keep going']];
+// Three slow breaths: in (4 s), out (5 s). Resolves true when finished, false if closed early.
+function breathPrayer(k) {
+  return new Promise((resolve) => {
+    const [a, b] = BREATH_LINES[Math.floor(Math.random() * BREATH_LINES.length)];
+    const fast = clock.fastTimers(), IN = fast ? 1200 : 4000, OUT = fast ? 1500 : 5000;
+    let n = 0, done = false, timer;
+    const el = sheet(`<h2>🌬️ Breath prayer</h2>
+      <div class="breath-ring"><div class="breath-ball"></div><b class="breath-word"></b></div>
+      <p class="breath-count">Breath 1 of 3</p>
+      <button class="farm-btn small" data-c="close">Stop</button>`, (e) => {
+      if (e.target.closest('[data-c]')) { done = true; clearTimeout(timer); el.remove(); resolve(false); }
+    });
+    const ball = el.querySelector('.breath-ball'), word = el.querySelector('.breath-word'), count = el.querySelector('.breath-count');
+    const step = () => {
+      if (done) return;
+      if (n >= 3) { done = true; el.remove(); return resolve(true); }
+      count.textContent = `Breath ${n + 1} of 3`;
+      ball.style.transitionDuration = `${IN}ms`; ball.classList.add('in'); word.textContent = `Breathe in… ${a}`;
+      if (n === 0) speakFor(k.id, `Breathe in slowly. ${a}`);
+      timer = setTimeout(() => {
+        if (done) return;
+        ball.style.transitionDuration = `${OUT}ms`; ball.classList.remove('in'); word.textContent = `Breathe out… ${b}`;
+        if (n === 0) speakFor(k.id, `Breathe out. ${b}`);
+        n++;
+        timer = setTimeout(step, OUT);
+      }, IN);
+    };
+    setTimeout(step, 400);
+  });
+}
 const GEM_OF_FRUIT = { love: 'l', joy: 'j', peace: 'p', patience: 't', kindness: 'k', goodness: 'b', faithfulness: 'f', gentleness: 'e', selfcontrol: 'r' };
 const prayedList = (d) => d?.prayed || [];
 // ms until this child may tap "I prayed" again (0 = now), or null when today's 10 are used.
@@ -608,6 +643,7 @@ function openPrayed(id) {
     const p = PRAYER_KINDS.find((x) => x.id === b.dataset.kind);
     if (!p || prayedWait(state.days[id]) !== 0) return el.remove();
     el.remove();
+    if (p.guided && !(await breathPrayer(k))) return;   // stopped part-way: nothing logged
     const day = state.days[id];
     const t = clock.now().toISOString();
     (day.prayed ||= []).push({ t, kind: p.id });
@@ -938,7 +974,12 @@ function columnHTML(k, d, r) {
   const offer = nightGate && dinnerToday() ? startOffer(dinnerToday(), nowMs()) : null;
   const next = r === 'extras' ? null : nextJob(k, d, r);
   let main;
-  if (notStarted) {
+  if (r === 'morning' && grow.reviewDue(k.id)) {
+    // 🗓️ Weekly review (24 Nov 2026, Joel): first thing on review day, before anything else. "Later" never blocks the morning.
+    main = `<div class="review-wrap"><button class="go-btn col-go review-go" data-action="grow-review">
+      <span class="go-icon">🗓️</span><span class="go-text">My week</span><span class="go-sub">3 minutes with a grown-up</span></button>
+      <button class="undo-chip" data-action="grow-review-later">Later</button></div>`;
+  } else if (notStarted) {
     main = `<button class="go-btn col-go" data-action="go">
       <span class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></span>
       <span class="go-text">Ready, set, go!</span><span class="go-sub">${earlyOffer()}</span></button>`;
@@ -1860,6 +1901,8 @@ document.addEventListener('click', async (e) => {
     case 'extras-sheet': return extrasSheet();
     case 'i-prayed': return openPrayed(col?.dataset.col || state.kidId);
     case 'grow': return grow.open(col?.dataset.col || state.kidId);
+    case 'grow-review': return grow.openReview(col?.dataset.col || state.kidId);
+    case 'grow-review-later': return grow.reviewLater(col?.dataset.col || state.kidId);
     case 'quick-add': return quick.openAdd(col?.dataset.col || state.kidId);
     case 'quick-check': return quick.openCheck();
     case 'start-night': return startNight();

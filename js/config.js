@@ -25,6 +25,7 @@ const nightHabits = () => [];
 // Bump version when adding fields; app.js fills missing fields into saved settings.
 export const DEFAULT_SETTINGS = {
   version: 13,
+  reviewDay: 0,   // 🗓️ weekly review day (0 = Sunday … 6 = Saturday), first thing that morning (24 Nov 2026)
   windowOpen: '06:30',
   startBy: '07:15', // start the morning by this time, or that morning's job coins are lost (job stars still count)
   windowClose: '07:30',

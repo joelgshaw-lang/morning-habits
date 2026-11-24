@@ -1196,7 +1196,7 @@ button.w2-it { pointer-events: auto; cursor: pointer; }
 .col-foot .pray-btn small { font-size: 13px; font-weight: 800; color: var(--muted); white-space: nowrap; }
 .col-foot .pray-btn:not(.resting) { border-color: #fcd34d; background: #fffbeb; }
 .col-foot .pray-btn.resting { opacity: 0.7; }
-.pray-kinds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 14px 0; }
+.pray-kinds { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 14px 0; }
 .pray-kinds button { min-height: 150px; border: 2px solid #e7e0d4; border-radius: 20px; background: #fff; font: inherit; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 6px; padding: 10px; }
 .pray-kinds button span { font-size: 54px; line-height: 1; }
@@ -1316,3 +1316,33 @@ button.w2-it { pointer-events: auto; cursor: pointer; }
 .col-head b { flex: 1 0 auto; font-size: clamp(22px, 2.6vw, 30px); white-space: nowrap; }
 .col-head .fruit-badge { width: clamp(38px, 4vw, 52px); height: clamp(38px, 4vw, 52px); }
 .col-head .col-coins { margin-left: auto; }
+
+/* 🌬️ Breath prayer (24 Nov 2026): a ball that grows as you breathe in and shrinks as you breathe out. */
+.breath-ring { position: relative; width: 240px; height: 240px; margin: 10px auto; border-radius: 50%; background: #eef6ff; display: grid; place-items: center; }
+.breath-ball { position: absolute; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #bfdbfe, #60a5fa); transition: transform 4s ease-in-out; }
+.breath-ball.in { transform: scale(2.4); }
+.breath-word { position: relative; font-size: 22px; font-weight: 900; color: #1e3a8a; text-align: center; max-width: 200px; }
+.breath-count { text-align: center; font-weight: 800; color: #64748b; }
+
+/* 📜 Bible story + quiz (24 Nov 2026, js/grow.js) */
+.story-text { max-height: 46vh; overflow-y: auto; background: #fffaf0; border-radius: 16px; padding: 10px 16px; }
+.story-text p { margin: 8px 0; font-size: 20px; line-height: 1.45; font-weight: 600; }
+.story-answers { display: grid; gap: 10px; margin: 12px 0; }
+.story-answers button { min-height: 64px; border: 2px solid #e7e0d4; border-radius: 16px; background: #fff; font: inherit; font-size: 20px; font-weight: 800; }
+.story-answers button.right { background: #dcfce7; border-color: #22c55e; }
+.story-answers button.wrong { background: #fee2e2; border-color: #ef4444; }
+.story-answers button.dim { opacity: 0.5; }
+
+/* 💰 Treasure chest glow, 🗓️ weekly review and 📈 weekly bars (24 Nov 2026) */
+.big-egg.treasure { filter: drop-shadow(0 0 24px #c084fc) drop-shadow(0 0 8px #fde047); }
+.review-wrap { display: flex; flex-direction: column; gap: 8px; height: 100%; }
+.review-wrap .review-go { flex: 1; background: linear-gradient(160deg, #f59e0b, #f97316); }
+.review-wins { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
+.review-wins li { background: #fef9c3; border-radius: 14px; padding: 10px 14px; font-size: 20px; font-weight: 800; }
+.grow-weeks { background: #f0fdf4; border-radius: 16px; padding: 10px 14px; margin: 10px 0; }
+.grow-weeks > small { font-weight: 800; color: #166534; }
+.gw-bars { display: flex; align-items: flex-end; gap: 10px; height: 110px; margin-top: 6px; }
+.gw-bar { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 2px; }
+.gw-bar i { display: block; width: 100%; min-height: 3px; background: #86efac; border-radius: 8px 8px 3px 3px; }
+.gw-bar.now i { background: #22c55e; }
+.gw-bar b { font-size: 14px; } .gw-bar span { font-size: 12px; color: #64748b; font-weight: 700; }

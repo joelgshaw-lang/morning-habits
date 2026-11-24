@@ -18,6 +18,8 @@ export const KINDS = {
   snake: { name: 'Snake', baby: 'Baby snake', babyIcon: '🐍', icon: '🐍', feed: 1, grow: 5, sound: 'hiss', small: true, rare: 'Rare!', perk: 'Snakes chase the mice out of the feed shed: 1 free feed every day you work.' },
   // Pigs (Nov 2026, painted farm only): a piglet grows into a pig that snuffles up a truffle every second day it is fed on a job day.
   pig: { name: 'Pig', baby: 'Piglet', babyIcon: '🐷', icon: '🐖', feed: 2, grow: 8, sound: 'oink', perk: 'Pigs snuffle up a truffle every second day you work.' },
+  // 24 Nov 2026 (Joel): a rare Komodo dragon hatches now and then from mystery and rare eggs and the treasure chest.
+  komodo: { name: 'Komodo dragon', baby: 'Baby Komodo dragon', babyIcon: '🦎', icon: '🦎', feed: 2, grow: 8, sound: 'snap', small: true, rare: 'Super rare!', perk: 'The biggest lizard in the world! Foxes keep well away from your farm.' },
   dino: { name: 'Dinosaur', baby: 'Baby dinosaur', babyIcon: '🦕', icon: '🦕', feed: 3, grow: 20, sound: 'roar', rare: 'Ultra rare!', perk: 'Foxes run away from your dinosaur, and your hens feel brave: more golden eggs!' },
 
   // New friends (Nov 2026): the Aussie Island Mates and the Rock Pool Crew. Each one is a named character,
@@ -82,13 +84,13 @@ const RAINBOW_CHANCE = 0.03;
 // before 21 Nov use this table, which sits under the cheapest way to get each one (mystery egg 🪙 30,
 // piglet 120, lamb 150, calf 350; the new friends' homes cost 150 to 450).
 const SELL_SHARE = 0.7;
-export const SELL = { chicken: 20, duck: 20, lizard: 20, snake: 20, croc: 20, sheep: 100, pig: 80, cow: 240, dino: 20,
+export const SELL = { chicken: 20, duck: 20, lizard: 20, snake: 20, croc: 20, komodo: 20, sheep: 100, pig: 80, cow: 240, dino: 20,
   platypus: 60, echidna: 60, kookaburra: 60, wombat: 80, koala: 100, roo: 120,
   crab: 80, turtle: 70, squid: 70, puffer: 70, octopus: 70, manta: 150 };
 // "hen" reads better than "chicken" when saying goodbye.
 export const sellPrice = (a) => (a.paid > 0 ? Math.max(5, Math.floor((a.paid * SELL_SHARE) / 5) * 5) : SELL[a.type]);
 // What each egg costs, so a hatched animal knows what was paid for it.
-const EGG_PAID = { mystery: 30, rare: 90, dino: 1500, bush: 150, pool: 150 };
+const EGG_PAID = { mystery: 30, rare: 90, dino: 1500, bush: 150, pool: 150, treasure: 300 };
 const animalWord = (type) => (type === 'chicken' ? 'hen' : KINDS[type].name.toLowerCase());
 // The words for saying goodbye: "your hen" for farm animals, "Kip the koala" for the named friends.
 function byeWords(type) {
@@ -104,12 +106,13 @@ function byeWords(type) {
 export const SHOP = [
   // Selling a grown animal: the child picks which one next. Only shows when they have a grown animal.
   { id: 'sell', sell: true, icon: '👋', name: 'Sell an animal', price: 0, level: 1, does: 'Choose a grown animal to go to a happy new farm, and get coins for it.' },
-  { id: 'egg', icon: '🥚', name: 'Mystery egg', price: 30, level: 1, does: "Hatch it to see what's inside! Usually a chicken… sometimes a duck, a lizard, a cheeky snake, a crocodile… or, very rarely, a dinosaur!" },
+  { id: 'egg', icon: '🥚', name: 'Mystery egg', price: 30, level: 1, does: "Hatch it to see what's inside! Usually a chicken… sometimes a duck, a lizard, a cheeky snake, a crocodile, a Komodo dragon… or, very rarely, a dinosaur!" },
   { id: 'repair', icon: '🪵', name: 'Fix the fence', price: 10, level: 1, does: 'Keeps the fox out for another week.' },
   { id: 'veg', icon: '🥕', name: 'Vegetable patch', price: 60, stars: 5, level: 1, building: true, does: 'Grows carrots and greens: 2 free feeds every day you feed your animals.' },
   { id: 'coop', icon: '🛖', name: 'Chicken coop', price: 100, stars: 10, level: 1, building: true, does: 'A cosy home for your hens: room for 4 more small animals, and the fox can never take a hen from the coop.' },
-  { id: 'rareegg', icon: '💎', name: 'Rare egg', price: 90, stars: 5, level: 2, does: 'A sparkly egg with rarer animals: ducks, lizards, snakes, crocodiles… and a 1 in 20 chance of a dinosaur!' },
+  { id: 'rareegg', icon: '💎', name: 'Rare egg', price: 90, stars: 5, level: 2, does: 'A sparkly egg with rarer animals: ducks, lizards, snakes, crocodiles, a rare Komodo dragon… and a 1 in 20 chance of a dinosaur!' },
   { id: 'box', icon: '🎁', name: 'Mystery box', price: 45, level: 2, does: 'Food, an egg, golden corn, a lamb, a decoration… or even a calf!' },
+  { id: 'treasure', icon: '💰', name: 'Treasure chest', price: 300, stars: 20, level: 3, does: 'Bigger surprises: a rare egg (maybe a Komodo dragon!), a calf, a piglet, two rainbow eggs or golden corn for every baby.' },
   { id: 'lamb', icon: '🐑', name: 'Lamb', price: 150, stars: 15, level: 2, does: 'Feed it and it grows wool to shear and sell.' },
   // Painted farm only (painted: true): hidden from the shop when the painted farm is switched off.
   { id: 'piglet', icon: '🐷', name: 'Piglet', price: 120, stars: 12, level: 2, painted: true, does: `Grows into a pig that snuffles up a truffle every second day you work. Truffles sell for ${GOODS.truffle.price}!` },
@@ -185,7 +188,8 @@ const feedCost = (f, a) => Math.max(0, KINDS[a.type].feed - (f.built.mill ? 1 : 
 const hasGrown = (f, type) => f.animals.some((a) => a.type === type && grown(a));
 
 // ---------- Farm troubles (21 Nov 2026, Joel) ----------
-// About once a week something goes wrong: a storm, a flood, a sick animal, pests in the garden or wind.
+// About once a week something goes wrong: a storm, a flood, a sick animal, pests in the garden or wind,
+// and since 24 Nov 2026 a fire, a heatwave, mice in the feed shed or an animal getting out.
 // Never two days in a row, at most one new trouble each time the farm is opened, and at most 2 waiting.
 // While a storm or flood repair waits, the animals are too unsettled to make anything (they still eat and grow).
 // A sick animal makes nothing and doesn't grow until the vet comes. Nothing ever dies.
@@ -193,7 +197,7 @@ const TROUBLE_CHANCE = 1 / 6;   // about 1 in 6 days; with "never two in a row" 
 const STORM_HITS = { coop: 'chicken coop', barn: 'big barn', house: 'farmhouse', manor: 'big farmhouse', hive: 'beehive', mill: 'windmill', pond: 'duck pond', veg: 'vegetable patch' };
 const STORM_COST = { coop: 20, barn: 40, house: 30, manor: 40, hive: 20, mill: 30, pond: 20, veg: 15 };
 const FLOOD_COST = 15;
-export const vetCost = (type) => (type === 'cow' || type === 'dino' || type === 'croc' ? 50 : type === 'sheep' || type === 'pig' || KINDS[type].group ? 30 : 15);
+export const vetCost = (type) => (type === 'cow' || type === 'dino' || type === 'croc' || type === 'komodo' ? 50 : type === 'sheep' || type === 'pig' || KINDS[type].group ? 30 : 15);
 
 function rollTrouble(f, day) {
   f.trouble ||= [];
@@ -209,6 +213,12 @@ function rollTrouble(f, day) {
   if (!f.trouble.some((t) => t.kind === 'flood')) choices.push(['flood', 2]);
   if (beds.length) choices.push(['pests', 1]);
   if (f.feedPacks >= 2) choices.push(['wind', 1]);
+  // 24 Nov 2026 (Joel): a fire, and three more of Claude's: heatwave, mice in the feed shed, an animal gets out.
+  if (hits.length) choices.push(['fire', 1]);
+  if (f.animals.filter((a) => grown(a)).length >= 3 && !f.trouble.some((t) => t.kind === 'heat')) choices.push(['heat', 1]);
+  if (f.feedPacks >= 2 && !hasGrown(f, 'snake')) choices.push(['mice', 1]);   // a grown snake keeps the mice away
+  const roamers = f.animals.filter((a) => grown(a) && ['sheep', 'cow', 'pig'].includes(a.type));
+  if (roamers.length && !f.trouble.some((t) => t.kind === 'escape')) choices.push(['escape', 1]);
   let r = Math.random() * choices.reduce((n, c) => n + c[1], 0);
   const kind = (choices.find((c) => (r -= c[1]) < 0) || choices[0] || [])[0];
   if (!kind) return null;
@@ -241,12 +251,31 @@ function rollTrouble(f, day) {
     b.growth = Math.max(0, (b.growth || 0) - 1);
     return { icon: '🐛', text: 'Hungry caterpillars nibbled a garden bed, so it needs one more job day to grow.' };
   }
+  if (kind === 'fire') {
+    const hit = hits[rnd(hits.length)], cost = Math.round(STORM_COST[hit] * 1.5 / 5) * 5;
+    f.trouble.push({ id, kind, hit, icon: '🔥', name: `Rebuild the ${STORM_HITS[hit]}`, cost });
+    return { icon: '🔥', text: `Lightning started a grass fire! The firefighters put it out and every animal is safe, but your ${STORM_HITS[hit]} got burnt. Rebuild it so your animals can settle down.` };
+  }
+  if (kind === 'heat') {
+    f.trouble.push({ id, kind, icon: '🥵', name: 'Fill the water troughs', cost: 10 });
+    return { icon: '🥵', text: "A heatwave! Your animals are too hot to make anything. Fill up the water troughs to cool them down." };
+  }
+  if (kind === 'mice') {
+    const ate = Math.min(2, f.feedPacks);
+    f.feedPacks -= ate;
+    return { icon: '🐀', text: `Mice got into the feed shed and ate ${ate} bags of feed! (A snake on your farm would chase them away.)` };
+  }
+  if (kind === 'escape') {
+    const a = roamers[rnd(roamers.length)];
+    f.trouble.push({ id, kind, icon: '🚪', name: `Thank the neighbour for your ${KINDS[a.type].name.toLowerCase()}`, cost: 10 });
+    return { icon: '🚪', text: `Your ${KINDS[a.type].name.toLowerCase()} pushed the gate open and wandered next door! The neighbour brought it back. Say thank you with 10 coins.` };
+  }
   const blown = Math.min(3, f.feedPacks);
   f.feedPacks -= blown;
   return { icon: '💨', text: `A strong wind blew ${blown} bags of feed away!` };
 }
 // Storm and flood repairs that are still waiting stop the farm making things.
-const unsettled = (f) => (f.trouble || []).some((t) => t.kind !== 'sick');
+const unsettled = (f) => (f.trouble || []).some((t) => t.kind !== 'sick' && t.kind !== 'escape');   // an animal that got out doesn't stop the farm
 
 // Days since the farm was last opened: eggs in the nest hatch, the fence wears out, and the fox may visit.
 // The fox takes at most one animal per absence, so a few missed days never wipe out a farm.
@@ -273,7 +302,7 @@ export function catchUp(f, today, { gentle = false } = {}) {
     const brokenAlready = f.fenceDays === 0;
     f.fenceDays = Math.max(0, f.fenceDays - 1);
     const prey = f.animals.filter((a) => ((a.type === 'chicken' && !f.built.coop) || a.type === 'duck') && grown(a)); // hens in the coop are safe
-    if (!foxCame && brokenAlready && prey.length > 3 && !f.built.dog && !hasGrown(f, 'croc') && !hasGrown(f, 'dino') && Math.random() < FOX_CHANCE) {
+    if (!foxCame && brokenAlready && prey.length > 3 && !f.built.dog && !hasGrown(f, 'croc') && !hasGrown(f, 'komodo') && !hasGrown(f, 'dino') && Math.random() < FOX_CHANCE) {
       foxCame = true;
       if (gentle) {
         f.scaredDay = today; // feedAll checks this: no eggs today
@@ -668,7 +697,7 @@ export function createFarm(ctx) {
       else if (a.type === 'chicken' || a.type === 'duck') note = '🥚 Eggs';
       else if (a.type === 'pig') note = '🍄 Truffles';
       else if (k.pal) note = k.pal;
-      else note = a.type === 'croc' ? '🛡️ Guard' : a.type === 'snake' ? '🐭 Mouse catcher' : '🐛 Bug hunter';
+      else note = a.type === 'croc' || a.type === 'komodo' ? '🛡️ Guard' : a.type === 'snake' ? '🐭 Mouse catcher' : '🐛 Bug hunter';
       return `<button class="pal ${hungry ? 'hungry' : ''}" data-action="farm-tap" data-id="${a.id}">
         ${animalArt(a.type, big, a.wool || 0, moodOf(a))}
         <b>${k.who || (big ? k.name : k.baby)}</b>
@@ -940,14 +969,18 @@ export function createFarm(ctx) {
     }
     if (kind === 'rare') {
       const r = Math.random();
-      return r < 0.3 ? 'duck' : r < 0.55 ? 'lizard' : r < 0.75 ? 'croc' : r < 0.85 ? 'snake' : r < 0.95 ? 'chicken' : 'dino';
+      return r < 0.3 ? 'duck' : r < 0.55 ? 'lizard' : r < 0.7 ? 'croc' : r < 0.75 ? 'komodo' : r < 0.85 ? 'snake' : r < 0.95 ? 'chicken' : 'dino';
+    }
+    if (kind === 'treasure') {   // the treasure chest's egg: only the rare ones
+      const r = Math.random();
+      return r < 0.35 ? 'komodo' : r < 0.6 ? 'croc' : r < 0.8 ? 'lizard' : r < 0.95 ? 'snake' : 'dino';
     }
     if (Math.random() < 0.005) return 'dino';
     return rollMystery();
   }
   function rollMystery() {
     const r = Math.random();
-    return r < 0.66 ? 'chicken' : r < 0.86 ? 'duck' : r < 0.93 ? 'lizard' : r < 0.98 ? 'snake' : 'croc';
+    return r < 0.66 ? 'chicken' : r < 0.86 ? 'duck' : r < 0.93 ? 'lizard' : r < 0.98 ? 'snake' : r < 0.99 ? 'croc' : 'komodo';
   }
 
   // Tap the egg three times to crack it open.
@@ -1050,6 +1083,37 @@ export function createFarm(ctx) {
         if (up) setTimeout(() => levelMoment(up), 2500);
         el.querySelector('.farm-sheet').innerHTML = `<div class="reveal-animal">${icon}</div><h2>${text}</h2><button class="farm-btn" data-done>Yay! 🎉</button>`;
         ctx.burst(el.querySelector('.reveal-animal'), 20);
+        ctx.speak(text);
+        el.addEventListener('click', (ev) => { if (ev.target.closest('[data-done]')) { el.remove(); resolve(); } });
+      });
+    });
+  }
+
+  // 💰 Treasure chest (24 Nov 2026, Joel; not called "magic"): pricier than the mystery box, with bigger things inside. Never empty.
+  function openTreasure(f) {
+    return new Promise((resolve) => {
+      const r = Math.random();
+      const babies = f.animals.filter((a) => !grown(a));
+      let prize;
+      if (r < 0.35 && roomFor(f, 'chicken')) prize = 'egg';   // a small animal needs room
+      else if (r < 0.55 && roomFor(f, 'cow')) prize = 'calf';
+      else if (r < 0.72 && roomFor(f, 'pig')) prize = 'piglet';
+      else if (r < 0.87 || !babies.length) prize = 'rainbow';
+      else prize = 'corn';
+      const el = overlay('<h2>A treasure chest! ✨</h2><p>Tap it to open!</p><button class="big-egg box treasure" data-open>💰</button>', async (e) => {
+        if (!e.target.closest('[data-open]')) return;
+        SOUNDS.crack();
+        if (prize === 'egg') { el.remove(); await hatchMystery(f, 'A sparkly rare egg! ✨', { kind: 'treasure' }); return resolve(); }
+        let icon, text;
+        if (prize === 'calf') { f.animals.push({ id: f.nextId++, type: 'cow', growth: 0, paid: 300 }); icon = '🐮'; text = 'A baby calf!'; SOUNDS.moo(); }
+        if (prize === 'piglet') { f.animals.push({ id: f.nextId++, type: 'pig', growth: 0, paid: 300 }); icon = '🐷'; text = 'A cute piglet!'; }
+        if (prize === 'rainbow') { f.basket.rainbow = (f.basket.rainbow || 0) + 2; icon = '🌈'; text = `Two rainbow eggs to sell! (${GOODS.rainbow.price} each)`; }
+        if (prize === 'corn') { babies.forEach((a) => { a.growth = KINDS[a.type].grow; }); icon = '🌽'; text = `Golden corn for everyone! ${babies.length} ${babies.length === 1 ? 'baby' : 'babies'} grew up straight away!`; }
+        const up = levelUp(f);
+        save();
+        if (up) setTimeout(() => levelMoment(up), 2500);
+        el.querySelector('.farm-sheet').innerHTML = `<div class="reveal-animal">${icon}</div><h2>${text}</h2><button class="farm-btn" data-done>Wow! ✨</button>`;
+        ctx.burst(el.querySelector('.reveal-animal'), 30);
         ctx.speak(text);
         el.addEventListener('click', (ev) => { if (ev.target.closest('[data-done]')) { el.remove(); resolve(); } });
       });
@@ -1446,6 +1510,7 @@ export function createFarm(ctx) {
     else if (id === 'rareegg') await hatchMystery(f, 'A rare egg! ✨', { kind: 'rare' });
     else if (id === 'dinoegg') await hatchMystery(f, 'A dinosaur egg! 🦕', { kind: 'dino' });
     else if (id === 'box') await openBox(f);
+    else if (id === 'treasure') await openTreasure(f);
     else if (id === 'repair') { f.fenceDays = f.built.strong ? FENCE_DAYS * 2 : FENCE_DAYS; ctx.toast('🪵 Fence fixed! The fox will stay out.'); ctx.speak('Fence fixed!'); }
     else if (it.land) {
       W.growLand(f.world);

@@ -1,6 +1,6 @@
 # Morning Habits app: status
 
-Updated 24 Nov 2026 (app v76 LIVE). Next: Joel opens the app twice on the iPad and tries planting, the gem / hay pile, the farm and the front screen in landscape.
+Updated 24 Nov 2026 (app v76 LIVE; v77 committed, waiting for Joel's OK to go live). Next: Joel opens the app twice on the iPad and tries planting, the gem / hay pile, the farm and the front screen in landscape.
 
 ## Where it's up to
 - Live on GitHub Pages: Fruit time (3 fruits a day, this/not pictures, stars, quiz, pick your own fruit), Going up! night with the stay-in-bed bonus next morning, start by 7:15, −20 if asked, fair board, PIN every time, 3-minute grown-up cutoff, 🔊 voice chooser, kinder farm selling. Rules summary: README.md "Current rules".
@@ -11,6 +11,18 @@ Updated 24 Nov 2026 (app v76 LIVE). Next: Joel opens the app twice on the iPad a
 1. Joel's iPad check of Ready, set, go → Fruit time, and Going up! at night. Fix what he finds.
 2. Joel to decide (docs/review-round3.md "For Joel to decide"): −20 for under-7s, 3-minute timer restarting on taps, farm money, farm visits per day, mine time, daily fire, speed bonuses, hand actions (Peace, Gentleness, Goodness "Thumbs up"), adding a 5-year-old.
 3. LATER list in docs/review-round3.md: only the right child can tick their column, redraw Peace and Faithfulness pictures, rebuild animals in Sticker Plus (3 first as a test), hide the PIN from the public code.
+
+### 📜 Bible stories, farm extras, weekly review, breath prayer (24 Nov 2026, app v77, committed, not live yet)
+Joel chose all four groups of the remaining voice-note items:
+- **📜 Bible story + quiz** (🌱 button → 📜): 8 stories of things Jesus did (our own simple retelling + Bible reference; `js/stories.js`), read aloud, then 3 tap-the-answer questions (shuffled, first tap counts, a miss shows the right answer). 🪙 1 a day, next story tomorrow. **Habakkuk 2:14** added at the end of the memory verses (7 now).
+- **🌬️ Breath prayer** is back as a 4th choice in 🙏 I prayed: three slow breaths with a growing circle and a short prayer ("Jesus… calm my heart"), gold for the building. Stopping part-way logs nothing.
+- **🧱 Build on the Rock:** after laying a block, the next one picked up is the same kind until that kind is all laid, and the chosen block is scrolled into view. (`layAt`, `drawTray` in docs/rock/play.html; 119 rules tests pass.)
+- **💰 Treasure chest** (🪙 300 + ⭐ 20, from Big Farm; Joel: never call it "magic"): a rare egg (35% Komodo dragon), a calf, a piglet, two rainbow eggs, or golden corn for every baby.
+- **🦎 Komodo dragon:** new rare animal (painted, grown-up and baby). Mystery egg 1%, rare egg 5%, treasure chest egg 35%. Keeps the fox away, like the crocodile.
+- **Farm troubles:** 🔥 fire (lightning, a building gets burnt, rebuild costs 1.5× a storm), plus Claude's suggestions: 🥵 heatwave (fill the water troughs 🪙 10), 🐀 mice eat 2 feed bags (never with a grown snake), 🚪 an animal gets out (thank the neighbour 🪙 10; doesn't stop the farm).
+- **🗓️ Weekly review** (Sunday, `reviewDay` in settings): "My week" is the first thing in each column that morning ("Later" never blocks the morning). 5 steps, shaped by docs/research-obey-kind-calm.md: wins read out, 📈 6-week bar of good moments (compared only with themselves, "Best week yet"), one hard moment with "Next time I can…" (no new punishment), pick next week's fruit, pray together. 🪙 3. The 🌱 sheet also shows the 6-week bars and a 🗓️ My week button.
+- **Tested** in a browser at iPad size: Sunday review for 3 children, Later, all 5 steps, week bars; Bible story with a miss and coins; breath prayer (fast timers) logged + gold; treasure chest rainbow prize; magic-egg-style Komodo hatch with the new picture; each new trouble in Node (4,000 runs); Build on the Rock loads with no errors. **Not tried:** the real iPad, the hand-feel of the block change.
+- **For Joel to decide:** review day (Sunday?) and 🪙 3 for it; story coins (1 a day); treasure chest price; trouble prices.
 
 ### 🐞 Bug fixes and quick wins (24 Nov 2026, app v76, LIVE)
 From 24 more voice notes (High Priority list, passed on by the triage chat). Bugs first:
