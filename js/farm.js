@@ -383,6 +383,12 @@ export function createFarm(ctx) {
   }
   function pick(k, el) {
     const d = el.dataset;
+    // Seeds chosen, then a garden bed tapped: plant there. (The bed is also a "move me" button in Build mode and sits
+    // on top of its glowing square, so without this the tap picked the bed up instead: bug Joel found, 24 Nov 2026.)
+    if (mode.sel?.seed && d.piece?.startsWith('bed:')) {
+      const p = W.layout(farmOf(k.id), KINDS).pieces.find((x) => x.id === d.piece);
+      if (p && !p.bed.crop) return placeAt(k, p.i, p.j);
+    }
     const sel = d.seed ? { seed: d.seed } : d.newbed ? { newbed: true } : { piece: d.piece };
     const same = mode.sel && (mode.sel.seed === sel.seed && mode.sel.piece === sel.piece && !!mode.sel.newbed === !!sel.newbed);
     mode.sel = same ? null : sel;

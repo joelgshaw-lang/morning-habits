@@ -150,10 +150,14 @@ function wanted(f, KINDS) {
 
 // The best free square for a new piece: buildings go to the back, everything else to the middle and front,
 // and everything likes a little room around it.
+// The far left and right corners of the grid reach the painted trees at the edges of the picture, so nothing is put
+// there (24 Nov 2026, Joel: animals walking on top of trees). A square (i, j) is in a corner when |i - j| is large.
+const inCorner = (i, j, s, n) => Math.abs(i - j) + (s - 1) > n - 4 && n > 8;
+
 function findSpot(p, fits, n, used) {
   let best = null, bestScore = Infinity;
   for (let i = 0; i <= n - p.s; i++) for (let j = 0; j <= n - p.s; j++) {
-    if (!fits(i, j, p.s)) continue;
+    if (!fits(i, j, p.s) || inCorner(i, j, p.s, n)) continue;
     const depth = i + j + p.s;
     let crowd = 0;
     for (let a = i - 1; a <= i + p.s; a++) for (let b = j - 1; b <= j + p.s; b++) if (used.has(`${a},${b}`)) crowd++;
@@ -175,7 +179,7 @@ export function layout(f, KINDS) {
     let ok = true;
     for (const p of list) {
       let at = w.at[p.id];
-      if (!at || !fits(at[0], at[1], p.s)) at = findSpot(p, fits, w.n, used);
+      if (!at || !fits(at[0], at[1], p.s) || inCorner(at[0], at[1], p.s, w.n)) at = findSpot(p, fits, w.n, used);   // anything already in a corner moves in once
       if (!at) { ok = false; break; }
       cells(at[0], at[1], p.s).forEach((c) => used.add(c));
       pieces.push({ ...p, i: at[0], j: at[1] });
@@ -221,7 +225,9 @@ function pieceHTML(p, g, env) {
 }
 
 // Up to a few animals of one kind standing together, with a number when there are more.
-function groupHTML(list, type, oi, oj, spots, g, env, baseZ = 0) {
+// Tall leafy pieces: animals next to one barely stroll, so they don't walk over the tree.
+const TALL = new Set(['tree', 'gumtree', 'leafytree', 'bush', 'hill']);
+function groupHTML(list, type, oi, oj, spots, g, env, baseZ = 0, nearTree = false) {
   const { KINDS, grown } = env;
   // Show first the ones that need something (ready to shear, then hungry), so a tap always reaches them.
   const order = [...list].sort((a, b) => env.needs(b) - env.needs(a) || a.id - b.id);
@@ -231,7 +237,7 @@ function groupHTML(list, type, oi, oj, spots, g, env, baseZ = 0) {
     const wide = (WIDE[type] || 0.5) * (grown(a) ? 1 : BABY[type] ? 0.72 : 0.7);
     const z = Math.max(Math.round((u + v) * 100) + 40, baseZ ? baseZ + 1 + k : 0);
     // Each animal strolls a little way along the squares and back, at its own pace (less room inside a paddock or pool).
-    const reach = baseZ ? 0.08 : 0.26, dur = 11 + (a.id % 7) * 1.3;
+    const reach = baseZ || nearTree ? 0.06 : 0.26, dur = 11 + (a.id % 7) * 1.3;
     return env.animalBtn(a, `${g.at(u, v)};${g.wide(wide)};z-index:${z};--delay:-${(a.id % 5) * 0.6}s;--wx:calc(var(--tw) * ${reach});--wy:calc(var(--tw) * ${(a.id % 2 ? reach : -reach) * 0.55});--dur:${dur.toFixed(1)}s;--wd:-${((a.id * 3.7) % dur).toFixed(1)}s`);
   }).join('');
   if (list.length > shown.length) {
@@ -252,6 +258,7 @@ function targets(env, w, pieces, used) {
   const own = sel.piece ? new Set(cells(p.i, p.j, p.s)) : new Set();
   const out = [];
   for (let i = p.s - 1; i < w.n; i++) for (let j = p.s - 1; j < w.n; j++) {
+    if (inCorner(i - p.s + 1, j - p.s + 1, p.s, w.n)) continue;
     if (cells(i - p.s + 1, j - p.s + 1, p.s).every((c) => !used.has(c) || own.has(c))) out.push([i, j]);
   }
   return out;
@@ -287,8 +294,12 @@ export function worldHTML(env) {
   const byType = {};
   for (const a of f.animals) (byType[a.type] ||= []).push(a);
   let html = '';
+  // Squares around each tall leafy piece, so herds next to a tree stay put.
+  const treeNear = new Set();
+  for (const p of pieces) if (TALL.has(p.kind)) for (let a = p.i - 1; a <= p.i + p.s; a++) for (let b = p.j - 1; b <= p.j + p.s; b++) treeNear.add(`${a},${b}`);
+  const nearTree = (p) => cells(p.i, p.j, p.s).some((c) => treeNear.has(c));
   for (const p of pieces) {
-    if (p.kind === 'herd') html += groupHTML(byType[p.type] || [], p.type, p.i, p.j, HERD_SPOTS[p.s], g, env);
+    if (p.kind === 'herd') html += groupHTML(byType[p.type] || [], p.type, p.i, p.j, HERD_SPOTS[p.s], g, env, 0, nearTree(p));
     else html += pieceHTML(p, g, env);
   }
   for (const [type, list] of Object.entries(byType)) {

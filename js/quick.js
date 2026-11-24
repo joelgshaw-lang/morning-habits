@@ -5,6 +5,7 @@
 // for a hard one. ✕ Not quite drops it. Saved in IndexedDB as 'quickLog'.
 
 export const GOOD = [
+  { id: 'obey', icon: '🙋', label: 'Obeyed straight away', fruit: 'f' },   // 24 Nov 2026 (Joel): obeying straight away is a key thing to work on
   { id: 'kind', icon: '💛', label: 'Kind', fruit: 'k' },
   { id: 'helpful', icon: '🤝', label: 'Helpful', fruit: 'l' },
   { id: 'attitude', icon: '😊', label: 'Great attitude', fruit: 'j' },
@@ -23,8 +24,12 @@ export const HARD = [
 ];
 const AMOUNTS = [1, 2, 5];
 // Gem colour for each good moment's fruit (k kindness, l love, j joy, r self-control, b goodness, t patience).
-const GEM_COLOR = { k: '#ec4899', l: '#ef4444', j: '#facc15', r: '#22c55e', b: '#38bdf8', t: '#a855f7' };
+const GEM_COLOR = { k: '#ec4899', l: '#ef4444', j: '#facc15', r: '#22c55e', b: '#38bdf8', t: '#a855f7', f: '#f97316', p: '#14b8a6', e: '#f9a8d4' };
+// Build on the Rock fruit codes → the Fruit Friend who jumps out with the gem (js/fruit-art.js).
+const FRIEND_OF = { l: 'love', j: 'joy', p: 'peace', t: 'patience', k: 'kindness', b: 'goodness', f: 'faithfulness', e: 'gentleness', r: 'selfcontrol' };
 const MATERIAL = { wood: '🪵 wood', hay: '🌾 hay', stubble: '🥀 stubble' };
+
+import { FRIENDS } from './fruit-art.js';
 
 export function createQuick(ctx) {
   const { state, esc } = ctx;
@@ -67,8 +72,8 @@ export function createQuick(ctx) {
         list().push({ id: `q${Date.now().toString(36)}`, kidId: id, kind: m.id, icon: m.icon, label: m.label, fruit: m.fruit, material: m.material,
           n: ds.good ? amount : -amount, t: ctx.clock.now().toISOString(), status: 'waiting' });
         await save();
-        ctx.toast(`${m.icon} ${signed(ds.good ? amount : -amount)} for ${esc(k.name)}, waiting for tonight's check`);
-        el.remove(); // logged: close straight away (reopen to remove it)
+        // 24 Nov 2026 (Joel): the sheet stays open so several can be logged in a row (e.g. kind words, kind words).
+        el.querySelector('.farm-sheet').innerHTML = draw();
         ctx.renderKid();
         return bigMoment(k, m, !!ds.good);
       }
@@ -79,23 +84,32 @@ export function createQuick(ctx) {
     el.classList.add('qk-ov');
   }
 
-  // 💎 Big moment (24 Nov 2026, Joel): logging a good moment flashes a big sparkly gem with excitement; a hard
-  // moment shows "Hey, that is stinky and sad." Full screen, gone after a few seconds or a tap.
+  // 💎 Big moment (24 Nov 2026, Joel): a good moment bursts with gold, silver and a big flashing gem, and the matching
+  // Fruit Friend jumps out. A hard moment shows a big stinky pile of hay: "Hey, that is stinky and sad."
+  // Full screen, gone after a few seconds or a tap. It says where the piece goes, so the child knows it counted.
   function bigMoment(k, m, good) {
+    document.querySelector('.big-moment')?.remove();
     const ov = document.createElement('div');
     ov.className = `big-moment ${good ? 'bm-good' : 'bm-sad'}`;
     const c = GEM_COLOR[m.fruit] || '#38bdf8';
+    const friend = good && FRIENDS[FRIEND_OF[m.fruit]];
+    const bits = good ? Array.from({ length: 12 }, (_, i) => `<i class="bm-spark ${['gold', 'silver', 'gem'][i % 3]}" style="--c:${c}"></i>`).join('') : '';
     ov.innerHTML = good
-      ? `<div class="bm-burst"></div>${'<i class="bm-spark"></i>'.repeat(12)}
+      ? `<div class="bm-burst"></div>${bits}
+        <div class="bm-row">
         <svg class="bm-gem" viewBox="0 0 200 180" style="--gem:${c}" aria-hidden="true">
           <polygon points="50,10 150,10 195,62 100,175 5,62" fill="${c}"/>
           <polygon points="50,10 75,62 5,62" fill="#fff" opacity=".45"/><polygon points="150,10 125,62 195,62" fill="#000" opacity=".12"/>
           <polygon points="50,10 150,10 125,62 75,62" fill="#fff" opacity=".28"/><polygon points="75,62 125,62 100,175" fill="#fff" opacity=".18"/>
           <polygon points="5,62 75,62 100,175" fill="#000" opacity=".08"/><polygon points="195,62 125,62 100,175" fill="#000" opacity=".2"/>
           <polygon points="62,22 88,22 72,44" fill="#fff" opacity=".85"/></svg>
-        <h2>WOW, ${esc(k.name)}!</h2><p>${m.icon} ${esc(m.label)}! A big gem for you! 💎</p>`
-      : `<div class="bm-cloud">${m.icon}<span class="bm-stink">〰️</span><span class="bm-stink s2">〰️</span><span class="bm-stink s3">〰️</span></div>
-        <h2>Hey, that is stinky and sad.</h2><p>${m.icon} ${esc(m.label)}. Let's make it right. 💛</p>`;
+        ${friend ? `<div class="bm-friend">${friend.svg}</div>` : ''}</div>
+        <h2>WOW, ${esc(k.name)}!</h2><p>${m.icon} ${esc(m.label)}! A big gem for you! 💎</p>
+        <small>It goes on your building tonight, when a grown-up says yes.</small>`
+      : `<div class="bm-pile"><span>🌾</span><span>🌾</span><span>🌾</span><span>🌾</span><span>🌾</span><span>🌾</span>
+          <i class="bm-fly">🪰</i><i class="bm-fly f2">🪰</i><b class="bm-stink">〰️</b><b class="bm-stink s2">〰️</b><b class="bm-stink s3">〰️</b></div>
+        <h2>Hey, that is stinky and sad.</h2><p>${m.icon} ${esc(m.label)}. Let's make it right. 💛</p>
+        <small>It goes on your building tonight, when a grown-up says yes.</small>`;
     document.body.appendChild(ov);
     if (good) { ctx.chime?.(); ctx.speak?.(`Wow, ${k.name}! ${m.label}! A big gem for you!`); }
     else ctx.speak?.('Hey, that is stinky and sad.');
@@ -150,6 +164,7 @@ export function createQuick(ctx) {
         await ctx.kvSet('coinAdjust', state.coinAdjust);
       }
       ctx.sendToRock(q.kidId, q.n > 0 ? { kind: 'gem', fruit: q.fruit, label: q.label } : { kind: 'straw', material: q.material, label: q.label });
+      ctx.toast(`🏰 Sent to ${esc(ctx.kid(q.kidId)?.name || '')}'s building: ${q.icon} ${esc(q.label)} (${q.n > 0 ? '💎 gem' : MATERIAL[q.material]})`);
     }
     await save();
     await ctx.refreshSummary();

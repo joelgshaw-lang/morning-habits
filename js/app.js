@@ -21,6 +21,7 @@ const UNDO_MS = 8000;
 const FOCUS_HOME_MS = 9000;      // after a tick, the board resets soon so kids go and do the next job
 const SESSION_MS = 3 * 60 * 1000;   // farm time per visit
 const FARM_VISITS_PER_DAY = 2;      // a child can open their farm twice a day on their own
+const FARM_GAP_MS = 30 * 60000;     // 24 Nov 2026 (Joel): the second farm visit is at least 30 minutes after the first starts
 const COIN_SHOW_MS = 8000;          // a child's coins show on the board for a few seconds after they earn, then hide again
 const PRAISE = ['Great job!', 'Awesome!', 'You did it!', 'Super star!', 'Way to go!', 'Nice work!', 'Brilliant!', 'Keep it up!', 'Fantastic!', 'Well done!'];
 
@@ -263,6 +264,8 @@ const writeJSON = (key, val) => { try { localStorage.setItem(key, JSON.stringify
 const sessions = readJSON('sessions', {});
 const nowMs = () => clock.now().getTime();
 const visitsLeft = (id) => { const f = farm.farmOf(id); return FARM_VISITS_PER_DAY - (f.visitDay === todayKey() ? f.visits || 0 : 0); };
+// Minutes until the next farm visit may start (0 = now).
+const farmWaitMin = (id) => { const f = farm.farmOf(id); if (f.visitDay !== todayKey() || !f.lastVisitAt) return 0; return Math.max(0, Math.ceil((Date.parse(f.lastVisitAt) + FARM_GAP_MS - clock.now().getTime()) / 60000)); };
 const sessionLeft = (id) => Math.max(0, SESSION_MS - (sessions[id]?.used || 0));
 const sessionText = () => (sessionPaused() ? '⏸ Paused' : `${state.farmByGrown ? '👨‍👩‍👧 ' : ''}⏳ ${clock.fmtDuration(sessionLeft(state.farmKid))}`);
 // Farm time doesn't tick while praying. A farm a grown-up opened has 3 minutes too (18 Nov 2026).
@@ -371,10 +374,16 @@ async function openFarm(id, { grown = false } = {}) {
     if (readAloudOn(id)) speak(`That's your farm visits for today, ${k.name}. See your animals tomorrow!`, true);
     return toast('🌙 No more farm visits today. See your animals tomorrow!');
   }
+  const wait = farmWaitMin(id);
+  if (wait > 0) {
+    if (readAloudOn(id)) speak(`Your farm opens again in ${wait} minute${wait === 1 ? '' : 's'}, ${k.name}.`, true);
+    return toast(`⏳ Farm again in ${wait} min.`);
+  }
   if (!(await askKidCode(id))) return;
   const f = farm.farmOf(id);
   if (f.visitDay !== todayKey()) { f.visitDay = todayKey(); f.visits = 0; }
   f.visits++;
+  f.lastVisitAt = clock.now().toISOString();
   kvSet('farms', state.farms);
   enterFarm(k, false);
 }
@@ -969,7 +978,7 @@ function columnHTML(k, d, r) {
   const farmBtn = farmLocked(k, d)
     ? `<div class="farm-lock">${farmLockText()}</div>`
     : left > 0
-      ? `<button class="farm-open" data-action="open-farm">🐔 My farm <small>${left} left today</small></button>`
+      ? `<button class="farm-open" data-action="open-farm">🐔 My farm <small>${farmWaitMin(k.id) ? `in ${farmWaitMin(k.id)} min` : `${left} left today`}</small></button>`
       : '<div class="farm-lock">🌙 Farm again tomorrow</div>';
   // 🍓 Fruit time: only after this child's "Ready, set, go!" (it never blocks the start), with a free "Not today".
   // (At night the fruit question is part of "Going up!".)
