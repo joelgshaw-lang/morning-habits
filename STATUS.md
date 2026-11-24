@@ -1,6 +1,6 @@
 # Morning Habits app: status
 
-Updated 24 Nov 2026 (app v76 LIVE; v77 committed, waiting for Joel's OK to go live). Next: Joel opens the app twice on the iPad and tries planting, the gem / hay pile, the farm and the front screen in landscape.
+Updated 24 Nov 2026 (app v77 LIVE). Next: Joel opens the app twice on the iPad and tries planting, the gem / hay pile, the farm, the front screen in landscape, a Bible story, the breath prayer and the Treasure chest. Sunday morning: the first weekly review.
 
 ## Where it's up to
 - Live on GitHub Pages: Fruit time (3 fruits a day, this/not pictures, stars, quiz, pick your own fruit), Going up! night with the stay-in-bed bonus next morning, start by 7:15, −20 if asked, fair board, PIN every time, 3-minute grown-up cutoff, 🔊 voice chooser, kinder farm selling. Rules summary: README.md "Current rules".
@@ -12,7 +12,7 @@ Updated 24 Nov 2026 (app v76 LIVE; v77 committed, waiting for Joel's OK to go li
 2. Joel to decide (docs/review-round3.md "For Joel to decide"): −20 for under-7s, 3-minute timer restarting on taps, farm money, farm visits per day, mine time, daily fire, speed bonuses, hand actions (Peace, Gentleness, Goodness "Thumbs up"), adding a 5-year-old.
 3. LATER list in docs/review-round3.md: only the right child can tick their column, redraw Peace and Faithfulness pictures, rebuild animals in Sticker Plus (3 first as a test), hide the PIN from the public code.
 
-### 📜 Bible stories, farm extras, weekly review, breath prayer (24 Nov 2026, app v77, committed, not live yet)
+### 📜 Bible stories, farm extras, weekly review, breath prayer (24 Nov 2026, app v77, LIVE)
 Joel chose all four groups of the remaining voice-note items:
 - **📜 Bible story + quiz** (🌱 button → 📜): 8 stories of things Jesus did (our own simple retelling + Bible reference; `js/stories.js`), read aloud, then 3 tap-the-answer questions (shuffled, first tap counts, a miss shows the right answer). 🪙 1 a day, next story tomorrow. **Habakkuk 2:14** added at the end of the memory verses (7 now).
 - **🌬️ Breath prayer** is back as a 4th choice in 🙏 I prayed: three slow breaths with a growing circle and a short prayer ("Jesus… calm my heart"), gold for the building. Stopping part-way logs nothing.
