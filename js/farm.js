@@ -55,21 +55,23 @@ const BUSH_EGG = ['platypus', 'echidna', 'kookaburra'];
 const POOL_EGG = ['turtle', 'squid', 'puffer', 'octopus'];
 const GROUP_NAME = { mate: '🦘 Aussie Island Mates', sea: '🌊 Rock Pool Crew' };
 
+// 24 Nov 2026 (Joel): halved. A full farm was making 600 to 1000 coins a day against 25 to 70 from jobs, so coin
+// penalties and prices meant little. Now a full farm makes about 300 a day.
 export const GOODS = {
-  egg: { icon: '🥚', name: 'Egg', price: 15 },
-  duckegg: { icon: '🦆🥚', name: 'Duck egg', price: 20 },
-  golden: { icon: '🌟', name: 'Golden egg', price: 40 },
-  rainbow: { icon: '🌈', name: 'Rainbow egg', price: 100 },
-  wool: { icon: '🧶', name: 'Wool', price: 30 },
-  milk: { icon: '🥛', name: 'Milk', price: 20 },
-  apple: { icon: '🍎', name: 'Apple', price: 5 },
-  honey: { icon: '🍯', name: 'Honey', price: 20 },
-  truffle: { icon: '🍄', name: 'Truffle', price: 15 },
+  egg: { icon: '🥚', name: 'Egg', price: 8 },
+  duckegg: { icon: '🦆🥚', name: 'Duck egg', price: 10 },
+  golden: { icon: '🌟', name: 'Golden egg', price: 20 },
+  rainbow: { icon: '🌈', name: 'Rainbow egg', price: 50 },
+  wool: { icon: '🧶', name: 'Wool', price: 15 },
+  milk: { icon: '🥛', name: 'Milk', price: 10 },
+  apple: { icon: '🍎', name: 'Apple', price: 3 },
+  honey: { icon: '🍯', name: 'Honey', price: 10 },
+  truffle: { icon: '🍄', name: 'Truffle', price: 8 },
 };
 Object.assign(GOODS, W.CROP_GOODS); // carrots, wheat and sunflowers from the painted farm's garden beds
 // The farm stand adds 1 coin for every 5 to everything sold.
 const priceOf = (f, g) => GOODS[g].price + (f.built.stand ? Math.max(1, Math.round(GOODS[g].price / 5)) : 0);
-// About 1 in 30 eggs a hen lays is a rainbow egg, worth 100.
+// About 1 in 30 eggs a hen lays is a rainbow egg (worth GOODS.rainbow).
 const RAINBOW_CHANCE = 0.03;
 
 // What a child gets for selling a grown animal. They choose which one, say goodbye, and can bring it back
@@ -129,14 +131,14 @@ export const SHOP = [
   { id: 'poolegg', icon: '🫧', name: 'Rock pool egg', price: 150, stars: 15, level: 4, needs: 'rockpool', egg: POOL_EGG, does: 'Sea turtles, squid, pufferfish and octopuses hatch from eggs! Hatch Myrtle, Rocket, Puff or Inky: always one you don\'t have yet.' },
   { id: 'jetty', icon: '🛶', name: 'Jetty', price: 450, stars: 45, level: 4, needs: 'rockpool', building: true, home: 'manta', does: 'A wooden jetty out to deep water, and Zoom the manta ray glides in to live in your rock pool.' },
   // Land (24 Nov 2026): a cheaper first step, then river and hilltop land, each with its own painted picture.
-  { id: 'landm', icon: '🌼', name: 'Meadow land', price: 150, stars: 15, level: 2, painted: true, land: 1, does: 'A bit more room, with wildflowers and a stone wall all around. Everything stays right where it is.' },
-  { id: 'land1', icon: '🏞️', name: 'River land', price: 400, stars: 40, level: 3, painted: true, land: 2, does: 'A bigger paddock with a river, a bridge and willow trees. Everything stays right where it is.' },
-  { id: 'land2', icon: '⛰️', name: 'Hilltop land', price: 900, stars: 90, level: 4, painted: true, land: 3, does: 'The biggest paddock of all, with rolling hills, a lake and mountains. Everything stays right where it is.' },
+  { id: 'landm', icon: '🌼', name: 'Meadow land', price: 1000, stars: 15, level: 2, painted: true, land: 1, does: 'A bit more room, with wildflowers and a stone wall all around. Everything stays right where it is.' },
+  { id: 'land1', icon: '🏞️', name: 'River land', price: 2500, stars: 40, level: 3, painted: true, land: 2, does: 'A bigger paddock with a river, a bridge and willow trees. Everything stays right where it is.' },
+  { id: 'land2', icon: '⛰️', name: 'Hilltop land', price: 6000, stars: 90, level: 4, painted: true, land: 3, does: 'The biggest paddock of all, with rolling hills, a lake and mountains. Everything stays right where it is.' },
   // Special land pieces (24 Nov 2026): just for looks, two squares each way. Need Meadow land (so there's room).
-  { id: 'wildflowers', icon: '🌸', name: 'Wildflower patch', price: 120, stars: 12, level: 2, painted: true, building: true, minLand: 1, does: 'A bright patch of wildflowers for your farm.' },
-  { id: 'bush', icon: '🌲', name: 'Little bush forest', price: 200, stars: 20, level: 3, painted: true, building: true, minLand: 1, does: 'Three tall trees, a mossy log and ferns: a shady corner for your farm.' },
-  { id: 'hill', icon: '⛰️', name: 'Grassy hill', price: 250, stars: 25, level: 3, painted: true, building: true, minLand: 1, does: 'A little hill with rocks and a winding path to the top.' },
-  { id: 'beach', icon: '🏖️', name: 'Beach corner', price: 300, stars: 30, level: 3, painted: true, building: true, minLand: 1, does: 'Sand, a sandcastle, a beach umbrella and little waves.' },
+  { id: 'wildflowers', icon: '🌸', name: 'Wildflower patch', price: 600, stars: 12, level: 2, painted: true, building: true, minLand: 1, does: 'A bright patch of wildflowers for your farm.' },
+  { id: 'bush', icon: '🌲', name: 'Little bush forest', price: 900, stars: 20, level: 3, painted: true, building: true, minLand: 1, does: 'Three tall trees, a mossy log and ferns: a shady corner for your farm.' },
+  { id: 'hill', icon: '⛰️', name: 'Grassy hill', price: 1200, stars: 25, level: 3, painted: true, building: true, minLand: 1, does: 'A little hill with rocks and a winding path to the top.' },
+  { id: 'beach', icon: '🏖️', name: 'Beach corner', price: 1500, stars: 30, level: 3, painted: true, building: true, minLand: 1, does: 'Sand, a sandcastle, a beach umbrella and little waves.' },
   { id: 'barn', icon: '🛖', name: 'Big barn', price: 500, stars: 50, level: 4, building: true, does: 'Room for 14 small animals, 4 sheep, 3 cows and 2 dinosaurs.' },
   { id: 'pony', icon: '🐴', name: 'Pony', price: 600, stars: 50, level: 4, building: true, does: 'Your very own pony! Tap it to go for a gallop around the farm.' },
   { id: 'mill', icon: '⚙️', name: 'Windmill', price: 700, stars: 70, level: 4, needs: 'barn', building: true, does: 'Grinds feed: small animals eat free, and everyone else costs 1 coin less.' },
@@ -1140,7 +1142,7 @@ export function createFarm(ctx) {
       if (scared && (a.type === 'chicken' || a.type === 'duck')) continue;
       if (a.type === 'chicken') {
         const r = Math.random();
-        if (r < RAINBOW_CHANCE) { f.basket.rainbow = (f.basket.rainbow || 0) + 1; msgs.push('A RAINBOW egg! 🌈 It sells for 100!'); }
+        if (r < RAINBOW_CHANCE) { f.basket.rainbow = (f.basket.rainbow || 0) + 1; msgs.push(`A RAINBOW egg! 🌈 It sells for ${GOODS.rainbow.price}!`); }
         else if (r < RAINBOW_CHANCE + (hasGrown(f, 'lizard') ? 0.15 : 0) + (hasGrown(f, 'dino') ? 0.15 : 0)) { f.basket.golden = (f.basket.golden || 0) + 1; msgs.push('A golden egg! 🌟'); }
         else f.basket.egg = (f.basket.egg || 0) + 1;
         laid++;

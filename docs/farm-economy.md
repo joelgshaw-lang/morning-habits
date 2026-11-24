@@ -1,5 +1,20 @@
 # Farm and coin economy
 
+## Price check, 24 Nov 2026 (app v75)
+
+Joel: the kids were sometimes getting 500 to 1000 coins a day. Worked out for a full farm on a day the jobs are done
+(old prices): 12 hens about 300 (eggs, golden, rainbow, farm stand extra), 3 ducks with the pond about 145, 3 cows 70,
+4 sheep 50, 4 pigs 35, apples, honey and crops 30. **About 600 to 650 a day, up to 1000 on lucky rainbow days,
+against 25 to 70 from jobs.** So coin penalties (−20 when asked, −1/2/5 hard moments, vet bills) barely mattered.
+⭐ Job stars still held the big things back (they only come from jobs).
+
+Joel chose "both":
+- **Farm goods sell for half** (egg 15→8, duck egg 20→10, golden 40→20, rainbow 100→50, wool 30→15, milk 20→10,
+  apple 5→3, honey 20→10, truffle 15→8). A full farm now makes about 300 a day. Crops, animals and shop prices unchanged.
+- **Land:** Meadow 🪙 1,000 + ⭐ 15, River 🪙 2,500 + ⭐ 40, Hilltop 🪙 6,000 + ⭐ 90.
+  **Special land pieces:** wildflower patch 600 + ⭐ 12, little bush forest 900 + ⭐ 20, grassy hill 1,200 + ⭐ 25, beach corner 1,500 + ⭐ 30.
+- Still open: kids with big saved balances can buy these straight away; the coin penalties are still small next to ~300 a day.
+
 Balanced with a simulation of three kinds of child (re-run on 18 Oct 2026 for the two-part night and grown-up-confirmed jobs). On 2 Nov 2026 Joel asked for more coins: bigger morning bonuses, eggs sell for 15, and animals can be sold. ⭐ Job stars still limit the big things, so jobs stay essential. The goal: something small and good happens every day, a new farm stage arrives every one to three weeks, and the farmhouse takes about two months.
 
 ## Earning coins
@@ -53,19 +68,19 @@ Mystery eggs, mystery boxes, fence repairs, feed, shears and milk bottles need n
 | Animal | Comes from | Feed per day | Grows up after | Makes |
 |---|---|---|---|---|
 | 🦕 Dinosaur | Dinosaur egg (1500), rare egg (5%), mystery egg (0.5%) | 3 | 20 feeds | Foxes stay away; hens lay more golden eggs |
-| 🐔 Chicken | Mystery egg (66%), or hatch your own egg in the nest | 1 | 5 feeds | An egg each fed day (sells for 15); about 1 in 30 is a 🌈 rainbow egg (sells for 100) |
+| 🐔 Chicken | Mystery egg (66%), or hatch your own egg in the nest | 1 | 5 feeds | An egg each fed day (sells for 8); about 1 in 30 is a 🌈 rainbow egg (sells for 100) |
 | 🦆 Duck | Mystery egg (20%) | 1 | 5 feeds | A duck egg (sells for 20); 2 a day with the pond |
-| 🦎 Lizard | Mystery egg (7%, rare) | 1 | 5 feeds | Hens sometimes lay a golden egg (sells for 40) |
+| 🦎 Lizard | Mystery egg (7%, rare) | 1 | 5 feeds | Hens sometimes lay a golden egg (sells for 20) |
 | 🐍 Snake | Mystery egg (5%, rare), rare egg (10%) | 1 | 5 feeds | 1 free feed each day you work (it chases the mice away) |
 | 🐊 Crocodile | Mystery egg (2%, super rare) | 2 | 8 feeds | Foxes stay away |
 | 🐑 Sheep | Buy a lamb (150) or mystery box | 2 | 10 feeds | Wool grows each fed day; shear at 3 with ✂️ sheep shears (sells for 30) |
-| 🐄 Cow | Buy a calf (350), mystery box, or born | 3 | 16 feeds | Milk each fed day with 🍼 milk bottles (sells for 20); a calf every 14 milkings |
+| 🐄 Cow | Buy a calf (350), mystery box, or born | 3 | 16 feeds | Milk each fed day with 🍼 milk bottles (sells for 10); a calf every 14 milkings |
 
 🥚 **Eggs:** Mystery egg 30 · 💎 Rare egg 90 (from Barnyard: duck 30%, lizard 25%, crocodile 20%, snake 10%, chicken 10%, dinosaur 5%) · 🦕 Dinosaur egg 1500 (Dream Farm).
 
 🐍 **Surprise snake:** it boings out of the egg, hisses and wiggles, and now **stays on the farm** (from 2 Nov 2026). Judah's earlier snake came home as a grown snake.
 
-**Selling:** eggs 15 · duck eggs 20 · golden eggs 40 · 🌈 rainbow eggs 100 · wool 30 · milk 20 · apples 5 · honey 20. In the shop, a grown animal can be sold: hen 40, lizard 75, snake 75. The 🏪 farm stand adds 1 coin for every 5.
+**Selling (halved 24 Nov 2026):** eggs 8 · duck eggs 10 · golden eggs 20 · 🌈 rainbow eggs 50 · wool 15 · milk 10 · apples 3 · honey 10 · truffles 8. In the shop, a grown animal can be sold: hen 40, lizard 75, snake 75. The 🏪 farm stand adds 1 coin for every 5.
 
 **Rules for animals:**
 - Animals never die. Hungry animals just stop making things until they're fed.
@@ -111,7 +126,7 @@ Each child can open their farm **twice a day for 3 minutes**, with their own cod
 |---|---|---|---|
 | 🐣 Little Coop | Start (free starter egg) | Mystery egg, fence repair, 🥕 vegetable patch (60: 2 free feeds a day), chicken coop (100: +4 small-animal room, hens safe from the fox) | Day 1 |
 | 🌾 Barnyard | 4 grown hens or ducks | Rare egg (90), mystery box (45), lamb (150), sheep shears (25, needed to shear), 🐝 beehive (120: a jar of honey worth 20 every 3 fed days), 🐕 farm dog (200: the fox never comes), strong fence (80), duck pond (160, once you have a duck) | Day 8–10 |
-| 🐑 Big Farm | Shear your first wool | Calf (350), milk bottles (20, needed to milk), 🍎 apple orchard (250: 2 apples worth 5 each fed day), 🏪 farm stand (300: everything sells for 1 more per 5) | Day 23–31 |
+| 🐑 Big Farm | Shear your first wool | Calf (350), milk bottles (20, needed to milk), 🍎 apple orchard (250: 2 apples worth 3 each fed day), 🏪 farm stand (300: everything sells for 1 more per 5) | Day 23–31 |
 | 🐄 Dream Farm | Grow a cow | 🐴 Pony (600: tap it to gallop), big barn (500), windmill (700: small animals eat free, others 1 coin cheaper), farmhouse (1200), 🏰 big beautiful farmhouse (3000, the ultimate goal), dinosaur egg (1500) | Day 41–49 |
 
 **Farmhouse:** about 8 weeks for a keen child, 10 for an average child, 12 for a forgetful one. **Big beautiful farmhouse (3000):** about 4 more weeks for a keen child and 5–7 for an average one (job coins plus wool, milk and eggs, roughly 70–90 coins a day by then), so about 3–4 months in all. Farms that sheared or milked before shears and bottles existed get them free.

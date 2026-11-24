@@ -16,10 +16,11 @@ Updated 24 Nov 2026 (app v75 built and committed, NOT live yet). Next: push v75,
 From the Asana task "Kids app updates" (High Priority list). Joel's answers: no Claude character, just a big gem.
 - **💎 Big gem:** logging a good moment on 🪙± flashes a big sparkly gem full screen ("WOW, Eliana! Kind! A big gem for you!"). A hard moment shows "Hey, that is stinky and sad. Let's make it right." `bigMoment` in `js/quick.js`.
 - **🎹 Keyboard longer:** 10 minutes (was 7), bonus +🪙 1 a minute up to 20 (was 15). **🎤 Singing** is now called "Singing lesson" (still 7 minutes). Settings v13 updates the iPad's saved lists.
-- **🌼 Land:** each land has its own painted picture. New cheaper first step **Meadow land** (🪙 150 + ⭐ 15, 12 squares). Bigger → **River land** (14), Biggest → **Hilltop land** (16); farms that had them move up one. **Special land pieces** (need Meadow land): wildflower patch, little bush forest, grassy hill, beach corner. Pictures made with kie.ai (about 20 cents).
+- **🌼 Land:** each land has its own painted picture. New first step **Meadow land** (🪙 1,000 + ⭐ 15, 12 squares). Bigger → **River land** (🪙 2,500, 14 squares), Biggest → **Hilltop land** (🪙 6,000, 16); farms that had them move up one. **Special land pieces** (need Meadow land): wildflower patch, little bush forest, grassy hill, beach corner. Pictures made with kie.ai (about 20 cents).
+- **💰 Price check (Joel: kids getting 500 to 1000 coins a day):** a full farm made about 600 to 650 a day vs 25 to 70 from jobs. Joel chose both fixes: farm goods sell for half (full farm about 300 a day) and the land costs more (above; pieces 600 / 900 / 1,200 / 1,500). Details: docs/farm-economy.md "Price check".
 - **🙏 Tap to pray:** already done as the 🙏 I prayed button (v72, 20 Nov). Nothing new built.
 - **Tested** in a browser at iPad size from a test copy: gem and stinky pop-ups, settings upgrade from v12, old Bigger land moving to River land, shop locks, buying Meadow land and all four pieces, all 101 offline files present. **Not tested:** the real iPad, and the Hilltop picture on a real farm.
-- **For Joel to decide:** keyboard 10 minutes / bonus to 20 (morning is tight before 7:30), land and piece prices, whether the gem should also show at the night check.
+- **For Joel to decide:** keyboard 10 minutes / bonus to 20 (morning is tight before 7:30), whether the gem should also show at the night check, whether coin penalties should be bigger now that the farm pays so much.
 
 ### 🌱 Reminders update (21 Nov 2026, app v74, LIVE)
 From the iPhone High Priority list and the Asana task "Kids app updates":
