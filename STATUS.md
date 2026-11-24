@@ -1,6 +1,6 @@
 # Morning Habits app: status
 
-Updated 24 Nov 2026 (app v75 LIVE; v76 bug fixes committed, waiting for Joel's OK to go live). Next: push v76, then Joel opens the app twice on the iPad and tries planting, the gem / hay pile, the farm and the front screen in landscape.
+Updated 24 Nov 2026 (app v76 LIVE). Next: Joel opens the app twice on the iPad and tries planting, the gem / hay pile, the farm and the front screen in landscape.
 
 ## Where it's up to
 - Live on GitHub Pages: Fruit time (3 fruits a day, this/not pictures, stars, quiz, pick your own fruit), Going up! night with the stay-in-bed bonus next morning, start by 7:15, −20 if asked, fair board, PIN every time, 3-minute grown-up cutoff, 🔊 voice chooser, kinder farm selling. Rules summary: README.md "Current rules".
@@ -12,10 +12,10 @@ Updated 24 Nov 2026 (app v75 LIVE; v76 bug fixes committed, waiting for Joel's O
 2. Joel to decide (docs/review-round3.md "For Joel to decide"): −20 for under-7s, 3-minute timer restarting on taps, farm money, farm visits per day, mine time, daily fire, speed bonuses, hand actions (Peace, Gentleness, Goodness "Thumbs up"), adding a 5-year-old.
 3. LATER list in docs/review-round3.md: only the right child can tick their column, redraw Peace and Faithfulness pictures, rebuild animals in Sticker Plus (3 first as a test), hide the PIN from the public code.
 
-### 🐞 Bug fixes and quick wins (24 Nov 2026, app v76, committed, not live yet)
+### 🐞 Bug fixes and quick wins (24 Nov 2026, app v76, LIVE)
 From 24 more voice notes (High Priority list, passed on by the triage chat). Bugs first:
 - **Planting fixed:** after picking seeds, tapping a garden bed picked the bed up to move it ("tap a glowing square"). Now it plants. `pick` in `js/farm.js`.
-- **Front-board moments and Build on the Rock:** they only go to the game after the grown-up's night check (by design), and the game drops straw over its daily cap (2 at age 6, 3 at 8 and 12) without a word. Now the pop-up says "It goes on your building tonight, when a grown-up says yes", and the night check shows "🏰 Sent to X's building". The cap is still on (Joel to decide).
+- **Front-board moments and Build on the Rock:** they only go to the game after the grown-up's night check (by design), and the game drops straw over its daily cap (2 at age 6, 3 at 8 and 12) without a word. Now the pop-up says "It goes on your building tonight, when a grown-up says yes", and the night check shows "🏰 Sent to X's building". The cap stays (Joel, 24 Nov: keep it).
 - **Landscape header:** name, Fruit Friend badge, waiting coins and coin total ran off the column. Now they shrink to fit and the coin total moves to a second line.
 - **Animals on trees:** nothing is placed in the far left/right corners of the farm (where the painted edge trees are; anything already there moves in once), and animals next to a tree, bush or hill hardly stroll. `inCorner`, `TALL` in `js/farm-world.js`.
 - **Quick wins:** 🙋 "Obeyed straight away" good moment (orange faithfulness gem); the 🪙± sheet stays open so several can be logged in a row; good = gold and silver pieces fly out with a big gem and the matching Fruit Friend jumps out; hard = a big stinky hay pile with flies; second farm visit at least 30 minutes after the first ("🐔 My farm in 20 min").
