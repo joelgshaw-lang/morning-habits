@@ -162,6 +162,7 @@ const portal = createPortal({
 const quick = createQuick({
   state, esc, kid: (id) => kid(id), clock, kvGet, kvSet, toast: (h) => toast(h), sheet: (...a) => sheet(...a), grownUp: (...a) => grownUp(...a),
   coinsOf: (id) => coinsOf(id), refreshSummary: () => refreshSummary(), renderKid: () => renderKid(), sendToRock: (...a) => sendToRock(...a),
+  speak: (...a) => speak(...a), chime: () => chime(),
 });
 
 const grow = createGrow({
@@ -1901,6 +1902,13 @@ function migrate(s) {
       const i = k.habits.findIndex((h) => h.id === 'music');
       const add = practice.map((h) => structuredClone(h));
       if (i < 0) k.habits.push(...add); else k.habits.splice(i, 1, ...add);
+    }
+  }
+  // v13 (24 Nov 2026): "Singing lesson", and a longer Keyboard (10 minutes, bonus up to 20).
+  if ((s.version || 1) < 13) {
+    for (const k of s.kids || []) for (const h of k.habits || []) {
+      if (h.id === 'singing' && h.name === 'Singing') h.name = 'Singing lesson';
+      if (h.id === 'keyboard' && h.minutes === 7 && h.bonusTo === 15) { h.minutes = 10; h.bonusTo = 20; }
     }
   }
   for (const [key, val] of Object.entries(DEFAULT_SETTINGS)) if (!(key in s)) s[key] = structuredClone(val);

@@ -1,6 +1,6 @@
 # Morning Habits app: status
 
-Updated 21 Nov 2026 (app v74 LIVE). Next: Joel opens the app twice on the iPad and tries the 🌱 button, the farm and the Rebuild pack.
+Updated 24 Nov 2026 (app v75 built and committed, NOT live yet). Next: push v75, then Joel opens the app twice on the iPad and tries the big gem, the keyboard timer and the new lands.
 
 ## Where it's up to
 - Live on GitHub Pages: Fruit time (3 fruits a day, this/not pictures, stars, quiz, pick your own fruit), Going up! night with the stay-in-bed bonus next morning, start by 7:15, −20 if asked, fair board, PIN every time, 3-minute grown-up cutoff, 🔊 voice chooser, kinder farm selling. Rules summary: README.md "Current rules".
@@ -11,6 +11,15 @@ Updated 21 Nov 2026 (app v74 LIVE). Next: Joel opens the app twice on the iPad a
 1. Joel's iPad check of Ready, set, go → Fruit time, and Going up! at night. Fix what he finds.
 2. Joel to decide (docs/review-round3.md "For Joel to decide"): −20 for under-7s, 3-minute timer restarting on taps, farm money, farm visits per day, mine time, daily fire, speed bonuses, hand actions (Peace, Gentleness, Goodness "Thumbs up"), adding a 5-year-old.
 3. LATER list in docs/review-round3.md: only the right child can tick their column, redraw Peace and Faithfulness pictures, rebuild animals in Sticker Plus (3 first as a test), hide the PIN from the public code.
+
+### 💎 Kids app updates (24 Nov 2026, app v75, committed, not pushed)
+From the Asana task "Kids app updates" (High Priority list). Joel's answers: no Claude character, just a big gem.
+- **💎 Big gem:** logging a good moment on 🪙± flashes a big sparkly gem full screen ("WOW, Eliana! Kind! A big gem for you!"). A hard moment shows "Hey, that is stinky and sad. Let's make it right." `bigMoment` in `js/quick.js`.
+- **🎹 Keyboard longer:** 10 minutes (was 7), bonus +🪙 1 a minute up to 20 (was 15). **🎤 Singing** is now called "Singing lesson" (still 7 minutes). Settings v13 updates the iPad's saved lists.
+- **🌼 Land:** each land has its own painted picture. New cheaper first step **Meadow land** (🪙 150 + ⭐ 15, 12 squares). Bigger → **River land** (14), Biggest → **Hilltop land** (16); farms that had them move up one. **Special land pieces** (need Meadow land): wildflower patch, little bush forest, grassy hill, beach corner. Pictures made with kie.ai (about 20 cents).
+- **🙏 Tap to pray:** already done as the 🙏 I prayed button (v72, 20 Nov). Nothing new built.
+- **Tested** in a browser at iPad size from a test copy: gem and stinky pop-ups, settings upgrade from v12, old Bigger land moving to River land, shop locks, buying Meadow land and all four pieces, all 101 offline files present. **Not tested:** the real iPad, and the Hilltop picture on a real farm.
+- **For Joel to decide:** keyboard 10 minutes / bonus to 20 (morning is tight before 7:30), land and piece prices, whether the gem should also show at the night check.
 
 ### 🌱 Reminders update (21 Nov 2026, app v74, LIVE)
 From the iPhone High Priority list and the Asana task "Kids app updates":

@@ -128,8 +128,15 @@ export const SHOP = [
   { id: 'rockpool', icon: '🌊', name: 'Rock pool', price: 400, stars: 40, level: 4, building: true, home: 'crab', does: 'A sparkly rock pool for sea friends (up to 6). Clawdia the hermit crab moves in straight away!' },
   { id: 'poolegg', icon: '🫧', name: 'Rock pool egg', price: 150, stars: 15, level: 4, needs: 'rockpool', egg: POOL_EGG, does: 'Sea turtles, squid, pufferfish and octopuses hatch from eggs! Hatch Myrtle, Rocket, Puff or Inky: always one you don\'t have yet.' },
   { id: 'jetty', icon: '🛶', name: 'Jetty', price: 450, stars: 45, level: 4, needs: 'rockpool', building: true, home: 'manta', does: 'A wooden jetty out to deep water, and Zoom the manta ray glides in to live in your rock pool.' },
-  { id: 'land1', icon: '🗺️', name: 'Bigger land', price: 400, stars: 40, level: 3, painted: true, land: 1, does: 'A bigger paddock, so your farm can spread out. Everything stays right where it is.' },
-  { id: 'land2', icon: '🏞️', name: 'Biggest land', price: 900, stars: 90, level: 4, painted: true, land: 2, does: 'The biggest paddock of all: lots of room for everything. Everything stays right where it is.' },
+  // Land (24 Nov 2026): a cheaper first step, then river and hilltop land, each with its own painted picture.
+  { id: 'landm', icon: '🌼', name: 'Meadow land', price: 150, stars: 15, level: 2, painted: true, land: 1, does: 'A bit more room, with wildflowers and a stone wall all around. Everything stays right where it is.' },
+  { id: 'land1', icon: '🏞️', name: 'River land', price: 400, stars: 40, level: 3, painted: true, land: 2, does: 'A bigger paddock with a river, a bridge and willow trees. Everything stays right where it is.' },
+  { id: 'land2', icon: '⛰️', name: 'Hilltop land', price: 900, stars: 90, level: 4, painted: true, land: 3, does: 'The biggest paddock of all, with rolling hills, a lake and mountains. Everything stays right where it is.' },
+  // Special land pieces (24 Nov 2026): just for looks, two squares each way. Need Meadow land (so there's room).
+  { id: 'wildflowers', icon: '🌸', name: 'Wildflower patch', price: 120, stars: 12, level: 2, painted: true, building: true, minLand: 1, does: 'A bright patch of wildflowers for your farm.' },
+  { id: 'bush', icon: '🌲', name: 'Little bush forest', price: 200, stars: 20, level: 3, painted: true, building: true, minLand: 1, does: 'Three tall trees, a mossy log and ferns: a shady corner for your farm.' },
+  { id: 'hill', icon: '⛰️', name: 'Grassy hill', price: 250, stars: 25, level: 3, painted: true, building: true, minLand: 1, does: 'A little hill with rocks and a winding path to the top.' },
+  { id: 'beach', icon: '🏖️', name: 'Beach corner', price: 300, stars: 30, level: 3, painted: true, building: true, minLand: 1, does: 'Sand, a sandcastle, a beach umbrella and little waves.' },
   { id: 'barn', icon: '🛖', name: 'Big barn', price: 500, stars: 50, level: 4, building: true, does: 'Room for 14 small animals, 4 sheep, 3 cows and 2 dinosaurs.' },
   { id: 'pony', icon: '🐴', name: 'Pony', price: 600, stars: 50, level: 4, building: true, does: 'Your very own pony! Tap it to go for a gallop around the farm.' },
   { id: 'mill', icon: '⚙️', name: 'Windmill', price: 700, stars: 70, level: 4, needs: 'barn', building: true, does: 'Grinds feed: small animals eat free, and everyone else costs 1 coin less.' },
@@ -1340,9 +1347,9 @@ export function createFarm(ctx) {
           if (it.painted && !painted()) return '';
           const locked = f.level < it.level;
           const cost = costOf(f, it);
-          const landNow = f.world?.land || 0;
+          const landNow = W.landOf(f.world);
           const owned = (it.building && f.built[it.id] && !cost.invite) || (it.land && landNow >= it.land);
-          const needs = (it.needs && !f.built[it.needs]) || (it.land && landNow < it.land - 1);
+          const needs = (it.needs && !f.built[it.needs]) || (it.land && landNow < it.land - 1) || (it.minLand && landNow < it.minLand);
           const full = ((it.id === 'egg' || it.id === 'rareegg') && !roomFor(f, 'chicken')) || (it.id === 'dinoegg' && !roomFor(f, 'dino')) || (it.id === 'lamb' && !roomFor(f, 'sheep')) || (it.id === 'calf' && !roomFor(f, 'cow')) || (it.id === 'piglet' && !roomFor(f, 'pig'));
           const allHatched = it.egg && !needs && !missingOf(f, it.egg).length;
           const noDuck = it.needsDuck && !f.animals.some((a) => a.type === 'duck');
@@ -1351,7 +1358,7 @@ export function createFarm(ctx) {
             return `<div class="shop-item"><span class="shop-icon">${it.icon}</span><div><b>${it.name}</b><small>${it.does}</small></div>
               <button class="farm-btn small sellhen" data-buy="${it.id}">Choose one</button></div>`;
           }
-          const reason = locked ? `🔒 ${LEVELS[it.level].name}` : owned ? (it.tool || it.land ? 'Got it ✓' : 'Built ✓') : needs ? (it.land ? 'Buy bigger land first' : `Build the ${SHOP.find((x) => x.id === it.needs).name.toLowerCase()} first`) : noDuck ? 'Get a duck first' : full ? (f.built.barn ? 'No room' : 'No room: build the big barn') : allHatched ? 'All hatched ✓' : '';
+          const reason = locked ? `🔒 ${LEVELS[it.level].name}` : owned ? (it.tool || it.land ? 'Got it ✓' : 'Built ✓') : needs ? (it.land || it.minLand ? (it.minLand ? 'Buy Meadow land first' : 'Buy bigger land first') : `Build the ${SHOP.find((x) => x.id === it.needs).name.toLowerCase()} first`) : noDuck ? 'Get a duck first' : full ? (f.built.barn ? 'No room' : 'No room: build the big barn') : allHatched ? 'All hatched ✓' : '';
           const name = cost.invite ? `Invite ${KINDS[it.home].who} back` : it.name;
           const does = cost.invite ? `${KINDS[it.home].full} misses the ${it.name.toLowerCase()}. Invite ${KINDS[it.home].plural ? 'them' : KINDS[it.home].who} back home.` : it.does;
           return `<div class="shop-item ${locked ? 'locked' : ''}">
@@ -1403,6 +1410,7 @@ export function createFarm(ctx) {
     if (it.needs && !f.built[it.needs]) return;
     if (it.painted && !painted()) return;
     if (it.land && (W.layout(f, KINDS).w.land || 0) !== it.land - 1) return; // one land at a time, never twice
+    if (it.minLand && W.landOf(f.world) < it.minLand) return;
     if (it.id === 'piglet' && !roomFor(f, 'pig')) return;
     const cost = costOf(f, it);
     if (balance(k.id) < cost.price) {
@@ -1436,7 +1444,7 @@ export function createFarm(ctx) {
       pz.u = 1; pz.x = 0; pz.y = 0;
       ctx.chime();
       ctx.speak(`You bought the ${it.name.toLowerCase()}! Your farm has lots more room now. Tap Build to spread things out.`);
-      ctx.toast(`${it.icon} ${it.name}! Your paddock is bigger. Everything is right where you left it.`);
+      ctx.toast(`${it.icon} ${it.name}! Your paddock is bigger, with new things all around it. Everything is right where you left it.`);
     }
     else if (id === 'lamb' || id === 'calf' || id === 'piglet') {
       const type = id === 'lamb' ? 'sheep' : id === 'piglet' ? 'pig' : 'cow';

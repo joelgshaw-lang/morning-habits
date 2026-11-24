@@ -4,7 +4,8 @@
 //
 // Saved on each farm as f.world (the old flat farm ignores it, so switching back loses nothing):
 //   n        grid size (6 to 10 squares a side on the starter land; grows as the farm fills up, never shrinks)
-//   land     which land the child has bought: 0 or missing = starter land, 1 = bigger land, 2 = biggest land (see LAND)
+//   land     which land the child has bought: 0 or missing = starter, 1 = meadow, 2 = river, 3 = hilltop (see LAND)
+//   landV    2 once land uses the 24 Nov 2026 numbers (see landOf)
 //   at       { pieceId: [i, j] } where each piece sits (its back corner square)
 //   beds     [{ id, crop, growth }] garden beds; crop is null (bare soil) or a key of CROPS
 //   movesDay / movesUsed   build moves used today
@@ -29,15 +30,24 @@ export const BED = { price: 40, stars: 4 };
 // Land (Nov 2026): the starter land grows by itself up to 10 squares a side. After that, bigger land is bought in the shop.
 // Buying it makes the paddock bigger straight away. Every square keeps its number, so everything stays exactly where
 // it was (the new squares are added along the front edges, where there is the most room).
+// 24 Nov 2026 (Joel): a cheaper first step (Meadow land), and every land has its own painted picture around the edges.
 export const LAND = [
-  { name: 'Starter land', max: 10 },
-  { name: 'Bigger land', max: 13 },
-  { name: 'Biggest land', max: 16 },
+  { name: 'Starter land', max: 10, ground: 'ground.jpg' },
+  { name: 'Meadow land', max: 12, ground: 'ground-meadow.jpg' },
+  { name: 'River land', max: 14, ground: 'ground-river.jpg' },
+  { name: 'Hilltop land', max: 16, ground: 'ground-hills.jpg' },
 ];
+/** Which land this farm has. Farms saved before 24 Nov 2026 counted Bigger land as 1 and Biggest as 2: they move up one
+ *  (Meadow land was slotted in below them), so nobody loses land. */
+export function landOf(w) {
+  if (!w) return 0;
+  if (!w.landV) { if (w.land) { w.land += 1; w.n = Math.max(w.n, landMax(w)); } w.landV = 2; }
+  return w.land || 0;
+}
 export const landMax = (w) => LAND[Math.min(LAND.length - 1, w?.land || 0)].max;
 /** Buys the next land: the paddock grows to its full size at once. */
 export function growLand(w) {
-  w.land = Math.min(LAND.length - 1, (w.land || 0) + 1);
+  w.land = Math.min(LAND.length - 1, landOf(w) + 1);
   w.n = Math.max(w.n, landMax(w));
 }
 export const maxBeds = (level) => level + 1;   // 2 beds on a Little Coop farm, up to 5 on a Dream Farm
@@ -73,10 +83,15 @@ const PIECE = {
   kite: { img: 'kite', s: 1, w: 0.7, dy: -0.14, name: 'kite' },
   leafytree: { img: 'leafytree', s: 1, w: 0.9, dy: -0.12, name: 'tree' },
   mushroom: { img: 'mushroom', s: 1, w: 0.5, dy: -0.18, name: 'mushroom' },
+  // Special land pieces (24 Nov 2026): bought in the shop, two squares each way, just for looks.
+  beach: { img: 'beach', s: 2, w: 2.05, dy: 0.12, name: 'beach corner' },
+  hill: { img: 'hill', s: 2, w: 2.05, dy: 0.12, back: 1, name: 'grassy hill' },
+  wildflowers: { img: 'wildflowers', s: 2, w: 2.05, dy: 0.12, name: 'wildflower patch' },
+  bush: { img: 'bush', s: 2, w: 2.05, dy: 0.12, back: 1, name: 'little bush forest' },
   herd: { s: 1, name: 'animals' },
 };
 const DECOR_KIND = { '🌻': 'sunflowerclump', '🌷': 'tulips', '⛲': 'fountain', '🎃': 'pumpkin', '🪁': 'kite', '🌳': 'leafytree', '🍄': 'mushroom' };
-const BUILT = ['barn', 'coop', 'mill', 'stand', 'hive', 'veg', 'pond', 'burrow', 'gumtree', 'paddock', 'rockpool', 'jetty', 'pony', 'dog'];
+const BUILT = ['barn', 'coop', 'mill', 'stand', 'hive', 'veg', 'pond', 'burrow', 'gumtree', 'paddock', 'rockpool', 'jetty', 'pony', 'dog', 'wildflowers', 'beach', 'hill', 'bush'];
 
 // Animals that live at a building when it's built, and where they stand (in squares from the building's back corner).
 // inside: they are drawn on top of the building (in the paddock, in the pool).
@@ -150,7 +165,8 @@ function findSpot(p, fits, n, used) {
 
 /** Works out where every piece sits (placing new ones, re-placing any that clash) and remembers it on f.world. */
 export function layout(f, KINDS) {
-  const w = (f.world ||= { n: 6, at: {}, beds: [{ id: 1, crop: null, growth: 0 }], nextBed: 2 });
+  const w = (f.world ||= { n: 6, at: {}, beds: [{ id: 1, crop: null, growth: 0 }], nextBed: 2, landV: 2 });
+  landOf(w);
   const list = wanted(f, KINDS);
   for (;;) {
     const used = new Set();
@@ -288,12 +304,12 @@ export function worldHTML(env) {
   const glow = targets(env, w, pieces, used).map(([i, j]) => `<i class="w2-tile" data-action="farm-tile" data-i="${i}" data-j="${j}" style="${g.at(i + 0.5, j + 0.5)}"></i>`).join('');
   const ready = ripeBeds(f).length;
   const view = env.view || { u: 1, x: 0, y: 0 };
-  const nextLand = LAND[(w.land || 0) + 1];
+  const nextLand = LAND[landOf(w) + 1];
   const tight = !mode.on && nextLand && w.n >= landMax(w) && used.size > w.n * w.n * 0.5;
   return `
     <div class="field w2${mode.on ? ' building' : ''}">
       <div class="w2-stage" style="--n:${w.n};transform:translate(${view.x}px,${view.y}px) scale(${view.u})">
-        <div class="w2-ground"></div>${html}${glow}
+        <div class="w2-ground" style="background-image:url(${ART}${LAND[Math.min(LAND.length - 1, w.land || 0)].ground})"></div>${html}${glow}
         ${env.broken ? `<img class="w2-fox" src="${ART}fox.webp" alt="A fox at the broken fence">` : ''}
       </div>
       ${!f.animals.length ? '<div class="field-empty w2-empty">Your farm is waiting!<br>Get a 🥚 mystery egg from the 🛒 shop.</div>' : ''}

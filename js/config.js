@@ -11,8 +11,9 @@ const baseHabits = (chore) => [
   { id: 'bible', name: 'Bible', icon: '📖' },
   // Timed practice (18 Nov 2026): tap to start the iPad timer; the job ticks itself at 7 minutes.
   // Keyboard keeps counting: +1 coin a minute from 8 to 15 minutes (bonusTo), morning session only.
-  { id: 'singing', name: 'Singing', icon: '🎤', type: 'practice', minutes: 7 },
-  { id: 'keyboard', name: 'Keyboard', icon: '🎹', type: 'practice', minutes: 7, bonusTo: 15 },
+  // 24 Nov 2026 (Joel): Singing is now "Singing lesson"; Keyboard is longer (10 minutes, bonus coins up to 20).
+  { id: 'singing', name: 'Singing lesson', icon: '🎤', type: 'practice', minutes: 7 },
+  { id: 'keyboard', name: 'Keyboard', icon: '🎹', type: 'practice', minutes: 10, bonusTo: 20 },
   chore,
 ];
 
@@ -23,7 +24,7 @@ const nightHabits = () => [];
 
 // Bump version when adding fields; app.js fills missing fields into saved settings.
 export const DEFAULT_SETTINGS = {
-  version: 12,
+  version: 13,
   windowOpen: '06:30',
   startBy: '07:15', // start the morning by this time, or that morning's job coins are lost (job stars still count)
   windowClose: '07:30',

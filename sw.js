@@ -1,6 +1,6 @@
 // Offline support: serve from cache first, refresh the cache in the background.
 // Bump VERSION when you deploy a change so old files are cleared.
-const VERSION = 'v74';
+const VERSION = 'v75';
 const CACHE = `morning-${VERSION}`;
 // The app itself. An update only installs if every one of these downloads, so keep this list short.
 const ASSETS = [
@@ -75,6 +75,13 @@ const ART = [
   './farm-art/fountain.webp',
   './farm-art/fox.webp',
   './farm-art/ground.jpg',
+  './farm-art/ground-meadow.jpg',
+  './farm-art/ground-river.jpg',
+  './farm-art/ground-hills.jpg',
+  './farm-art/beach.webp',
+  './farm-art/hill.webp',
+  './farm-art/wildflowers.webp',
+  './farm-art/bush.webp',
   './farm-art/gumtree.webp',
   './farm-art/hay.webp',
   './farm-art/hive.webp',

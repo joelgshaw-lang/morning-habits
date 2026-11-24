@@ -22,6 +22,8 @@ export const HARD = [
   { id: 'disobeyed', icon: '🙅', label: 'Disobeyed', material: 'wood' },
 ];
 const AMOUNTS = [1, 2, 5];
+// Gem colour for each good moment's fruit (k kindness, l love, j joy, r self-control, b goodness, t patience).
+const GEM_COLOR = { k: '#ec4899', l: '#ef4444', j: '#facc15', r: '#22c55e', b: '#38bdf8', t: '#a855f7' };
 const MATERIAL = { wood: '🪵 wood', hay: '🌾 hay', stubble: '🥀 stubble' };
 
 export function createQuick(ctx) {
@@ -67,13 +69,39 @@ export function createQuick(ctx) {
         await save();
         ctx.toast(`${m.icon} ${signed(ds.good ? amount : -amount)} for ${esc(k.name)}, waiting for tonight's check`);
         el.remove(); // logged: close straight away (reopen to remove it)
-        return ctx.renderKid();
+        ctx.renderKid();
+        return bigMoment(k, m, !!ds.good);
       }
       if (ds.undoQuick) { state.quickLog = list().filter((q) => q.id !== ds.undoQuick); await save(); }
       el.querySelector('.farm-sheet').innerHTML = draw();
       ctx.renderKid();
     });
     el.classList.add('qk-ov');
+  }
+
+  // 💎 Big moment (24 Nov 2026, Joel): logging a good moment flashes a big sparkly gem with excitement; a hard
+  // moment shows "Hey, that is stinky and sad." Full screen, gone after a few seconds or a tap.
+  function bigMoment(k, m, good) {
+    const ov = document.createElement('div');
+    ov.className = `big-moment ${good ? 'bm-good' : 'bm-sad'}`;
+    const c = GEM_COLOR[m.fruit] || '#38bdf8';
+    ov.innerHTML = good
+      ? `<div class="bm-burst"></div>${'<i class="bm-spark"></i>'.repeat(12)}
+        <svg class="bm-gem" viewBox="0 0 200 180" style="--gem:${c}" aria-hidden="true">
+          <polygon points="50,10 150,10 195,62 100,175 5,62" fill="${c}"/>
+          <polygon points="50,10 75,62 5,62" fill="#fff" opacity=".45"/><polygon points="150,10 125,62 195,62" fill="#000" opacity=".12"/>
+          <polygon points="50,10 150,10 125,62 75,62" fill="#fff" opacity=".28"/><polygon points="75,62 125,62 100,175" fill="#fff" opacity=".18"/>
+          <polygon points="5,62 75,62 100,175" fill="#000" opacity=".08"/><polygon points="195,62 125,62 100,175" fill="#000" opacity=".2"/>
+          <polygon points="62,22 88,22 72,44" fill="#fff" opacity=".85"/></svg>
+        <h2>WOW, ${esc(k.name)}!</h2><p>${m.icon} ${esc(m.label)}! A big gem for you! 💎</p>`
+      : `<div class="bm-cloud">${m.icon}<span class="bm-stink">〰️</span><span class="bm-stink s2">〰️</span><span class="bm-stink s3">〰️</span></div>
+        <h2>Hey, that is stinky and sad.</h2><p>${m.icon} ${esc(m.label)}. Let's make it right. 💛</p>`;
+    document.body.appendChild(ov);
+    if (good) { ctx.chime?.(); ctx.speak?.(`Wow, ${k.name}! ${m.label}! A big gem for you!`); }
+    else ctx.speak?.('Hey, that is stinky and sad.');
+    const close = () => ov.remove();
+    ov.addEventListener('click', close);
+    setTimeout(close, good ? 4500 : 3500);
   }
 
   // One waiting row. check = true shows ✓ Keep / ✕ Not quite (night check); false shows a remove button (front board).
