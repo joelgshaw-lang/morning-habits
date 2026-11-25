@@ -1,6 +1,6 @@
 # Morning Habits app: status
 
-Updated 25 Nov 2026 (app v78 saved on the Mac, NOT live yet; v77 is live). Next: Joel says yes to putting v78 live, answers the 3 questions in the v78 section below. Then: Joel opens the app twice on the iPad and tries planting, the gem / hay pile, the farm, the front screen in landscape, a Bible story, the breath prayer and the Treasure chest. Sunday morning: the first weekly review.
+Updated 25 Nov 2026 (app v78 LIVE). Next: Joel answers the 3 questions in the v78 section below, and opens the app twice on the iPad so v78 loads. Then: Joel opens the app twice on the iPad and tries planting, the gem / hay pile, the farm, the front screen in landscape, a Bible story, the breath prayer and the Treasure chest. Sunday morning: the first weekly review.
 
 ## Where it's up to
 - Live on GitHub Pages: Fruit time (3 fruits a day, this/not pictures, stars, quiz, pick your own fruit), Going up! night with the stay-in-bed bonus next morning, start by 7:15, −20 if asked, fair board, PIN every time, 3-minute grown-up cutoff, 🔊 voice chooser, kinder farm selling. Rules summary: README.md "Current rules".
@@ -12,7 +12,7 @@ Updated 25 Nov 2026 (app v78 saved on the Mac, NOT live yet; v77 is live). Next:
 2. Joel to decide (docs/review-round3.md "For Joel to decide"): −20 for under-7s, 3-minute timer restarting on taps, farm money, farm visits per day, mine time, daily fire, speed bonuses, hand actions (Peace, Gentleness, Goodness "Thumbs up"), adding a 5-year-old.
 3. LATER list in docs/review-round3.md: only the right child can tick their column, redraw Peace and Faithfulness pictures, rebuild animals in Sticker Plus (3 first as a test), hide the PIN from the public code.
 
-### ✅ Reminders check + small fixes (25 Nov 2026, app v78, saved, NOT live yet)
+### ✅ Reminders check + small fixes (25 Nov 2026, app v78, LIVE)
 Joel's 16 kids-app reminders (iPhone High Priority, also in Asana "Kids app updates") were checked against the app. Almost all were already built in v74 to v77.
 - **Already built:** 1 research (docs/research-obey-kind-calm.md, used in the weekly review), 2 growing bonus, 3 + 12 rebuild pack and same-kind blocks, 4 sell for less + storm/flood/sick/fire/heatwave/mice/escape, 5 verses + plan + 60-second picture-it + Bible story quiz, 6 Komodo dragon + mystery egg, 7 Treasure chest, 8 Obeyed straight away + Disobeyed (and "goes on your building tonight"), 10 landscape header, 11 gold/silver/gem burst + hay pile + several in a row, 13 6-week growth bars, Sunday review first, breath prayer, 30 min between farm visits, 15 planting.
 - **Built now (v78):**
