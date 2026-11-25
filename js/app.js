@@ -8,7 +8,7 @@ import { createGrow } from './grow.js';
 import { createFarm } from './farm.js';
 import { askPin } from './pinpad.js';
 import { utterance } from './voice.js';
-import { initFruit, openFruitTime, skipFruitToday, runNightFruit, fruitTileHTML, fruitBadgeHTML, sayBadge, fruitOfWeek } from './fruit.js';
+import { initFruit, openFruitTime, skipFruitToday, runNightFruit, nightGrowth, fruitTileHTML, fruitBadgeHTML, sayBadge, fruitOfWeek } from './fruit.js';
 
 const app = document.getElementById('app');
 const overlay = document.getElementById('overlay');
@@ -661,24 +661,33 @@ function openPrayed(id) {
 // ---------- "🌙 Going up!": the last iPad tap of the night ----------
 // After the after-dinner jobs, each child taps Going up. It runs the night fruit question (js/fruit.js),
 // then says goodnight. Bath, teeth and bed happen upstairs; next morning a grown-up says how bedtime went.
+const GREW_BONUS = 2; // 🌱 more stars for a fruit than last time (25 Nov 2026)
 async function goingUp(id) {
   unlockAudio();
   const k = kid(id);
   const d = state.days[id];
   if (d.wentUp) return;
-  await runNightFruit(k); // resolves { done } when the child finishes or closes it; goodnight either way
+  const res = await runNightFruit(k, { fruit: grow.goalToday(id)?.fruit }); // resolves { done }; goodnight either way
   d.wentUp = clock.now().toISOString();
   d.log.push({ t: d.wentUp, routine: 'night', action: 'going-up' });
   await dayPut(d);
+  // 🌱 Grew bonus (25 Nov 2026, Joel): more stars for a fruit than the last time they rated it = bonus coins. Once a day.
+  const grew = res?.done ? nightGrowth(id) : null, dk = todayKey();
+  if (grew && !(state.coinAdjust || []).some((a) => a.kidId === id && a.fruitGrew === dk)) {
+    state.coinAdjust = [...(state.coinAdjust || []), { kidId: id, n: GREW_BONUS, why: `🌱 Grew in ${grew.fruit.name} (${grew.before} → ${grew.after} ⭐)`, t: d.wentUp, fruitGrew: dk }];
+    await kvSet('coinAdjust', state.coinAdjust);
+    await refreshSummary();
+  }
   const el = document.createElement('div');
   el.className = 'all-done-moment';
   el.style.setProperty('--kid', k.color);
-  el.innerHTML = `<div><div class="big-emoji">🌙</div><h2>Goodnight, ${esc(k.name)}!</h2><p>Up you go. Sleep well. God is with you.</p></div>`;
+  const grewLine = grew ? `You grew in ${grew.fruit.name}! +${GREW_BONUS} 🪙` : '';
+  el.innerHTML = `<div><div class="big-emoji">🌙</div><h2>Goodnight, ${esc(k.name)}!</h2>${grewLine ? `<p><b>🌱 ${esc(grewLine)}</b></p>` : ''}<p>Up you go. Sleep well. God is with you.</p></div>`;
   document.body.appendChild(el);
-  speak(`Goodnight, ${k.name}! Up you go. Sleep well. God is with you.`, true);
+  speak(`Goodnight, ${k.name}! ${grew ? `You grew in ${grew.fruit.lower}! ` : ''}Up you go. Sleep well. God is with you.`, true);
   setTimeout(() => burst(null, 24), 150);
   el.addEventListener('click', () => el.remove());
-  setTimeout(() => el.remove(), 4000);
+  setTimeout(() => el.remove(), grew ? 6000 : 4000);
   goHome();
 }
 

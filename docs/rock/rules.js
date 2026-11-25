@@ -103,6 +103,7 @@
     fairness: { enabled: true, reviewEveryDays: 7, lookBackDays: 14, fallsToStep: 2, maxBonus: 2, calmDays: 14,
                 crackFiresWhenHelped: 1 },         // a child with a bonus has cracks that mend after this many fires
     fireNights: { 6: [2, 4, 6], 8: [1, 3, 5], 12: [0, 3] }, // weekday numbers, 0 = Sunday
+    firstFireDay: 0,                                // 25 Nov 2026 (Joel): no set fire night before this day (live mode uses 4: a new child builds for 3 days first)
     crackFires: 3,                                  // fires a fallen wall must stand through to mend
     sameWallCanCaveIn: true,                        // a cracked wall falling again is also a cave-in
     twoWallsCaveIn: true,                           // two walls falling at one fire is a cave-in
@@ -816,6 +817,7 @@
 
   /* isFireNight(state): tonight is one of this age's set nights, a missed fire is owed, or the child called the fire. */
   function isFireNight(state) {
+    if (!state.today.called && state.day < (CONFIG.firstFireDay || 0)) return false;   /* a new child's first days: build first, no fire yet */
     return state.today.called || !!state.fireOwed || CONFIG.fireNights[band(state.profile.age)].indexOf(state.weekday) >= 0;
   }
   /* callFire(state): a complete building with no straw may ask for its testing fire tonight (it will seal). */

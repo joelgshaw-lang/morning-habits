@@ -550,12 +550,25 @@ export function skipFruitToday(k) {
   onChange();
 }
 
+// Did the child grow? Tonight's stars for a fruit against the last night they rated that same fruit (as a share of
+// the stars, so 3-star and 5-star nights compare fairly). { fruit, before, after, of } when tonight is higher, else null.
+export function nightGrowth(kidId) {
+  const d = data(kidId), t = today(), now = d.days[t]?.night;
+  if (!now || !now.n) return null;
+  const prev = Object.keys(d.days).filter((k) => k < t && d.days[k].night?.fruit === now.fruit && d.days[k].night.n).sort().pop();
+  if (!prev) return null;
+  const p = d.days[prev].night;
+  return now.n / now.of > p.n / (p.of || now.of) ? { fruit: fruitById(now.fruit), before: p.n, after: now.n, of: now.of } : null;
+}
+
 export function nightFruitDone(kidId) {
   return !!data(kidId).days[today()]?.night;
 }
 
 // The night check-in. See the note at the top of this file.
-export function runNightFruit(k) {
+// opts.fruit (25 Nov 2026, Joel): the fruit the child planned to work on today (🌱 plan). The quiz question and the
+// star rating are both about it, so the fruit they worked on is always rated at night.
+export function runNightFruit(k, opts = {}) {
   const set = nightSet(k.id);
   const p = openOverlay(k, 'night');
   if (!set) {
@@ -569,12 +582,14 @@ export function runNightFruit(k) {
     return p;
   }
   // One question about this morning's fruits: a "which one is" or a "which picture shows", at random.
-  const target = set[Math.floor(Math.random() * set.length)];
-  run.quiz = [makeQuestion(Math.random() < 0.5 ? 'who' : 'pic', target, set)];
+  const goal = opts.fruit && fruitById(opts.fruit) ? opts.fruit : null;
+  const target = goal || set[Math.floor(Math.random() * set.length)];
+  const qset = set.includes(target) ? set : [target, ...set.slice(0, 2)];
+  run.quiz = [makeQuestion(Math.random() < 0.5 ? 'who' : 'pic', target, qset)];
   run.qi = 0;
   run.step = 'quiz';
-  // The star question is about the child's own fruit, or (before they have one) tonight's quiz fruit.
-  run.nightFruit = chosenFruit(k.id)?.id || target;
+  // The star question is about today's planned fruit, else the child's own fruit, else tonight's quiz fruit.
+  run.nightFruit = goal || chosenFruit(k.id)?.id || target;
   quizScreen();
   askQuestion();
   return p;

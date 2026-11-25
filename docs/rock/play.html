@@ -507,7 +507,7 @@ const QS=new URLSearchParams(location.search),LIVE=QS.get('live')==='1',SANDBOX=
 const LKID=String(QS.get('kid')||'child').replace(/[^\w-]/g,'').slice(0,40)||'child';
 const LNAME=String(QS.get('name')||'').slice(0,20),LAGE=Math.max(3,Math.min(18,parseInt(QS.get('age'),10)||6));
 const KEY=LIVE?'rock-live.'+LKID:'rock-play-v4';let DB=null;
-if(LIVE)R.CONFIG.autoLayAtNight=false;
+if(LIVE){R.CONFIG.autoLayAtNight=false;R.CONFIG.firstFireDay=4}   /* 25 Nov 2026 (Joel): on first open a child builds straight away; no fire for their first 3 days */
 if(SANDBOX)R.CONFIG.rubbleBigPile={over:0,perDay:9999};   /* test space: put back as much as you like */   /* live: pieces the child has not seen yet wait in the tray for them, nobody lays them overnight */
 /* the real day: the local date of (now - 3 hours), so 1am still counts as yesterday */
 function rockDate(d){const t=new Date((d||new Date()).getTime()-3*3600e3);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')}
@@ -1384,7 +1384,7 @@ let spoken='';function speakOnce(key,t){if(spoken===key)return;spoken=key;speak(
 function designName(bp){if(!bp)return '';const nb=String(bp.id||'').indexOf('bp')===0?byId(get('blueprints')||[],bp.id):null;return nb?nb.name.replace(/^The /,''):(bp.name||'')}
 function reviewDue(k){const s=k.s,w=k.p.week;return s.weekday===0&&(w.lastReview==null||s.day-w.lastReview>=6)}
 function animalButton(b){const an=R.animals(st());if(an.canInvite)b.appendChild(btn([h('span',{class:'t',text:'\ud83d\udc11 '+(V('animals.title')||'Someone wants to move in!')})],function(){openSheet({kind:'animals'})},'pc'))}
-function nightsToFire(){const s=st();if(R.isFireNight(s))return 0;const nights=R.CONFIG.fireNights[band()];for(let d=1;d<=7;d++)if(nights.indexOf((s.weekday+d)%7)>=0)return d;return 7}
+function nightsToFire(){const s=st();if(R.isFireNight(s))return 0;const nights=R.CONFIG.fireNights[band()],first=R.CONFIG.firstFireDay||0;for(let d=1;d<=10;d++)if(s.day+d>=first&&nights.indexOf((s.weekday+d)%7)>=0)return d;return 7}
 function mortarLine(sm){const left=sm.mortarEndsDay!=null?sm.mortarEndsDay-sm.day:0;
   return (get('fairness.mortar.kid')||'Extra mortar for a while: your walls hold a little more.')+(left>0?' (About '+left+' more '+(left===1?'day':'days')+'.)':'')}
 function NA(){return forAge(get('nightAccount2'),band())||{}}   /* the newer night words, when content.js has them */

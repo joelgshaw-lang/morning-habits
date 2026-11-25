@@ -25,6 +25,8 @@ export const VERSES = [
   { id: 'glory', ref: '2 Corinthians 3:18', text: 'With unveiled faces we all see the glory of the Lord, and we are being changed to be more like him.' },
   // 24 Nov 2026 (Joel's list): added at the end so nobody's place in the list moves.
   { id: 'earth', ref: 'Habakkuk 2:14', text: 'The earth will be filled with the knowledge of the glory of the Lord, as the waters cover the sea.' },
+  // 25 Nov 2026 (Joel's reminders): "do it all for the glory of God". Added at the end for the same reason.
+  { id: 'allglory', ref: '1 Corinthians 10:31', text: 'Whatever you do, do it all for the glory of God.' },
 ];
 const STORY_COINS = 1;   // once a day, for listening to the story and answering the questions
 const PRACTICE_COINS = 1;
@@ -451,5 +453,5 @@ export function createGrow(ctx) {
     go();
   }
 
-  return { btnHTML, open, openVerse, openPlan, openPicture, beforeRock, growth, of, reviewDue, openReview, reviewLater };
+  return { btnHTML, open, openVerse, openPlan, openPicture, beforeRock, growth, of, reviewDue, openReview, reviewLater, goalToday };
 }

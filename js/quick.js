@@ -87,7 +87,16 @@ export function createQuick(ctx) {
   // 💎 Big moment (24 Nov 2026, Joel): a good moment bursts with gold, silver and a big flashing gem, and the matching
   // Fruit Friend jumps out. A hard moment shows a big stinky pile of hay: "Hey, that is stinky and sad."
   // Full screen, gone after a few seconds or a tap. It says where the piece goes, so the child knows it counted.
+  // 25 Nov 2026 (Joel): the voice must not say "stinky" every time, so the hard-moment words take turns.
+  const SAD_LINES = [
+    ['Oh no. That one is hay and stubble.', "Oh no. That one is hay and stubble. Let's make it right."],
+    ["That one won't last in the fire.", "That one won't last in the fire. Let's make it right."],
+    ['Hmm. That was a hard moment.', "Hmm. That was a hard moment. Let's make it right."],
+    ['Hey, that is stinky and sad.', 'Hey, that is stinky and sad.'],
+  ];
+  let sadTurn = Math.floor(Math.random() * SAD_LINES.length);
   function bigMoment(k, m, good) {
+    const [sadHead, sadSay] = SAD_LINES[sadTurn++ % SAD_LINES.length];
     document.querySelector('.big-moment')?.remove();
     const ov = document.createElement('div');
     ov.className = `big-moment ${good ? 'bm-good' : 'bm-sad'}`;
@@ -108,11 +117,11 @@ export function createQuick(ctx) {
         <small>It goes on your building tonight, when a grown-up says yes.</small>`
       : `<div class="bm-pile"><span>🌾</span><span>🌾</span><span>🌾</span><span>🌾</span><span>🌾</span><span>🌾</span>
           <i class="bm-fly">🪰</i><i class="bm-fly f2">🪰</i><b class="bm-stink">〰️</b><b class="bm-stink s2">〰️</b><b class="bm-stink s3">〰️</b></div>
-        <h2>Hey, that is stinky and sad.</h2><p>${m.icon} ${esc(m.label)}. Let's make it right. 💛</p>
+        <h2>${sadHead}</h2><p>${m.icon} ${esc(m.label)}. Let's make it right. 💛</p>
         <small>It goes on your building tonight, when a grown-up says yes.</small>`;
     document.body.appendChild(ov);
     if (good) { ctx.chime?.(); ctx.speak?.(`Wow, ${k.name}! ${m.label}! A big gem for you!`); }
-    else ctx.speak?.('Hey, that is stinky and sad.');
+    else ctx.speak?.(sadSay);
     const close = () => ov.remove();
     ov.addEventListener('click', close);
     setTimeout(close, good ? 4500 : 3500);

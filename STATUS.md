@@ -1,6 +1,6 @@
 # Morning Habits app: status
 
-Updated 24 Nov 2026 (app v77 LIVE). Next: Joel opens the app twice on the iPad and tries planting, the gem / hay pile, the farm, the front screen in landscape, a Bible story, the breath prayer and the Treasure chest. Sunday morning: the first weekly review.
+Updated 25 Nov 2026 (app v78 saved on the Mac, NOT live yet; v77 is live). Next: Joel says yes to putting v78 live, answers the 3 questions in the v78 section below. Then: Joel opens the app twice on the iPad and tries planting, the gem / hay pile, the farm, the front screen in landscape, a Bible story, the breath prayer and the Treasure chest. Sunday morning: the first weekly review.
 
 ## Where it's up to
 - Live on GitHub Pages: Fruit time (3 fruits a day, this/not pictures, stars, quiz, pick your own fruit), Going up! night with the stay-in-bed bonus next morning, start by 7:15, −20 if asked, fair board, PIN every time, 3-minute grown-up cutoff, 🔊 voice chooser, kinder farm selling. Rules summary: README.md "Current rules".
@@ -11,6 +11,20 @@ Updated 24 Nov 2026 (app v77 LIVE). Next: Joel opens the app twice on the iPad a
 1. Joel's iPad check of Ready, set, go → Fruit time, and Going up! at night. Fix what he finds.
 2. Joel to decide (docs/review-round3.md "For Joel to decide"): −20 for under-7s, 3-minute timer restarting on taps, farm money, farm visits per day, mine time, daily fire, speed bonuses, hand actions (Peace, Gentleness, Goodness "Thumbs up"), adding a 5-year-old.
 3. LATER list in docs/review-round3.md: only the right child can tick their column, redraw Peace and Faithfulness pictures, rebuild animals in Sticker Plus (3 first as a test), hide the PIN from the public code.
+
+### ✅ Reminders check + small fixes (25 Nov 2026, app v78, saved, NOT live yet)
+Joel's 16 kids-app reminders (iPhone High Priority, also in Asana "Kids app updates") were checked against the app. Almost all were already built in v74 to v77.
+- **Already built:** 1 research (docs/research-obey-kind-calm.md, used in the weekly review), 2 growing bonus, 3 + 12 rebuild pack and same-kind blocks, 4 sell for less + storm/flood/sick/fire/heatwave/mice/escape, 5 verses + plan + 60-second picture-it + Bible story quiz, 6 Komodo dragon + mystery egg, 7 Treasure chest, 8 Obeyed straight away + Disobeyed (and "goes on your building tonight"), 10 landscape header, 11 gold/silver/gem burst + hay pile + several in a row, 13 6-week growth bars, Sunday review first, breath prayer, 30 min between farm visits, 15 planting.
+- **Built now (v78):**
+  - **Build on the Rock, first open:** a new child gets 3 days of building before any fire (was: fire on day 1, e.g. "The fire comes TONIGHT!" before anything was built). `firstFireDay` in rules.js (0 in tests, 4 in live mode, play.html).
+  - **Night fruit rating:** "Going up!" now asks about the fruit they planned for today (🌱 plan), both the quiz question and "How did X go TODAY?" (still can't be skipped). More stars than the last time they rated that fruit = **🌱 +🪙 2** ("You grew in Patience!"), once a day, in their coin history. `nightGrowth` in js/fruit.js, `GREW_BONUS` in js/app.js.
+  - **Verse added:** 1 Corinthians 10:31 "Whatever you do, do it all for the glory of God." (8 verses, added at the end so nobody's place moves).
+  - **Hard moment voice:** takes turns between 4 lines; "stinky" is now 1 in 4 ("Oh no. That one is hay and stubble", "That one won't last in the fire", "Hmm. That was a hard moment").
+- **Tested** in a browser at iPad size from a test copy: new child's building says "Fire in 5 nights" on day 1 with no fire button; 4 hard moments in a row each said different words; 🌱 sheet shows 8 verses; Going up for Annabelle with a Patience plan (2 stars last time → 4 tonight) asked about Patience and gave +🪙 2; front page has no text running off in portrait (810×1080) or landscape (1080×810, 1080×690); 119 rules tests pass; no errors. **Not tried:** the real iPad.
+- **Needs Joel (3 questions):**
+  1. **House size (item 14 "wood and clay never turn into houses"):** a cottage is 223 blocks (Joel chose the big size for everyone on 19 Nov). A good day gives about 30 blocks, so the first house takes a week or more, and gold/silver blocks look like wood and clay sitting in a strip. Option: make the first house half size (about 110), later ones big.
+  2. **Farm "layout options" (item 9):** each land already has its own picture and you can move everything in Build mode. What did "layout options" mean? (e.g. choose between 2 looks when buying bigger land?)
+  3. **"Kids app and Rainbow" (item 16):** what is Rainbow?
 
 ### 📜 Bible stories, farm extras, weekly review, breath prayer (24 Nov 2026, app v77, LIVE)
 Joel chose all four groups of the remaining voice-note items:
