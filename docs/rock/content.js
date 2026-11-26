@@ -70,7 +70,7 @@
                       ownUp{ prompt, yes, no, dealtWith? (12 only), praise, note },
                       confirm{ line, parentAsk, yes, given }, blessing[] } }
      repair         { intro, didIt{ label, line{6,8,12} }, rightAgain{ label, ask, line, thanks }, prayedTogether{ label, line, note },
-                      notReadyYet{ label, toChild, toOther, later, note, grownUpAsk, grownUpYes, grownUpNo, notYet }, taskDone{ label, line }, pearlAfter{6,8,12} }
+                      notReadyYet{ label, toChild, toOther, later, note, grownUpAsk, grownUpYes, grownUpNo, grownUpSay, notYet }, taskDone{ label, line }, pearlAfter{6,8,12} }
      throughTheDay  { lunch{ prompt, when, ifRemembered, ifForgot, parentNote },
                       calmPractice{ when, minutes, intro, steps[5]{ say, act }, close, parentNote }, quietWays[5]{ id, label, how } }
      fairness       + mortar{ name, extraStraw: 1, kid, kidEnds, sibling, parent }, + lines.mortar
@@ -1404,15 +1404,16 @@
     notReadyYet: { label: 'Not ready yet',
       toChild: 'They are not ready yet. That\'s okay. You did your part, so you can pull the hay out. Keep being kind, and try again later.',   // (26 Nov 2026, round 1) the child's part counts (round 2: after a grown-up says they tried)
       toOther: 'You don\'t have to be ready yet. Tell us when you are.',
-      grownUpAsk: 'Grown-up: did they go and really try to make it right?', grownUpYes: 'Yes, they tried', grownUpNo: 'Not yet',   // (26 Nov 2026, round 2) closes the loophole
-      notYet: 'That\'s okay. Go and try to make it right when you are ready. The hay can wait.',
+      grownUpAsk: 'Grown-up: did you see them try to make it right?', grownUpYes: 'Yes, they tried', grownUpNo: 'Not yet',   // (26 Nov 2026, round 2) closes the loophole; (round 3) a coach, not a judge
+      grownUpSay: 'You went and tried. That was brave. Being forgiven can take time.',   // (26 Nov 2026, round 3) a line for the grown-up to say
+      notYet: 'A grown-up can help you try. The hay can wait.',
       later: 'Would you like to try again with {sibling} now?',
       note: 'The child\'s part counts: they can still pull the hay out. Nobody is hurried into saying "I forgive you".' },   // (26 Nov 2026, round 1)
     taskDone: { label: 'I did the job', line: 'I went back and did it properly.' },
     pearlAfter: {
       '6': 'It is mended. Look, pearl where the straw was.',
       '8': 'Sorry said and put right. Pearl where the straw was. You and {sibling} are right again.',
-      '12': 'Put right. A line of pearl where the straw was. That is what lasts.',
+      '12': 'Put right. A line of pearl where the straw was. Love like that is what lasts.',   // (26 Nov 2026, round 3)
       tried: 'You did your part. Pearl where the hay was. Keep being kind. Jesus is working on it too.'   // (26 Nov 2026, round 2) not made up yet: never "right again"
     }
   };
@@ -1516,13 +1517,13 @@
         '8': ['When someone takes my things, I will stop, breathe, and ask a grown-up.', 'When I have to wait, I will pray instead of whining.', 'When I\'m angry, I will walk away and pray before I speak.'],
         '12': ['When I\'m annoyed, I will pause and pray before I answer.', 'When plans change, I will breathe and ask Jesus for a calm heart.', 'When I feel a tantrum coming, I will go somewhere quiet and pray.'] },
       praise: 'You stayed calm. Jesus grew this in you. Thank you, Jesus!', sorry: 'Jesus, I lost my temper today. I\'m sorry. Please forgive me and help me stay calm.' },
-    { id: 'kind', fruit: 'Kindness', art: 'kindness', title: 'Kind words', caption: 'My words help, not hurt.',
+    { id: 'kind', fruit: 'Kindness', art: 'kindness', title: 'Be kind', caption: 'My words and my hands help, not hurt.',   // (26 Nov 2026, round 3) matches the sharing pictures
       yes: 'Sharing and kind', no: 'Keeping it all',
       examples: {
         '6': ['I will say one kind thing to my brother or sister.', 'I will say thank you at dinner.', 'When I want to say something mean, I will close my mouth.'],
         '8': ['I will say something kind to each person at breakfast.', 'When I\'m cross, I will use a soft voice.', 'I will cheer for someone else today.'],
         '12': ['Before I speak when cross, I will ask, "Is it kind?"', 'I will encourage someone who is having a hard day.', 'I will not answer back, even when I disagree.'] },
-      praise: 'Your words helped. Jesus grew this in you. Thank you, Jesus!', sorry: 'Jesus, I said hurtful words today. I\'m sorry. Please forgive me and help my words be kind.' },
+      praise: 'You were kind. Jesus grew this in you. Thank you, Jesus!', sorry: 'Jesus, I was unkind today. I\'m sorry. Please forgive me and help me be kind with my words and my hands.' },
     { id: 'peace', fruit: 'Peace', art: 'peace', title: 'Make peace', caption: 'I stop the fight and say sorry first.',
       yes: 'Letting go of the teddy', no: 'Fighting over it',
       examples: {

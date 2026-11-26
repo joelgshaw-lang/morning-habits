@@ -94,6 +94,8 @@
     rubblePerDay: { 6: 12, 8: 12, 12: 12 },         // (21 Nov 2026: 4 -> 12, a usual fire knocks ~12 off: one day to put it back) fallen stones a child may re-lay each day
     rubbleBigPile: { over: 16, perDay: 20 },          // while the pile is bigger than `over`, re-lay this many a day (19 Nov 2026: 12 -> 20, rebuilding should feel generous)
     autoLayAtNight: true,                           // endDay lays any tray pieces left over (no hoarding)
+    stickers: { wallsPer: 3 },                      // (26 Nov 2026, round 3) one sticker for every 3 walls that stood through a fire
+    familyWallsPer: 10,                             // (26 Nov 2026, round 3) every 10 family walls adds a landmark piece in the City
     carryOverMax: 12,                               // tray blocks carried into the next building; the rest go to the family landmark
     missedFireNextNight: true,                      // a fire night that was not held is held the next night
     practiceFirstFire: true,                        // a new child's first fire burns straw but knocks and fells nothing
@@ -173,6 +175,10 @@
     if (!state.extras) state.extras = [];           // old saves: no extra blocks yet
     if (state.build && !state.build.animals) { state.build.animals = []; state.build.animalPeak = 0; }
     if (state.build && !state.build.look) state.build.look = { roof: 'teal', door: 'wood' };
+    if (!state.stickers) state.stickers = [];       // (26 Nov 2026, round 3) the sticker book
+    if (!state.stories) state.stories = [];         // (26 Nov 2026, round 3) pearl stories: what was put right
+    if (state.stats && state.stats.wallsStood == null) state.stats.wallsStood = 0;
+    if (state.build && !state.build.stood) state.build.stood = {};
     return state;
   }
   function fairOf(state) { return ensure(state).fair; }
@@ -363,6 +369,14 @@
     var t = tally(state);
     return t.filled === 0 && !state.free.some(Boolean) && !(state.spire || []).some(Boolean) && !(state.extras || []).length;
   }
+  /* canChooseDesign(state) (26 Nov 2026, round 3): empty, or only hay so far (a new child whose first piece was hay still chooses).
+     Never once anything good is laid or a bale has been put right (a pearl seam). */
+  function canChooseDesign(state) {
+    if (isEmptyBuilding(state)) return !(state.seams || []).length;
+    var good = false;
+    eachSlot(state, function (w, c, r, p) { if (p && p.t !== 'W') good = true; });
+    return !good && !state.free.some(Boolean) && !(state.spire || []).some(Boolean) && !(state.extras || []).length && !(state.seams || []).length;
+  }
   /* chooseDesign(state, id): pick the design of the building, only while it is empty and the design is open. */
   function chooseDesign(state, id) {
     ensure(state);
@@ -370,10 +384,12 @@
     var d = designs(state).filter(function (x) { return x.id === id; })[0];
     if (!d) return fail('noDesign');
     if (!d.open) return fail('locked');
-    if (!isEmptyBuilding(state)) return fail('notEmpty');
-    var keep = state.build;
+    if (!canChooseDesign(state)) return fail('notEmpty');
+    var keep = state.build, hay = [];
+    eachSlot(state, function (w, c, r, p) { if (p && p.t === 'W') hay.push(p); });
     state.design = id;
     layBlueprint(state, id);
+    hay.forEach(function (p) { var spot = strawTarget(state); if (spot) put(state, spot.wall, spot.col, spot.row, p); });   // (26 Nov 2026, round 3) hay that came first moves to the new walls
     state.build.startDay = keep.startDay; state.build.look = keep.look || state.build.look;
     state.build.animals = keep.animals || []; state.build.animalPeak = 0;
     return { ok: true, events: [{ kind: 'design', id: id, bp: state.bp }] };
@@ -550,7 +566,8 @@
   function autoLay(state, trayOnly, prefer, rubbleMax) {
     var ev = [], put = 0;
     for (;;) {
-      var useTray = rubbleMax == null && state.tray.length > 0;   // rubbleMax (26 Nov 2026, round 2): "Put 10 back" lays fallen blocks only
+      var ti = -1; for (var q = 0; q < state.tray.length; q++) if (state.tray[q].t !== 'W') { ti = q; break; }   // (26 Nov 2026, round 3) never lays straw (test blocks)
+      var useTray = rubbleMax == null && ti >= 0;   // rubbleMax (26 Nov 2026, round 2): "Put 10 back" lays fallen blocks only
       if (rubbleMax != null && put >= rubbleMax) break;
       if (!useTray && (trayOnly || !state.rubble.length || state.today.rubble >= rubbleCap(state))) break;
       var slots = legalSlots(state);
@@ -561,7 +578,7 @@
                (WALLS.indexOf(a.wall) - WALLS.indexOf(b.wall)) || (a.col - b.col);
       });
       var s = slots[0];
-      var res = useTray ? place(state, 0, s.wall, s.col, s.row) : placeRubble(state, 0, s.wall, s.col, s.row);
+      var res = useTray ? place(state, ti, s.wall, s.col, s.row) : placeRubble(state, 0, s.wall, s.col, s.row);
       if (!res.ok) break;
       if (!useTray) put++;
       ev = ev.concat(res.events);
@@ -626,8 +643,31 @@
     if (out != null) e.out = out;
     return { ok: true, events: [e] };
   }
+  /* placeSticker(state, i, wall, col, row, out?) (26 Nov 2026, round 3): stick sticker i from the book onto a good laid block
+     (gold, silver, a gem, a pearl or a crafted block; never straw). One sticker per block; a placed sticker stays where it is. */
+  function placeSticker(state, i, wall, col, row, out) {
+    ensure(state);
+    var st = state.stickers[i]; if (!st) return fail('noSticker'); if (st.at) return fail('placed');
+    var p = out != null ? extraAt(state, wall, col, row, out) : at(state, wall, col, row);
+    if (!p || p.t === 'W' || p.stk != null) return fail('noBlock');
+    p.stk = st.n; st.at = { wall: wall, col: col, row: row, out: out != null ? out : null, b: state.sealed };
+    return { ok: true, events: [{ kind: 'sticker', placed: true, n: st.n, wall: wall, col: col, row: row }] };
+  }
+  /* stickerSlots(state) -> every good laid block without a sticker */
+  function stickerSlots(state) {
+    ensure(state); var out = [];
+    eachSlot(state, function (w, c, r, p) { if (p && p.t !== 'W' && p.stk == null) out.push({ wall: w, col: c, row: r, deco: true }); });
+    state.extras.forEach(function (e) { if (e.p && e.p.t !== 'W' && e.p.stk == null) out.push({ wall: e.wall, col: e.col, row: e.row, out: e.out, deco: true }); });
+    return out;
+  }
+  /* familyWalls(list) (26 Nov 2026, round 3): add up the walls that stood from every child's state. Never ranked.
+     -> { walls, pieces (landmark pieces earned), next (walls at the next piece) } */
+  function familyWalls(list) {
+    var n = 0; (list || []).forEach(function (s) { if (s && s.stats) n += s.stats.wallsStood || 0; });
+    var per = CONFIG.familyWallsPer; return { walls: n, pieces: Math.floor(n / per), next: (Math.floor(n / per) + 1) * per };
+  }
   /* putBack(state, n) (26 Nov 2026, round 2): "Put 10 back": up to n fallen blocks go back in, inside today's limit. Never tray pieces. */
-  function putBack(state, n) { return { ok: true, events: autoLay(state, false, null, Math.max(0, n || 0)) }; }
+  function putBack(state, n, prefer) { return { ok: true, events: autoLay(state, false, prefer || null, Math.max(0, n || 0)) }; }   // prefer (26 Nov 2026, round 3): the wall that fell first
   function autoPlace(state, trayOnly, prefer) { return { ok: true, events: autoLay(state, !!trayOnly, prefer || null) }; }   // prefer (26 Nov 2026, round 2): a wall to fill first
   /* putRightLately(state, days) (26 Nov 2026, round 2): hay bales put right (pulled) in the last `days` days (default 30). Own past only. */
   function putRightLately(state, days) {
@@ -673,13 +713,15 @@
   /* pull(state, wall, col, row): "making it right". Takes the bale out; at most summary().pullsLeftToday a day.
      'settle' mode: stones above drop one row and a pearl seam is recorded, so the day ends level with a
      clean day. 'pearlSlot' mode: a pearl piece stays in the slot. */
-  function pull(state, wall, col, row) {
+  function pull(state, wall, col, row, opt) {
     var p = at(state, wall, col, row);
     if (!p || p.t !== 'W' || wall === 'free' || wall === 'spire') return fail('notStraw');
     if (CONFIG.pullNeedsForgive && !p.forgiven) return fail('notForgiven');
     if (CONFIG.pullNeedsMadeRight && !p.madeRight) return fail('notMadeRight');
     if (state.today.pulls >= pullCap(state)) return fail('pullCap');
-    state.today.pulls++; state.stats.pearls++; state.build.pearls++;
+    state.today.pulls++; state.stats.pearls++; state.build.pearls++; state.build.mended = (state.build.mended || 0) + 1;
+    ensure(state); state.stories.push({ day: state.day, date: (opt && opt.date) || null, hay: String((p.m && p.m.label) || (p.m && p.m.material) || 'hay').slice(0, 48), how: p.madeRight === 'tried' ? 'tried' : 'mended' });   // (26 Nov 2026, round 3) a pearl story
+    if (state.stories.length > 60) state.stories.shift();
     (state.stats.putRightDays || (state.stats.putRightDays = [])).push(state.day); if (state.stats.putRightDays.length > 60) state.stats.putRightDays.shift();   // (26 Nov 2026, round 2) for "Put right this month"
     var ev = { kind: 'pull', wall: wall, col: col, row: row, settled: [] };
     if (CONFIG.pullMode === 'pearlSlot') {
@@ -873,7 +915,7 @@
       (CONFIG.commissions.enabled ? (com && com.done ? S.commission : 0) : (win.pure > 0 ? S.pureWindow : 0)) + (spireDone ? CONFIG.spire.star : 0);
     var rec = { n: state.sealed + 1, day: state.day, days: state.day - state.build.startDay, tier: state.bp.tier, blueprint: state.bp.id,
       name: state.bp.name, rows: state.bp.rows, stars: stars, windows: win.total, pure: win.pure,
-      gold: counts.G, silver: counts.S, gems: counts.gem, lamps: counts.L, pearls: state.build.pearls + counts.P,
+      gold: counts.G, silver: counts.S, gems: counts.gem, lamps: counts.L, pearls: state.build.pearls + counts.P, mended: state.build.mended || 0,
       falls: state.build.falls, layout: layout, free: state.free.map(function (p) { return p.t; }),
       spire: state.spire.map(function (p) { return p ? p.t : '.'; }), spireDone: spireDone,
       commission: com ? { id: com.id, done: com.done } : null, gifted: 0, street: false,
@@ -909,6 +951,7 @@
     var practice = CONFIG.practiceFirstFire && state.stats.fires === 0 && !state.practiced;
     var wasCracked = WALLS.filter(function (w) { return state.cracked[w] > 0; });
     var before = windows(state), lit = {};
+    var fullBefore = WALLS.filter(function (w) { var t = tally(state, w); return t.total > 0 && t.filled === t.total; });   // (26 Nov 2026, round 3) for walls that stood
     before.list.forEach(function (x) { x.cells.forEach(function (c) { lit[x.wall + ':' + c.col + ':' + c.row] = true; }); });
     if (!mercy && !practice) WALLS.forEach(function (w) { if (strawCount(state, w) >= wallFallAt(state, w)) falling.push(w); });
     state.mercy = false; state.fireOwed = false; state.practiced = true;
@@ -1001,6 +1044,14 @@
     ev.size = caveIn ? 'caveIn' : falling.length ? 'wallFall' : burned ? 'small' : 'clean';
     state.stats.fires++;
     if (ev.size === 'clean' || ev.size === 'small') state.stats[ev.size]++;
+    /* (26 Nov 2026, round 3) a full wall that stands through a fire counts once per building; every 3 such walls earns a sticker */
+    ensure(state);
+    fullBefore.forEach(function (w) {
+      if (caveIn || falling.indexOf(w) >= 0 || state.build.stood[w]) return;
+      state.build.stood[w] = true; state.stats.wallsStood++;
+      ev.push({ kind: 'wallStood', wall: w, total: state.stats.wallsStood });
+      if (state.stats.wallsStood % CONFIG.stickers.wallsPer === 0) { var st = { n: state.stickers.length, day: state.day, at: null }; state.stickers.push(st); ev.push({ kind: 'sticker', n: st.n }); }
+    });
     if (!burned) { ev.push({ kind: 'crown' }); if (isComplete(state)) sealBuilding(state, ev); }
     state.today.fired = true;
     state.lastFire = { day: state.day, size: ev.size, burned: burned, falls: falling, caveIn: caveIn, practice: practice, windowsLost: ev.windowsLost,
@@ -1332,10 +1383,10 @@
     windows: windows, forecast: forecast, isFireNight: isFireNight, callFire: callFire, fire: fire,
     endDay: endDay, summary: summary, addGospelShare: addGospelShare, addNeighbour: addNeighbour, prayFor: prayFor,
     strawTarget: strawTarget, isComplete: isComplete, at: at, tally: tally,
-    spireSlots: spireSlots, extraSlots: extraSlots, extraAt: extraAt, markMadeRight: markMadeRight, rowGoal: rowGoal, putBack: putBack, putRightLately: putRightLately, commissionChoices: commissionChoices,
+    spireSlots: spireSlots, extraSlots: extraSlots, extraAt: extraAt, markMadeRight: markMadeRight, rowGoal: rowGoal, putBack: putBack, placeSticker: placeSticker, stickerSlots: stickerSlots, familyWalls: familyWalls, putRightLately: putRightLately, commissionChoices: commissionChoices,
     chooseCommission: chooseCommission, commissionProgress: commissionProgress, spendStars: spendStars,
     /* v5 */
-    designs: designs, chooseDesign: chooseDesign, setLook: setLook, isEmptyBuilding: isEmptyBuilding, blueprintFor: blueprintFor,
+    designs: designs, chooseDesign: chooseDesign, canChooseDesign: canChooseDesign, setLook: setLook, isEmptyBuilding: isEmptyBuilding, blueprintFor: blueprintFor,
     seen: seen, nightAccount: nightAccount, confirmNight: confirmNight, ownUp: ownUp, addPrayer: addPrayer, addBonus: addBonus,
     quickLog: quickLog, quickCheck: quickCheck, waitingFor: waitingFor, pileCount: pileCount, quickKind: quickKind,
     setColour: setColour, animals: animals, inviteAnimal: inviteAnimal, cardDef: cardDef };

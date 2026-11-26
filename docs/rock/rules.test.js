@@ -1443,4 +1443,72 @@ test('put 10 back: fallen blocks only, at most n, inside the daily limit (26 Nov
   assert.equal(s.rubble.length, 15 - ev.length);
   s.today.rubble = 999; assert.equal(R.putBack(s, 10).events.length, 0, 'over the daily limit: none');
 });
+test('walls that stand through a fire: counted once per building, a sticker every 3 (26 Nov 2026, round 3)', function () {
+  var s = kid(8);
+  assert.equal(s.stats.wallsStood, 0); assert.deepEqual(s.stickers, []);
+  fillWall(s, 'left'); fillWall(s, 'right');
+  var ev = R.fire(s);
+  assert.equal(s.stats.wallsStood, 2, 'two full walls stood'); assert.equal(kinds(ev).filter(function (k) { return k === 'wallStood'; }).length, 2);
+  assert.equal(s.stickers.length, 0, 'no sticker yet at 2');
+  newDay(s); R.fire(s); assert.equal(s.stats.wallsStood, 2, 'the same walls never count twice');
+  fillWall(s, 'front'); newDay(s); ev = R.fire(s);
+  assert.equal(s.stats.wallsStood, 3); assert.equal(s.stickers.length, 1, 'third wall: a sticker'); assert(kinds(ev).indexOf('sticker') >= 0);
+  /* a wall that falls does not count */
+  var t = kid(8); fillWall(t, 'left'); for (var i = 0; i < R.summary(t).fallAt; i++) set(t, 'left', i, 0, 'W');
+  R.fire(t); assert.equal(t.stats.wallsStood, 0, 'a fallen wall did not stand');
+  /* old saves: the fields are filled in */
+  var old = kid(8); delete old.stickers; delete old.stats.wallsStood; delete old.stories; R.summary(old);
+  assert.deepEqual(old.stickers, []); assert.equal(old.stats.wallsStood, 0); assert.deepEqual(old.stories, []);
+});
+test('stickers go onto a good laid block, never straw, one per block (26 Nov 2026, round 3)', function () {
+  var s = kid(8); s.stickers.push({ n: 0, day: 1, at: null }, { n: 1, day: 1, at: null });
+  set(s, 'left', 0, 0, 'S'); set(s, 'left', 1, 0, 'W');
+  assert.equal(R.placeSticker(s, 0, 'left', 1, 0).reason, 'noBlock', 'never on straw');
+  assert.equal(R.placeSticker(s, 0, 'left', 2, 0).reason, 'noBlock', 'never on an empty space');
+  assert(R.stickerSlots(s).some(function (q) { return q.wall === 'left' && q.col === 0; }));
+  assert(R.placeSticker(s, 0, 'left', 0, 0).ok); assert.equal(R.at(s, 'left', 0, 0).stk, 0); assert.equal(s.stickers[0].at.wall, 'left');
+  assert.equal(R.placeSticker(s, 0, 'left', 0, 0).reason, 'placed');
+  assert.equal(R.placeSticker(s, 1, 'left', 0, 0).reason, 'noBlock', 'one sticker per block');
+  assert(!R.stickerSlots(s).some(function (q) { return q.wall === 'left' && q.col === 0 && q.row === 0; }));
+});
+test('family walls: added up from every child, a landmark piece every 10 (26 Nov 2026, round 3)', function () {
+  var a = kid(6), b = kid(8), c = kid(12); a.stats.wallsStood = 4; b.stats.wallsStood = 9; c.stats.wallsStood = 10;
+  var f = R.familyWalls([a, b, c, null]);
+  assert.equal(f.walls, 23); assert.equal(f.pieces, 2); assert.equal(f.next, 30);
+  assert.deepEqual(R.familyWalls([]), { walls: 0, pieces: 0, next: 10 });
+});
+test('pearl stories: each bale put right is remembered (what it was, how), and the building counts it (26 Nov 2026, round 3)', function () {
+  var s = kid(8); C.pullNeedsForgive = true; C.pullNeedsMadeRight = true; C.pullsPerDay = 3;
+  set(s, 'left', 0, 0, 'W'); s.walls.left[0][0].m = { label: 'Unkind words' };
+  set(s, 'left', 1, 0, 'W');
+  R.forgive(s, 'left', 0, 0); R.markMadeRight(s, 'left', 0, 0, 'grown-up'); assert(R.pull(s, 'left', 0, 0, { date: '2026-11-26' }).ok);
+  R.forgive(s, 'left', 1, 0); R.markMadeRight(s, 'left', 1, 0, 'tried'); assert(R.pull(s, 'left', 1, 0).ok);
+  assert.equal(s.stories.length, 2);
+  assert.deepEqual(s.stories[0], { day: s.day, date: '2026-11-26', hay: 'Unkind words', how: 'mended' });
+  assert.equal(s.stories[1].how, 'tried'); assert.equal(s.stories[1].hay, 'hay');
+  assert.equal(s.build.mended, 2);
+});
+test('choose the design even when the first piece was hay; never after a block is laid or a bale put right (26 Nov 2026, round 3)', function () {
+  tuned();
+  var s = kid(6); straw(s);
+  assert(!R.isEmptyBuilding(s)); assert(R.canChooseDesign(s), 'only hay so far: still choose');
+  assert(R.chooseDesign(s, 'tower').ok, 'the design can be chosen'); assert.equal(s.design, 'tower');
+  assert.equal(R.tally(s).straw, 1, 'the hay moved to the new walls');
+  var t = kid(6); R.addPiece(t, 'S'); R.autoPlace(t, true);
+  assert(!R.canChooseDesign(t), 'a good block is laid'); assert.equal(R.chooseDesign(t, 'tower').reason, 'notEmpty');
+  var u = kid(6); C.pullNeedsForgive = false; C.pullNeedsMadeRight = false; straw(u); var sp = null;
+  ['front', 'left', 'right'].forEach(function (w) { u.walls[w].forEach(function (col, c) { col.forEach(function (p, r) { if (p && p.t === 'W') sp = { w: w, c: c, r: r }; }); }); });
+  assert(R.pull(u, sp.w, sp.c, sp.r).ok); assert(!R.canChooseDesign(u), 'a bale put right: the pearl stays, no new design');
+});
+test('Lay them for me never lays straw from the tray (26 Nov 2026, round 3)', function () {
+  var s = kid(8); s.tray.push({ id: s.nextId++, t: 'W', m: { test: 1 } }); R.addPiece(s, 'S'); R.addPiece(s, 'G');
+  var ev = R.autoPlace(s, true).events;
+  assert(ev.length >= 2); assert(ev.every(function (e) { return e.piece.t !== 'W'; }), 'no straw laid');
+  assert.equal(s.tray.length, 1); assert.equal(s.tray[0].t, 'W');
+});
+test('Put 10 back goes to the wall that fell first (26 Nov 2026, round 3)', function () {
+  var s = kid(8); for (var i = 0; i < 5; i++) s.rubble.push({ id: 900 + i, t: 'S', seq: i });
+  var ev = R.putBack(s, 3, 'right').events; assert.equal(ev.length, 3);
+  assert(ev.every(function (e) { return e.wall === 'right'; }));
+});
 console.log(passed + ' tests passed' + (process.exitCode ? ', SOME FAILED' : ''));
