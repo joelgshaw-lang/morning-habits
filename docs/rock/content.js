@@ -1402,10 +1402,10 @@
       line: 'We said sorry to Jesus together, and went and made it right.',
       note: 'Age 6: a grown-up taps this after praying with the child. The child never taps sorry alone.' },
     notReadyYet: { label: 'Not ready yet',
-      toChild: 'They are not ready yet. That\'s okay. You did your part. You can try again later.',
+      toChild: 'They are not ready yet. That\'s okay. You did your part, so you can pull the hay out. Keep being kind, and try again later.',   // (26 Nov 2026, round 1) the child's part counts
       toOther: 'You don\'t have to be ready yet. Tell us when you are.',
       later: 'Would you like to try again with {sibling} now?',
-      note: 'The straw waits. It does not count against the child for today, and nobody is hurried into saying "I forgive you".' },
+      note: 'The child\'s part counts: they can still pull the hay out. Nobody is hurried into saying "I forgive you".' },   // (26 Nov 2026, round 1)
     taskDone: { label: 'I did the job', line: 'I went back and did it properly.' },
     pearlAfter: {
       '6': 'It is mended. Look, pearl where the straw was.',
@@ -1656,8 +1656,8 @@
     todayHead: 'Today\'s pieces',
     place: 'Tap a piece, then tap a glowing space.',
     arrived: 'New pieces: {list}. Tap a piece, then a glowing space.',
-    strawLanded: 'Straw landed: {list}. Straw can\'t last in the fire. Tap a bale to put it right.',
-    strawHint: 'There is straw in your walls. Tap a bale to put it right before the fire.',
+    strawLanded: '\ud83c\udf3e {list} landed in your walls. Hay can\'t last in the fire. Tap a bale to put it right.',   // (26 Nov 2026, round 1) one word, "hay", and what it was
+    strawHint: 'There is hay in your walls. Tap a bale to put it right before the fire.',
     newDay: 'A new day!',
     fireOwed: 'Last night was fire night. Have a last look, then light the fire.',
     fireLater: 'Fire tonight. You can light it after 5 o\'clock.',

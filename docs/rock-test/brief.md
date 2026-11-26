@@ -18,7 +18,7 @@ pearls (owning up) bring back fallen blocks. Children choose where good pieces g
 ## Where things are
 - Game page: `docs/rock/play.html` (one big file: page, 3D drawing, panels). Rules engine: `docs/rock/rules.js` (+ `rules.test.js`, run `node rules.test.js` inside docs/rock). Words: `docs/rock/content.js`.
 - How the family app opens it: `js/app.js` `openRockNow` (iframe `docs/rock/play.html?live=1&kid=..&name=..&age=..`), pieces arrive through localStorage `rock.inbox.<kid>` (see "section 10" comments near `liveSync` in play.html). `js/quick.js` (front-board good/hard moments), `js/app.js` "I prayed".
-- Try-out (no family app): `http://localhost:8081/docs/rock/play.html` (pretend children, "Next morning", "Fire now" etc.). Live-like: `http://localhost:8081/docs/rock/play.html?live=1&sandbox=1&kid=test&name=Test&age=8`.
+- Try-out (no family app): `http://localhost:8090/docs/rock/play.html` (pretend children, "Next morning", "Fire now" etc.). Live-like: `http://localhost:8090/docs/rock/play.html?live=1&sandbox=1&kid=test&name=Test&age=8`.
 - Earlier design notes: `~/.claude/plans/i-would-like-you-nifty-valiant.md` (Design v4/v5), STATUS.md sections "Build on the Rock".
 
 ## Round notes

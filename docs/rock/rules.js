@@ -47,7 +47,7 @@
     /* v5 designs: the child picks one while the building is empty. Shapes per age band:
        [frontCols, frontRows, sideCols, sideRows, free, doorCol]. 3 open at the start, one more every 2 sealed buildings,
        then the named blueprints (content.js) one every 2 more, each a design grown by 0-2 rows. */
-    designs: { enabled: true, open: 3, sealsPerUnlock: 2,
+    designs: { enabled: true, open: 3, sealsPerUnlock: 2, monthlyDays: 28,   // monthlyDays (26 Nov 2026, round 1): named blueprint i also opens on day (i+1)*28, whatever has been finished
       order: ['cottage', 'tower', 'barn', 'chapel', 'lighthouse', 'castle'],
       names: { cottage: 'Cottage', tower: 'Tower', barn: 'Barn', chapel: 'Chapel', lighthouse: 'Lighthouse', castle: 'Castle' },
       shapes: {
@@ -351,8 +351,9 @@
     });
     var base = (D.order.length - D.open) * per;
     D.named.forEach(function (x, i) {
-      var need = base + (i + 1) * per;
-      out.push({ id: x.id, style: x.style, grow: x.grow, named: true, open: n >= need, sealsToOpen: Math.max(0, need - n) });
+      var need = base + (i + 1) * per, onDay = D.monthlyDays ? (i + 1) * D.monthlyDays : null;   // (26 Nov 2026, round 1) a blueprint a month for everyone
+      out.push({ id: x.id, style: x.style, grow: x.grow, named: true, open: n >= need || (onDay != null && state.day >= onDay), sealsToOpen: Math.max(0, need - n),
+        daysToOpen: onDay != null ? Math.max(0, onDay - state.day) : null });
     });
     out.forEach(function (d) { var def = designDef(d.id, state.profile.age), w = def.walls;
       d.slots = w.front.cols * w.front.rows - 1 + 2 * w.left.cols * w.left.rows + def.free; });
@@ -622,7 +623,7 @@
     if (out != null) e.out = out;
     return { ok: true, events: [e] };
   }
-  function autoPlace(state) { return { ok: true, events: autoLay(state, false) }; }
+  function autoPlace(state, trayOnly) { return { ok: true, events: autoLay(state, !!trayOnly) }; }   // trayOnly (26 Nov 2026, round 1): "Lay the rest" never lays fallen blocks
 
   /* forgive(state, wall, col, row): the sorry prayer. Free, unlimited, at once. The bale gets its pearl mark. */
   function forgive(state, wall, col, row) {
@@ -632,7 +633,9 @@
     return { ok: true, events: [{ kind: 'forgive', wall: wall, col: col, row: row }] };
   }
   /* markMadeRight(state, wall, col, row, by): a grown-up or the sibling confirms it was put right in real life.
-     `by` is any label ('mum', 'Judah'). Needed before pull() when CONFIG.pullNeedsMadeRight is on. */
+     `by` is any label ('mum', 'Judah'). Needed before pull() when CONFIG.pullNeedsMadeRight is on.
+     (26 Nov 2026, round 1) by = 'tried': the child did their part but the other person was "not ready yet". It still counts:
+     the child can pull the hay out, so a brother or sister never holds the key to someone else's wall. */
   function markMadeRight(state, wall, col, row, by) {
     var p = at(state, wall, col, row);
     if (!p || p.t !== 'W') return fail('notStraw');

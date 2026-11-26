@@ -1383,4 +1383,29 @@ test('rebuild pack: fallen stones come back to the tray, newest first, outside t
   assert.equal(R.restoreRubble(s, 12), 3);
   assert.equal(R.restoreRubble(s, 12), 0);
 });
+test('fair make-it-right: "not ready yet" from the other child still lets the child pull the hay (26 Nov 2026, round 1)', function () {
+  var s = kid(8); C.pullNeedsForgive = true; C.pullNeedsMadeRight = true; C.pullsPerDay = 3;
+  set(s, 'left', 0, 0, 'W');
+  assert.equal(R.pull(s, 'left', 0, 0).reason, 'notForgiven');
+  assert(R.forgive(s, 'left', 0, 0).ok);
+  assert.equal(R.pull(s, 'left', 0, 0).reason, 'notMadeRight');
+  var m = R.markMadeRight(s, 'left', 0, 0, 'tried');
+  assert(m.ok); assert.equal(m.events[0].by, 'tried');
+  var r = R.pull(s, 'left', 0, 0);
+  assert(r.ok, 'the child did their part, so the hay comes out: ' + r.reason);
+  assert(!R.at(s, 'left', 0, 0) || R.at(s, 'left', 0, 0).t !== 'W', 'no hay left in that space');
+});
+test('monthly blueprint: named blueprints also open one every 28 days, for every child (26 Nov 2026, round 1)', function () {
+  tuned();
+  var s = kid(8), bp = function (id) { return R.designs(s).filter(function (d) { return d.id === id; })[0]; };
+  assert.equal(s.sealed, 0);
+  assert(!bp('bp1').open); assert.equal(bp('bp1').daysToOpen, 28 - s.day);
+  s.day = 27; assert(!bp('bp1').open);
+  s.day = 28; assert(bp('bp1').open, 'first blueprint opens on day 28 with nothing finished'); assert(!bp('bp2').open); assert.equal(bp('bp2').daysToOpen, 28);
+  s.day = 56; assert(bp('bp2').open); assert(!bp('bp3').open);
+  assert(!R.designs(s).filter(function (d) { return d.id === 'chapel'; })[0].open, 'the six designs still open by finished buildings');
+  assert(R.chooseDesign(s, 'bp2').ok, 'an opened blueprint can be chosen');
+  C.designs.monthlyDays = 0; s.day = 400;
+  assert(!bp('bp1').open, 'switched off: only finished buildings open blueprints');
+});
 console.log(passed + ' tests passed' + (process.exitCode ? ', SOME FAILED' : ''));

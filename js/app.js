@@ -192,9 +192,19 @@ function openRockTest() {
   el.innerHTML = `<iframe src="./docs/rock/play.html?${q}" title="Build on the Rock: test space" allow="autoplay"></iframe>`;
   document.body.appendChild(el);
 }
+// 🏰 Morning touch (26 Nov 2026, round 1): once a day, after the morning is all done and until the morning window
+// closes, "My building (1 minute)" opens a short building panel (play.html touch=1) that closes itself after 90 seconds.
+const rockTouchOpen = (d, r) => r === 'morning' && d && !d.rockTouch && windowInfo('morning').phase !== 'closed';
+async function rockTouch(id) {
+  const d = state.days[id];
+  if (!rockTouchOpen(d, 'morning')) return renderKid();
+  d.rockTouch = clock.now().toISOString();
+  await dayPut(d);
+  openRockNow(id, { touch: 1 });
+}
 // After 3pm the child makes tomorrow's plan first (grow.js), then builds.
 function openRock(id) { grow.beforeRock(id, () => openRockNow(id)); }
-function openRockNow(id) {
+function openRockNow(id, opt = {}) {
   const k = kid(id);
   state.rockTest = false;
   state.rockOpen = true;
@@ -205,6 +215,7 @@ function openRockNow(id) {
   const el = document.createElement('div');
   el.className = 'rock-frame';
   const q = new URLSearchParams({ live: '1', kid: id, name: k.name, age: String(k.age || 8) });
+  if (opt.touch) q.set('touch', '1');   // (26 Nov 2026, round 1) the 1-minute morning touch
   el.innerHTML = `<iframe src="./docs/rock/play.html?${q}" title="Build on the Rock" allow="autoplay"></iframe>`;
   document.body.appendChild(el);
 }
@@ -1014,6 +1025,7 @@ function columnHTML(k, d, r) {
     const playing = r === 'morning' && list.find((h) => h.type === 'practice' && d.practice?.[h.id]?.start);
     main = playing ? tileHTML(k, playing, d, null, r).replace('class="tile', 'class="tile next-tile')
       : '<div class="all-done-card"><div class="big">🏆</div><h2>All done!</h2></div>';
+    if (!playing && rockTouchOpen(d, r)) main += '<button class="farm-open rock-touch" data-action="rock-touch">🏰 My building <small>1 minute</small></button>';   // (26 Nov 2026, round 1)
   } else {
     // A running 🎤/🎹 timer takes the big tile, so the child can see their minutes.
     const playing = r === 'morning' && list.find((h) => h.type === 'practice' && d.practice?.[h.id]?.start);
@@ -1901,6 +1913,7 @@ document.addEventListener('click', async (e) => {
   if (a.startsWith('farm-')) return farm.action(a, el);
   switch (a) {
     case 'open-farm': return openFarm(el.closest('[data-col]').dataset.col);
+    case 'rock-touch': return rockTouch(col?.dataset.col || state.kidId);
     case 'dinner': return dinnerFinished();
     case 'reminders': return openReminders();
     case 'portal': return portal.open();

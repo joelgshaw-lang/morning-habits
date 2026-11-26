@@ -762,6 +762,7 @@ svg.bld { width: 70px; height: 70px; }
 .breath-btn.holding::before { animation: fillup 0.8s linear forwards; }
 .breath-btn:disabled { opacity: 0.5; }
 .farm-open small { display: block; font-size: 14px; font-weight: 800; color: var(--muted); }
+.rock-touch { background: #fef3c7; margin-top: 8px; }   /* (26 Nov 2026, round 1) morning touch */
 .breath-card { background: #eef2ff; border-radius: 22px; padding: 14px; margin: 10px 0; }
 .breath-card p { margin: 4px 0 0; font-size: 18px; }
 .breath-card b { display: block; font-size: 32px; color: #3730a3; }
