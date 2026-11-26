@@ -1,6 +1,6 @@
 # Morning Habits app: status
 
-Updated 26 Nov 2026 (app v82 BUILT, NOT LIVE yet). Next: Joel says yes to putting the 🏘️ Town Square live, then opens the app twice on the iPad and taps 🏘️ Town on a farm.
+Updated 26 Nov 2026 (app v82 LIVE). Next: Joel opens the app twice on the iPad and taps 🏘️ Town on a farm.
 
 ## Where it's up to
 - Live on GitHub Pages: Fruit time (3 fruits a day, this/not pictures, stars, quiz, pick your own fruit), Going up! night with the stay-in-bed bonus next morning, start by 7:15, −20 if asked, fair board, PIN every time, 3-minute grown-up cutoff, 🔊 voice chooser, kinder farm selling. Rules summary: README.md "Current rules".
@@ -12,7 +12,7 @@ Updated 26 Nov 2026 (app v82 BUILT, NOT LIVE yet). Next: Joel says yes to puttin
 2. Joel to decide (docs/review-round3.md "For Joel to decide"): −20 for under-7s, 3-minute timer restarting on taps, farm money, farm visits per day, mine time, daily fire, speed bonuses, hand actions (Peace, Gentleness, Goodness "Thumbs up"), adding a 5-year-old.
 3. LATER list in docs/review-round3.md: only the right child can tick their column, redraw Peace and Faithfulness pictures, rebuild animals in Sticker Plus (3 first as a test), hide the PIN from the public code.
 
-### 🏘️ Town Square, my farmer, turkeys, market stall (26 Nov 2026, app v82, built and tested, NOT LIVE)
+### 🏘️ Town Square, my farmer, turkeys, market stall (26 Nov 2026, app v82, LIVE)
 From Joel's dictated note (Gmail, 26 Nov): the kids want their own farmer (hair colour, outfits to buy), baby turkeys and turkey eggs, a farmers market stall to sell produce and juice for more, more than one farm, and a town square. Joel: "They love the farm but are not super excited about the building... let's try something more ambitious."
 - **Why this shape (research, 26 Nov):** kids engage with what they asked for and with a world they share (Animal Crossing: the town grows when you give; Stardew Valley: community-centre bundles that each unlock something). A fixed blueprint and a weekly fire showing their own hay feel like a report card. So the good-choice pieces now ALSO build something they love, together.
 - **🎒 Town pieces:** every gold, silver and gem sent to Build on the Rock (finished routines, prayers, kept good moments, picture-it) also drops into that child's town bag, up to 8 a day. Hay/straw never touches the town. `sendToRock` in js/app.js → `farm.townPiece`.
