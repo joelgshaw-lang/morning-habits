@@ -1,6 +1,6 @@
 # Morning Habits app: status
 
-Updated 26 Nov 2026 (app v78 LIVE; v79 committed, waiting for Joel's OK to go live). Next: say yes to go live, then open the app twice on the iPad and try a morning: All done → 🏰 My building (1 minute).
+Updated 26 Nov 2026 (app v79 LIVE). Next: open the app twice on the iPad and try a morning: All done → 🏰 My building (1 minute).
 
 ## Where it's up to
 - Live on GitHub Pages: Fruit time (3 fruits a day, this/not pictures, stars, quiz, pick your own fruit), Going up! night with the stay-in-bed bonus next morning, start by 7:15, −20 if asked, fair board, PIN every time, 3-minute grown-up cutoff, 🔊 voice chooser, kinder farm selling. Rules summary: README.md "Current rules".
@@ -26,7 +26,7 @@ Joel's 16 kids-app reminders (iPhone High Priority, also in Asana "Kids app upda
   2. **Farm "layout options" (item 9):** each land already has its own picture and you can move everything in Build mode. What did "layout options" mean? (e.g. choose between 2 looks when buying bigger land?)
   3. **"Kids app and Rainbow" (item 16):** what is Rainbow?
 
-### 🏰 Build on the Rock: 4 rounds of testing + Gmail notes (26 Nov 2026, app v79, committed, not live yet)
+### 🏰 Build on the Rock: 4 rounds of testing + Gmail notes (26 Nov 2026, app v79, LIVE)
 - **From Gmail (Joel's dictated notes):** rainbow eggs now hatch a rarer animal (🌈 Hatch by the basket; eggs already in a basket move over); land and land pieces in the farm shop show a real picture, tap it to see it big. Reminders (High Priority) had nothing clearly for the kids app; "Negativity jar" asked about.
 - **4 rounds** of testers (hands-on player at ages 6/8/12, game designer with 12-month simulations, child psychologist + pastor), each followed by a builder. All reports: `docs/rock-test/` (round-N.md = scores + fix list, round-N-*.md = each tester, round-N-built.md = what changed).
 - **Scores 1→4 (out of 10):** morning touch 2.7→7.7, clear goals 4→7.7, seeing your hay 6→8, usability 5.7→6.7, smoothness 6.5→7, playability 6.3→8, creativity 6→6.7, long-term 5→6.7.
