@@ -84,6 +84,8 @@ These win over anything older further down.
   - **🐷 Pigs (17 Nov 2026):** **Piglet** 🪙 120 + ⭐ 12, from Barnyard. Grows in 8 feeds into a pig (feed 🪙 2), which finds a 🍄 truffle (sells for 🪙 15) every second day it's fed on a job day. Sells for 🪙 100. Up to 2 pigs (4 with the big barn). Painted farm only: the shop hides piglets and land when the painted farm is off, but pigs already bought still show (painted) on the old farm.
   - Code: `js/farm-world.js` (drawing and layout), the "painted farm" block near the top of `createFarm` in `js/farm.js`, pictures in `farm-art/`.
 
+- **🏘️ Town Square (26 Nov 2026, v82):** 🏘️ Town on the farm. Gold, silver and gems from real life (up to 8 a day) also go in each child's town bag; the children give them together to one town project at a time (fountain → bakery → bandstand → church → clock tower), which opens the day after it's full. Each child can build a market stall (🪙 150 + ⭐ 12) to make juice, scarves, posies, bread and cakes that sell for more, make their own farmer (looks free, outfits and hats bought), and look at a brother's or sister's farm through their gate. Turkeys: turkey egg 🪙 60 + ⭐ 6 from Barnyard, turkey eggs 🪙 12. Details: STATUS.md, js/town.js.
+
 Plans and reviews: `docs/review-round3.md` (latest review and what's next), `docs/redesign-plan.md` (Joel's plan).
 
 ## How kids use it

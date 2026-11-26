@@ -1,6 +1,8 @@
 import { animalArt as stickerArt, snakeArt as stickerSnake } from './farm-art.js';
 import * as W from './farm-world.js';
 import * as clock from './clock.js';
+import { createTown } from './town.js';
+import { farmerSVG } from './avatar.js';
 
 // The farm: coins from chores buy mystery eggs, feed, a fence, sheep, cows and buildings.
 // Prices and growth times come from a 90-day simulation (docs/farm-economy.md): a new stage every one to
@@ -20,6 +22,9 @@ export const KINDS = {
   pig: { name: 'Pig', baby: 'Piglet', babyIcon: '🐷', icon: '🐖', feed: 2, grow: 8, sound: 'oink', perk: 'Pigs snuffle up a truffle every second day you work.' },
   // 24 Nov 2026 (Joel): a rare Komodo dragon hatches now and then from mystery and rare eggs and the treasure chest.
   komodo: { name: 'Komodo dragon', baby: 'Baby Komodo dragon', babyIcon: '🦎', icon: '🦎', feed: 2, grow: 8, sound: 'snap', small: true, rare: 'Super rare!', perk: 'The biggest lizard in the world! Foxes keep well away from your farm.' },
+  // 26 Nov 2026 (the kids, via Joel's dictated note): turkeys. Buy a turkey egg, it hatches a poult, the grown turkey lays a
+  // turkey egg every second day you work. Turkey eggs can be sold or put in the nest to hatch more poults.
+  turkey: { name: 'Turkey', baby: 'Poult', babyIcon: '🐥', icon: '🦃', feed: 1, grow: 6, sound: 'gobble', perk: 'Turkeys lay a big turkey egg every second day you work. Hatch it for another poult!' },
   dino: { name: 'Dinosaur', baby: 'Baby dinosaur', babyIcon: '🦕', icon: '🦕', feed: 3, grow: 20, sound: 'roar', rare: 'Ultra rare!', perk: 'Foxes run away from your dinosaur, and your hens feel brave: more golden eggs!' },
 
   // New friends (Nov 2026): the Aussie Island Mates and the Rock Pool Crew. Each one is a named character,
@@ -69,6 +74,15 @@ export const GOODS = {
   apple: { icon: '🍎', name: 'Apple', price: 3 },
   honey: { icon: '🍯', name: 'Honey', price: 10 },
   truffle: { icon: '🍄', name: 'Truffle', price: 8 },
+  turkeyegg: { icon: '🦃🥚', name: 'Turkey egg', price: 12 },
+  // Made at the market stall in the Town Square (26 Nov 2026, js/town.js RECIPES): each sells for about a third more than its parts.
+  applejuice: { icon: '🧃', name: 'Apple juice', price: 12 },
+  carrotjuice: { icon: '🥤', name: 'Carrot juice', price: 20 },
+  posy: { icon: '💐', name: 'Sunflower posy', price: 40 },
+  scarf: { icon: '🧣', name: 'Woolly scarf', price: 40 },
+  omelette: { icon: '🍳', name: 'Big omelette', price: 36 },
+  bread: { icon: '🍞', name: 'Fresh bread', price: 24 },
+  cake: { icon: '🍰', name: 'Honey cake', price: 36 },
 };
 Object.assign(GOODS, W.CROP_GOODS); // carrots, wheat and sunflowers from the painted farm's garden beds
 // The farm stand adds 1 coin for every 5 to everything sold.
@@ -84,13 +98,13 @@ const RAINBOW_CHANCE = 0.03;
 // before 21 Nov use this table, which sits under the cheapest way to get each one (mystery egg 🪙 30,
 // piglet 120, lamb 150, calf 350; the new friends' homes cost 150 to 450).
 const SELL_SHARE = 0.7;
-export const SELL = { chicken: 20, duck: 20, lizard: 20, snake: 20, croc: 20, komodo: 20, sheep: 100, pig: 80, cow: 240, dino: 20,
+export const SELL = { chicken: 20, duck: 20, lizard: 20, snake: 20, croc: 20, komodo: 20, sheep: 100, pig: 80, cow: 240, dino: 20, turkey: 35,
   platypus: 60, echidna: 60, kookaburra: 60, wombat: 80, koala: 100, roo: 120,
   crab: 80, turtle: 70, squid: 70, puffer: 70, octopus: 70, manta: 150 };
 // "hen" reads better than "chicken" when saying goodbye.
 export const sellPrice = (a) => (a.paid > 0 ? Math.max(5, Math.floor((a.paid * SELL_SHARE) / 5) * 5) : SELL[a.type]);
 // What each egg costs, so a hatched animal knows what was paid for it.
-const EGG_PAID = { mystery: 30, rare: 90, dino: 1500, bush: 150, pool: 150, treasure: 300, rainbow: 0 };
+const EGG_PAID = { turkey: 60, mystery: 30, rare: 90, dino: 1500, bush: 150, pool: 150, treasure: 300, rainbow: 0 };
 const animalWord = (type) => (type === 'chicken' ? 'hen' : KINDS[type].name.toLowerCase());
 // The words for saying goodbye: "your hen" for farm animals, "Kip the koala" for the named friends.
 function byeWords(type) {
@@ -116,6 +130,7 @@ export const SHOP = [
   { id: 'lamb', icon: '🐑', name: 'Lamb', price: 150, stars: 15, level: 2, does: 'Feed it and it grows wool to shear and sell.' },
   // Painted farm only (painted: true): hidden from the shop when the painted farm is switched off.
   { id: 'piglet', icon: '🐷', name: 'Piglet', price: 120, stars: 12, level: 2, painted: true, does: `Grows into a pig that snuffles up a truffle every second day you work. Truffles sell for ${GOODS.truffle.price}!` },
+  { id: 'turkeyegg', icon: '🦃', name: 'Turkey egg', price: 60, stars: 6, level: 2, painted: true, does: `Hatches a fluffy baby turkey (a poult). When it grows up it lays turkey eggs (🪙 ${GOODS.turkeyegg.price} each) that you can sell or hatch into more poults!` },
   { id: 'shears', icon: '✂️', name: 'Sheep shears', price: 25, level: 2, building: true, tool: true, does: `You need these to shear your sheep. Every bag of wool sells for ${GOODS.wool.price} coins!` },
   { id: 'strong', icon: '🧱', name: 'Strong fence', price: 80, stars: 8, level: 2, building: true, does: 'Fence repairs last two weeks instead of one.' },
   { id: 'hive', icon: '🐝', name: 'Beehive', price: 120, stars: 10, level: 2, building: true, does: `Busy bees make a jar of honey every 3 days you feed your animals. Honey sells for ${GOODS.honey.price}!` },
@@ -176,7 +191,7 @@ export function freshFarm(today) {
 }
 
 export const grown = (a) => a.growth >= KINDS[a.type].grow;
-const capOf = (f) => { const c = f.built.barn ? { small: 14, sheep: 4, pig: 4, cow: 3, dino: 2 } : { small: 8, sheep: 2, pig: 2, cow: 1, dino: 1 }; if (f.built.coop) c.small += 4; return c; };
+const capOf = (f) => { const c = f.built.barn ? { small: 14, sheep: 4, pig: 4, cow: 3, dino: 2, turkey: 6 } : { small: 8, sheep: 2, pig: 2, cow: 1, dino: 1, turkey: 3 }; if (f.built.coop) c.small += 4; return c; };
 const countOf = (f, group) => f.animals.filter((a) => (group === 'small' ? KINDS[a.type].small : a.type === group)).length;
 const roomFor = (f, type) => {
   const k = KINDS[type];
@@ -291,10 +306,16 @@ export function catchUp(f, today, { gentle = false } = {}) {
   for (let i = 1; i <= gap; i++) {
     const hatchable = f.nest.filter((n) => dayNum(n.day) < dayNum(f.lastDay) + i);
     f.nest = f.nest.filter((n) => !hatchable.includes(n));
-    hatchable.forEach(() => {
-      if (!roomFor(f, 'chicken')) {
+    hatchable.forEach((n) => {
+      if (n.type !== 'turkey' && !roomFor(f, 'chicken')) {
         f.basket.egg = (f.basket.egg || 0) + 1;
         f.events.push({ icon: '🪺', text: "The coop was full, so your nest egg went back in the basket." });
+        return;
+      }
+      if (n.type === 'turkey') {   // a turkey egg from the basket (26 Nov 2026)
+        if (!roomFor(f, 'turkey')) { f.basket.turkeyegg = (f.basket.turkeyegg || 0) + 1; f.events.push({ icon: '🪺', text: 'No room for another turkey, so the turkey egg went back in the basket.' }); return; }
+        f.animals.push({ id: f.nextId++, type: 'turkey', growth: 0 });
+        f.events.push({ icon: '🦃', text: 'Your turkey egg hatched into a fluffy poult!' });
         return;
       }
       f.animals.push({ id: f.nextId++, type: 'chicken', growth: 0 });
@@ -395,7 +416,7 @@ export function createFarm(ctx) {
   const snakeArt = () => (painted() ? W.paintArt('snake', true) : stickerSnake());
   const mode = { on: false, sel: null };          // build mode, and what's picked up
   // Moves: placing, moving or planting one thing. 3 on a day the jobs are done, 1 otherwise, 8 on Saturday (Build Day).
-  const movesMax = (k) => (clock.now().getDay() === 6 ? 8 : ctx.worked(k.id) ? 3 : 1);
+  const movesMax = (k) => (clock.now().getDay() === 6 ? 8 : ctx.worked(k.id) ? 3 : 1) + town.extraMoves();   // + the town clock tower
   // Until a child has finished their one-time set-up (f.world.setupDone), moves are free and unlimited.
   const settingUp = (f) => !f.world?.setupDone;
   const movesLeft = (k) => { const f = farmOf(k.id), w = f.world; return settingUp(f) ? 99 : movesMax(k) - (w && w.movesDay === today() ? w.movesUsed || 0 : 0); };
@@ -411,7 +432,7 @@ export function createFarm(ctx) {
   }
   function worldField(k, f) {
     return W.worldHTML({ f, KINDS, grown, level: f.level, mode, movesLeft: movesLeft(k), coins: balance(k.id), stars: starsLeft(k.id), broken: f.fenceDays === 0,
-      view: pz, full: !!mode.full, animalBtn: (a, style) => animalHTML(f, a, style), needs: (a) => (a.type === 'sheep' && (a.wool || 0) >= 3 ? 2 : a.fedDay !== today() ? 1 : 0) });
+      view: pz, full: !!mode.full, me: f.me ? farmerSVG(f.me) : null, townBtn: true, animalBtn: (a, style) => animalHTML(f, a, style), needs: (a) => (a.type === 'sheep' && (a.wool || 0) >= 3 ? 2 : a.fedDay !== today() ? 1 : 0) });
   }
   function toggleBuild(k, el) {
     const f = farmOf(k.id), fin = el?.dataset.finish;
@@ -523,7 +544,10 @@ export function createFarm(ctx) {
     puff: () => voice('sine', [[200, 520], [620, 260]], 0.15, 0.15, 0.12),
     baa: () => voice('sawtooth', [[520, 480], [500, 460], [480, 420]], 0.13, 0.12, 0.07),
     moo: () => voice('sawtooth', [[190, 120]], 0.9, 0, 0.1),
+    gobble: () => voice('square', [[520, 380], [560, 400], [500, 360], [540, 380], [480, 340]], 0.05, 0.06, 0.06),
     oink: () => voice('sawtooth', [[260, 180], [280, 190]], 0.12, 0.16, 0.08),
+    bell: () => voice('sine', [[880, 880], [660, 660], [880, 880], [660, 660]], 0.35, 0.12, 0.1),
+    tune: () => voice('triangle', [523, 659, 784, 659, 698, 880, 784], 0.14, 0.04, 0.09),
     neigh: () => voice('sawtooth', [[620, 900], [880, 520], [600, 380]], 0.16, 0.1, 0.08),
     coins: () => voice('triangle', [1046, 1318, 1568, 2093], 0.12, 0.07, 0.12),
     crack: () => voice('square', [[300, 120]], 0.06, 0, 0.12),
@@ -712,7 +736,7 @@ export function createFarm(ctx) {
       else if (a.type === 'chicken' || a.type === 'duck') note = '🥚 Eggs';
       else if (a.type === 'pig') note = '🍄 Truffles';
       else if (k.pal) note = k.pal;
-      else note = a.type === 'croc' || a.type === 'komodo' ? '🛡️ Guard' : a.type === 'snake' ? '🐭 Mouse catcher' : '🐛 Bug hunter';
+      else note = a.type === 'croc' || a.type === 'komodo' ? '🛡️ Guard' : a.type === 'snake' ? '🐭 Mouse catcher' : a.type === 'turkey' ? '🦃 Turkey eggs' : '🐛 Bug hunter';
       return `<button class="pal ${hungry ? 'hungry' : ''}" data-action="farm-tap" data-id="${a.id}">
         ${animalArt(a.type, big, a.wool || 0, moodOf(a))}
         <b>${k.who || (big ? k.name : k.baby)}</b>
@@ -785,6 +809,7 @@ export function createFarm(ctx) {
     const goods = Object.entries(f.basket).filter(([, n]) => n > 0);
     const value = goods.reduce((s, [g, n]) => s + priceOf(f, g) * n, 0);
     const canHatch = (f.basket.egg || 0) > 0 && f.nest.length < 2 && roomFor(f, 'chicken');
+    const canTurkey = (f.basket.turkeyegg || 0) > 0 && f.nest.length < 2 && countOf(f, 'turkey') + f.nest.filter((n) => n.type === 'turkey').length < capOf(f).turkey;
     const rainbow = f.rainbowEggs || 0, rainbowRoom = roomFor(f, 'chicken');
     return `
       <div class="farm-coins">🪙 <b>${coins}</b> <span class="farm-stars">⭐ ${starsLeft(k.id)}</span></div>
@@ -804,6 +829,7 @@ export function createFarm(ctx) {
         <div class="basket-btns">
           ${goods.length ? `<button class="farm-btn sell" data-action="farm-sell">Sell for 🪙 ${value}</button>` : ''}
           ${canHatch ? '<button class="farm-btn hatch" data-action="farm-hatch">🪺 Hatch an egg</button>' : ''}
+          ${canTurkey ? '<button class="farm-btn hatch" data-action="farm-hatch-turkey">🦃 Hatch a turkey egg</button>' : ''}
           ${rainbow ? `<button class="farm-btn hatch rainbow" data-action="farm-rainbow" ${rainbowRoom ? '' : 'disabled'}>🌈 ${rainbowRoom ? `Hatch a rainbow egg${rainbow > 1 ? ` (${rainbow})` : ''}` : 'Rainbow egg: no room (build the big barn)'}</button>` : ''}
         </div>
       </div>
@@ -903,6 +929,7 @@ export function createFarm(ctx) {
   }
 
   function bodyHTML(k) {
+    if (mode.town) return town.bodyHTML(k);
     const f = farmOf(k.id);
     // Full screen (painted farm only): just the field, over the whole screen, with the farm time left in the corner.
     if (painted() && mode.full) return `<div class="farm w2-full"><div class="farm-left">${worldField(k, f)}</div><div class="session-chip w2-time">${esc(ctx.sessionText?.() || '⏳')}</div></div>`;
@@ -1251,6 +1278,7 @@ export function createFarm(ctx) {
       }
       if (a.type === 'duck') { f.basket.duckegg = (f.basket.duckegg || 0) + (f.built.pond ? 2 : 1); laid++; }
       if (a.type === 'sheep') a.wool = Math.min(3, (a.wool || 0) + 1);
+      if (a.type === 'turkey' && (a.lays = (a.lays || 0) + 1) % 2 === 0) { f.basket.turkeyegg = (f.basket.turkeyegg || 0) + 1; msgs.push('Gobble! Your turkey laid a big turkey egg! 🦃'); }
       if (a.type === 'pig' && (a.digs = (a.digs || 0) + 1) % 2 === 0) { f.basket.truffle = (f.basket.truffle || 0) + 1; msgs.push('Your pig found a truffle! 🍄'); }
       if (a.type === 'cow' && !f.built.bottles) { if (!msgs.includes(NEED_BOTTLES)) msgs.push(NEED_BOTTLES); continue; }
       if (a.type === 'cow') {
@@ -1401,6 +1429,19 @@ export function createFarm(ctx) {
     ctx.toast('🪺 Your egg is in the nest. It hatches tomorrow!');
   }
 
+  // A turkey egg from the basket goes in the nest and hatches tomorrow (26 Nov 2026).
+  function hatchTurkey(k) {
+    const f = farmOf(k.id);
+    const waiting = f.nest.filter((n) => n.type === 'turkey').length;
+    if (!(f.basket.turkeyegg > 0) || f.nest.length >= 2 || countOf(f, 'turkey') + waiting >= capOf(f).turkey) return;
+    f.basket.turkeyegg--;
+    f.nest.push({ day: today(), type: 'turkey' });
+    save();
+    ctx.renderKid();
+    ctx.speak('Your turkey egg is in the nest. It will hatch tomorrow!');
+    ctx.toast('🪺 Your turkey egg is in the nest. It hatches tomorrow!');
+  }
+
   function tapAnimal(k, el) {
     const f = farmOf(k.id);
     const a = f.animals.find((x) => x.id === Number(el.dataset.id));
@@ -1454,7 +1495,7 @@ export function createFarm(ctx) {
           const landNow = W.landOf(f.world);
           const owned = (it.building && f.built[it.id] && !cost.invite) || (it.land && landNow >= it.land);
           const needs = (it.needs && !f.built[it.needs]) || (it.land && landNow < it.land - 1) || (it.minLand && landNow < it.minLand);
-          const full = ((it.id === 'egg' || it.id === 'rareegg') && !roomFor(f, 'chicken')) || (it.id === 'dinoegg' && !roomFor(f, 'dino')) || (it.id === 'lamb' && !roomFor(f, 'sheep')) || (it.id === 'calf' && !roomFor(f, 'cow')) || (it.id === 'piglet' && !roomFor(f, 'pig'));
+          const full = ((it.id === 'egg' || it.id === 'rareegg') && !roomFor(f, 'chicken')) || (it.id === 'dinoegg' && !roomFor(f, 'dino')) || (it.id === 'lamb' && !roomFor(f, 'sheep')) || (it.id === 'calf' && !roomFor(f, 'cow')) || (it.id === 'piglet' && !roomFor(f, 'pig')) || (it.id === 'turkeyegg' && !roomFor(f, 'turkey'));
           const allHatched = it.egg && !needs && !missingOf(f, it.egg).length;
           const noDuck = it.needsDuck && !f.animals.some((a) => a.type === 'duck');
           if (it.sell) {
@@ -1524,6 +1565,7 @@ export function createFarm(ctx) {
     if (it.land && (W.layout(f, KINDS).w.land || 0) !== it.land - 1) return; // one land at a time, never twice
     if (it.minLand && W.landOf(f.world) < it.minLand) return;
     if (it.id === 'piglet' && !roomFor(f, 'pig')) return;
+    if (it.id === 'turkeyegg' && !roomFor(f, 'turkey')) return;
     const cost = costOf(f, it);
     if (balance(k.id) < cost.price) {
       ctx.speak(`You need ${cost.price - balance(k.id)} more coins. Do some jobs to earn them!`, true);
@@ -1559,6 +1601,12 @@ export function createFarm(ctx) {
       ctx.speak(`You bought the ${it.name.toLowerCase()}! Your farm has lots more room now. Tap Build to spread things out.`);
       ctx.toast(`${it.icon} ${it.name}! Your paddock is bigger, with new things all around it. Everything is right where you left it.`);
     }
+    else if (id === 'turkeyegg') {
+      f.animals.push({ id: f.nextId++, type: 'turkey', growth: 0, paid: it.price });
+      SOUNDS.gobble(); ctx.burst(null, 20);
+      ctx.speak('Crack! A fluffy baby turkey! Feed it and it grows into a turkey.');
+      ctx.toast('🦃 A fluffy baby turkey hatched! Feed it to help it grow.');
+    }
     else if (id === 'lamb' || id === 'calf' || id === 'piglet') {
       const type = id === 'lamb' ? 'sheep' : id === 'piglet' ? 'pig' : 'cow';
       f.animals.push({ id: f.nextId++, type, growth: 0, paid: it.price });
@@ -1580,8 +1628,10 @@ export function createFarm(ctx) {
   async function opened(k, { gift = true } = {}) {
     const f = farmOf(k.id);
     if (catchUp(f, today(), { gentle: isGentle(k.id) })) { save(); ctx.renderKid(); }
-    mode.on = false; mode.sel = null; mode.asking = false; mode.full = false;
+    mode.on = false; mode.sel = null; mode.asking = false; mode.full = false; mode.town = false;
+    town.reset();   // a town or a visit left open by the last child never carries over
     pz.u = 1; pz.x = 0; pz.y = 0;
+    ctx.renderKid();
     if (painted() && growCrops(k, f)) { save(); ctx.renderKid(); ctx.toast('🧺 Your crops are ready to pick!'); }
     await showNews(f);
     if (f.gift && gift) {
@@ -1603,6 +1653,7 @@ export function createFarm(ctx) {
       case 'farm-fix': return fixTrouble(k, Number(el.dataset.t));
       case 'farm-sell': return sellAll(k);
       case 'farm-hatch': return hatchEgg(k);
+      case 'farm-hatch-turkey': return hatchTurkey(k);
       case 'farm-rainbow': return hatchRainbow(k);
       case 'farm-tap': return tapAnimal(k, el);
       case 'farm-zoom': return painted() ? pzBy(el.dataset.z === 'in' ? 1.5 : 1 / 1.5) : zoomBy(el.dataset.z === 'in' ? 1.5 : 1 / 1.5);
@@ -1614,11 +1665,14 @@ export function createFarm(ctx) {
         return;
       }
       case 'farm-shop': return openShop(k);
+      case 'farm-town': mode.town = true; mode.on = false; mode.full = false; return town.opened(k);
+      case 'farm-town-home': mode.town = false; ctx.renderKid(); return ctx.speak('Back to your farm!', true);
       case 'farm-build': return toggleBuild(k, el);
       case 'farm-pick': return pick(k, el);
       case 'farm-tile': return placeAt(k, Number(el.dataset.i), Number(el.dataset.j));
       case 'farm-bed': return harvest(k, el.dataset.bed);
       case 'farm-buy': return buy(k, el.dataset.item);
+      default: if (a.startsWith('farm-town-')) return town.action(a, el, k); break;
       case 'farm-gift': {
         const f = farmOf(k.id);
         if (!f.gift) return;
@@ -1629,5 +1683,14 @@ export function createFarm(ctx) {
     }
   }
 
-  return { starsLeft, bodyHTML, miniHTML, tallyHTML, goalText, previewIcons, hungryCount, balance, action, opened, farmOf, catchUp: (id) => catchUp(farmOf(id), today(), { gentle: isGentle(id) }) };
+  // 🏘️ The Town Square (26 Nov 2026, js/town.js): shares the farm's coins, basket and sounds.
+  const town = createTown({ ctx, state, esc, farmOf, balance, starsLeft, save, today, GOODS, priceOf, overlay,
+    sound: (name) => (name === 'pop' ? ctx.pop() : SOUNDS[name]?.()),
+    fieldFor: (fx) => W.worldHTML({ f: fx, KINDS, grown, level: fx.level, mode: { on: false }, movesLeft: 0, coins: 0, stars: 0, broken: false,
+      view: { u: 1, x: 0, y: 0 }, full: false, me: fx.me ? farmerSVG(fx.me) : null, animalBtn: (a, style) => animalHTML(fx, a, style), needs: () => 0 }),
+  });
+  const townPiece = (kidId, kind) => town.addPiece(kidId, kind);
+  const title = (k) => (mode.town ? town.title(k) : null);
+
+  return { title, townPiece, starsLeft, bodyHTML, miniHTML, tallyHTML, goalText, previewIcons, hungryCount, balance, action, opened, farmOf, catchUp: (id) => catchUp(farmOf(id), today(), { gentle: isGentle(id) }) };
 }

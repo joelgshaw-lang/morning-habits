@@ -110,10 +110,10 @@ const homeFor = (type, KINDS, built) => {
 const HERD_SPOTS = { 1: [[0.6, 0.6]], 2: [[0.6, 0.6], [1.5, 0.75], [0.75, 1.5], [1.6, 1.65]] };
 
 // ---------- painted animal pictures ----------
-const BABY = { komodo: 'komodobaby', pig: 'piglet', chicken: 'chick', duck: 'duckling', sheep: 'lamb', cow: 'calf', lizard: 'lizardbaby', croc: 'crocbaby', snake: 'snakebaby', dino: 'dinobaby' };
+const BABY = { turkey: 'poult', komodo: 'komodobaby', pig: 'piglet', chicken: 'chick', duck: 'duckling', sheep: 'lamb', cow: 'calf', lizard: 'lizardbaby', croc: 'crocbaby', snake: 'snakebaby', dino: 'dinobaby' };
 const IMG = { chicken: 'hen', roo: 'roojoey' };
 // How wide each grown animal is on the farm, in squares.
-const WIDE = { komodo: 0.9, pig: 0.62, chicken: 0.4, duck: 0.4, sheep: 0.62, cow: 0.85, lizard: 0.55, snake: 0.5, croc: 0.85, dino: 0.8, koala: 0.5, roo: 0.55, wombat: 0.62,
+const WIDE = { turkey: 0.55, komodo: 0.9, pig: 0.62, chicken: 0.4, duck: 0.4, sheep: 0.62, cow: 0.85, lizard: 0.55, snake: 0.5, croc: 0.85, dino: 0.8, koala: 0.5, roo: 0.55, wombat: 0.62,
   platypus: 0.62, kookaburra: 0.42, echidna: 0.55, crab: 0.5, squid: 0.42, turtle: 0.6, puffer: 0.45, octopus: 0.52, manta: 0.7 };
 
 /** Same call as animalArt() in farm-art.js, so the farm can swap one for the other. */
@@ -312,6 +312,9 @@ export function worldHTML(env) {
     taken.n += KINDS[type].group === 'sea' ? 1 : 0;
     if (spots.length) html += groupHTML(list, type, p.i, p.j, spots, g, env, HOMES[h].inside ? Math.round((p.i + p.j + 2 * p.s) * 100) : 0);
   }
+  // 🧑‍🌾 The child's own farmer (26 Nov 2026) stands by the farmhouse and strolls a little.
+  const home = pieces.find((p) => p.id === 'home');
+  if (env.me && home) html += `<div class="w2-me" style="${g.at(home.i + home.s + 0.35, home.j + home.s - 0.25, 0.02)};${g.wide(0.6)};z-index:${Math.round((home.i + home.j + 2 * home.s + 0.6) * 100)}">${env.me}</div>`;
   const glow = targets(env, w, pieces, used).map(([i, j]) => `<i class="w2-tile" data-action="farm-tile" data-i="${i}" data-j="${j}" style="${g.at(i + 0.5, j + 0.5)}"></i>`).join('');
   const ready = ripeBeds(f).length;
   const view = env.view || { u: 1, x: 0, y: 0 };
@@ -326,6 +329,7 @@ export function worldHTML(env) {
       ${!f.animals.length ? '<div class="field-empty w2-empty">Your farm is waiting!<br>Get a 🥚 mystery egg from the 🛒 shop.</div>' : ''}
       ${mode.on ? '' : `<div class="w2-hud">
         <button class="w2-btn${w.setupDone ? '' : ' ready'}" data-action="farm-build">🔨 ${w.setupDone ? `Build <small>${Math.max(0, env.movesLeft)} move${env.movesLeft === 1 ? '' : 's'}</small>` : 'Set up my farm'}</button>
+        ${env.townBtn ? '<button class="w2-btn w2-town" data-action="farm-town">🏘️ Town</button>' : ''}
         ${ready ? `<button class="w2-btn ready" data-action="farm-bed" data-bed="all">🧺 Pick ${ready > 1 ? 'everything' : 'it'}</button>` : ''}
         ${tight ? `<button class="w2-btn w2-hint" data-action="farm-shop">🌾 Getting crowded! ${nextLand.name} is in the 🛒 shop</button>` : ''}</div>`}
       <div class="w2-view">

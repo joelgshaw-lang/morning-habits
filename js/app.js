@@ -135,6 +135,7 @@ async function refreshSummary() {
   if (!state.practice) state.practice = (await kvGet('practice')) || {};
   if (!state.grow) state.grow = (await kvGet('grow')) || {}; // 🌱 memory verses, plans, picture-it (grow.js) // 🏋️ practice drills: gold shards per child (portal.js)
   if (!state.farms) state.farms = (await kvGet('farms')) || {};
+  if (!state.town) state.town = (await kvGet('town')) || { done: [], cur: null };   // 🏘️ the shared Town Square (js/town.js)
   await quick.growBonus(); // 🌱 fewer hard moments than the day before = bonus coins today
 }
 const farm = createFarm({
@@ -180,6 +181,7 @@ const grow = createGrow({
 // gold = a finished prayer timer, silver = a finished morning or night routine (once each a day),
 // a gem or wood / hay / stubble = a front-board moment a grown-up kept at night (quick.js).
 function sendToRock(kidId, item) {
+  try { farm.townPiece(kidId, item.kind); } catch {}   // 🏘️ gold, silver and gems also go in the child's town bag (26 Nov 2026, js/town.js)
   try { const key = `rock.inbox.${kidId}`, list = JSON.parse(localStorage.getItem(key) || '[]'); list.push({ t: clock.now().toISOString(), ...item }); localStorage.setItem(key, JSON.stringify(list)); } catch {}
 }
 // The grown-ups test space: the same game with endless blocks, Fire now and Start again, saved apart from the children.
@@ -1157,7 +1159,7 @@ function renderFarmScreen(k) {
       <header class="top">
         <button class="btn back" data-action="home" aria-label="Back to the family board">🏠</button>
         <div class="me">${k.avatar || '🙂'}</div>
-        <div class="hello"><h1>🐔 ${esc(k.name)}'s farm</h1><p>Feed your animals, sell what they make, and grow your farm!</p></div>
+        <div class="hello">${farm.title(k) ? `<h1>${esc(farm.title(k))}</h1><p>Build the town together, make things at your stall, dress up your farmer!</p>` : `<h1>🐔 ${esc(k.name)}'s farm</h1><p>Feed your animals, sell what they make, and grow your farm!</p>`}</div>
         <div class="chips">
           <div class="session-chip" title="Farm time left">⏳ ${clock.fmtDuration(sessionLeft(k.id))}</div>
           <div class="coin-chip">🪙 ${coinsOf(k.id)} · ⭐ ${farm.starsLeft(k.id)} · 🔥 ${streakOf(k.id)}</div>

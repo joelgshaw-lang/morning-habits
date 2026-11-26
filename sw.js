@@ -1,6 +1,6 @@
 // Offline support: serve from cache first, refresh the cache in the background.
 // Bump VERSION when you deploy a change so old files are cleared.
-const VERSION = 'v81';   // (26 Nov 2026) Build on the Rock: tap a spot, then choose the piece (or piece first, or Lay them for me)
+const VERSION = 'v82';   // (26 Nov 2026) Town Square, my farmer, turkeys, market stall
 const CACHE = `morning-${VERSION}`;
 // The app itself. An update only installs if every one of these downloads, so keep this list short.
 const ASSETS = [
@@ -17,6 +17,8 @@ const ASSETS = [
   './js/farm.js',
   './js/farm-art.js',
   './js/farm-world.js',
+  './js/town.js',
+  './js/avatar.js',
   './js/portal.js',
   './js/quick.js',
   './js/grow.js',
@@ -69,6 +71,19 @@ const ART = [
   './farm-art/a-turtle.webp',
   './farm-art/a-wombat.webp',
   './farm-art/barn.webp',
+  './farm-art/a-turkey.webp',
+  './farm-art/a-poult.webp',
+  './farm-art/ground-town.jpg',
+  './farm-art/t-stall.webp',
+  './farm-art/t-dress.webp',
+  './farm-art/t-bakery.webp',
+  './farm-art/t-church.webp',
+  './farm-art/t-bandstand.webp',
+  './farm-art/t-clock.webp',
+  './farm-art/t-site.webp',
+  './farm-art/t-frame.webp',
+  './farm-art/t-gate.webp',
+  './farm-art/t-board.webp',
   './farm-art/burrow.webp',
   './farm-art/carrots.webp',
   './farm-art/coop.webp',
