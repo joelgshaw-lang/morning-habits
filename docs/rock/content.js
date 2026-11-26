@@ -610,6 +610,11 @@
       'Red door', 'Blue door', 'Green door', 'Flag', 'Flower box', 'Climbing vine', 'Lantern', 'Bell',
       'Weathervane', 'Chimney smoke', 'Welcome mat', 'Bird nest', 'Fruit tree', 'Stepping stones', 'Little well',
       'Garden bench', 'Bunting', 'Sleeping cat', 'Letterbox', 'Round window', 'Star on the roof', 'Rainbow glass'
+    ],
+    /* (26 Nov 2026, round 4) page 2 of the sticker book, once the first 22 are earned: the garden and its animals */
+    stickers2: [
+      'Sunflower', 'Ladybird', 'Bumblebee', 'Butterfly', 'Snail', 'Hedgehog', 'Rabbit', 'Duck', 'Frog', 'Owl', 'Robin',
+      'Squirrel', 'Tulip', 'Mushroom', 'Strawberry', 'Carrot', 'Pumpkin', 'Apple tree', 'Acorn', 'Sheep', 'Turtle', 'Watering can'
     ]
   };
 
@@ -1405,7 +1410,7 @@
       toChild: 'They are not ready yet. That\'s okay. You did your part, so you can pull the hay out. Keep being kind, and try again later.',   // (26 Nov 2026, round 1) the child's part counts (round 2: after a grown-up says they tried)
       toOther: 'You don\'t have to be ready yet. Tell us when you are.',
       grownUpAsk: 'Grown-up: did you see them try to make it right?', grownUpYes: 'Yes, they tried', grownUpNo: 'Not yet',   // (26 Nov 2026, round 2) closes the loophole; (round 3) a coach, not a judge
-      grownUpSay: 'You went and tried. That was brave. Being forgiven can take time.',   // (26 Nov 2026, round 3) a line for the grown-up to say
+      grownUpSay: 'You went and tried. That was brave. Jesus has forgiven you. {sibling} may need a little more time.',   // (26 Nov 2026, round 3) a line for the grown-up to say; (round 4) Jesus is never slow to forgive
       notYet: 'A grown-up can help you try. The hay can wait.',
       later: 'Would you like to try again with {sibling} now?',
       note: 'The child\'s part counts: they can still pull the hay out. Nobody is hurried into saying "I forgive you".' },   // (26 Nov 2026, round 1)

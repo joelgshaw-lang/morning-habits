@@ -180,7 +180,8 @@ test('small fire: each straw burns to a hole and knocks the stone on it to rubbl
   assert.deepEqual([f.size, f.burns, f.knocks, f.caveIn], ['small', 2, 1, false]);
   assert.equal(R.summary(s).slots.straw, 2, 'forecast changes nothing');
   var ev = R.fire(s);
-  assert.deepEqual(kinds(ev), ['burn', 'knock', 'burn']);
+  assert.deepEqual(kinds(ev), ['burn', 'knock', 'burn', 'sticker']);   // (26 Nov 2026, round 4) the first real fire: the "Brave" sticker
+  assert.equal(ev[3].ms, 'firstFire');
   assert.equal(ev.size, 'small');
   assert.equal(R.at(s, 'front', 0, 0), null); assert.equal(R.at(s, 'front', 0, 1), null);
   assert.equal(R.at(s, 'front', 0, 2).t, 't', 'only the stone directly above moves');
@@ -286,7 +287,8 @@ test('seal: complete + no straw + fire -> City, new blueprint, tray carries over
   R.autoPlace(s);
   assert(R.isComplete(s)); assert.equal(s.tray.length, 8);
   var ev = R.fire(s);
-  assert.deepEqual(kinds(ev), ['crown', 'seal']);
+  assert.deepEqual(kinds(ev), ['crown', 'seal', 'sticker']);   // (26 Nov 2026, round 4) the first sealed building: "It lasts"
+  assert.equal(ev[2].ms, 'firstSealed');
   var b = ev[1].building;
   assert.equal(b.stars, 2); assert.equal(b.name, 'Cottage'); assert.equal(b.layout.front[2].length, 3);
   assert.equal(s.city.length, 1); assert.equal(s.tray.length, 8, 'leftovers carried over');
@@ -1449,10 +1451,11 @@ test('walls that stand through a fire: counted once per building, a sticker ever
   fillWall(s, 'left'); fillWall(s, 'right');
   var ev = R.fire(s);
   assert.equal(s.stats.wallsStood, 2, 'two full walls stood'); assert.equal(kinds(ev).filter(function (k) { return k === 'wallStood'; }).length, 2);
-  assert.equal(s.stickers.length, 0, 'no sticker yet at 2');
+  var plain = function () { return s.stickers.filter(function (x) { return !x.ms; }).length; };   // (26 Nov 2026, round 4) milestone stickers counted apart
+  assert.equal(plain(), 1, 'the first wall that stands gives a sticker (round 4); none more at 2');
   newDay(s); R.fire(s); assert.equal(s.stats.wallsStood, 2, 'the same walls never count twice');
   fillWall(s, 'front'); newDay(s); ev = R.fire(s);
-  assert.equal(s.stats.wallsStood, 3); assert.equal(s.stickers.length, 1, 'third wall: a sticker'); assert(kinds(ev).indexOf('sticker') >= 0);
+  assert.equal(s.stats.wallsStood, 3); assert.equal(plain(), 2, 'third wall: a sticker'); assert(kinds(ev).indexOf('sticker') >= 0);
   /* a wall that falls does not count */
   var t = kid(8); fillWall(t, 'left'); for (var i = 0; i < R.summary(t).fallAt; i++) set(t, 'left', i, 0, 'W');
   R.fire(t); assert.equal(t.stats.wallsStood, 0, 'a fallen wall did not stand');
@@ -1475,7 +1478,7 @@ test('family walls: added up from every child, a landmark piece every 10 (26 Nov
   var a = kid(6), b = kid(8), c = kid(12); a.stats.wallsStood = 4; b.stats.wallsStood = 9; c.stats.wallsStood = 10;
   var f = R.familyWalls([a, b, c, null]);
   assert.equal(f.walls, 23); assert.equal(f.pieces, 2); assert.equal(f.next, 30);
-  assert.deepEqual(R.familyWalls([]), { walls: 0, pieces: 0, next: 10 });
+  assert.deepEqual(R.familyWalls([]), { walls: 0, pieces: 0, bonus: 0, next: 10 });
 });
 test('pearl stories: each bale put right is remembered (what it was, how), and the building counts it (26 Nov 2026, round 3)', function () {
   var s = kid(8); C.pullNeedsForgive = true; C.pullNeedsMadeRight = true; C.pullsPerDay = 3;
@@ -1510,5 +1513,61 @@ test('Put 10 back goes to the wall that fell first (26 Nov 2026, round 3)', func
   var s = kid(8); for (var i = 0; i < 5; i++) s.rubble.push({ id: 900 + i, t: 'S', seq: i });
   var ev = R.putBack(s, 3, 'right').events; assert.equal(ev.length, 3);
   assert(ev.every(function (e) { return e.wall === 'right'; }));
+});
+/* ---- (26 Nov 2026, round 4) ---- */
+function fallWall(s, w) { for (var i = 0; i < R.summary(s).fallAt; i++) s.walls[w][i][0] = { id: s.nextId++, t: 'W', seq: ++s.seq }; }
+test('a wall that fell and stands again counts again, and the first one back is "A rebuilder" (26 Nov 2026, round 4)', function () {
+  var s = kid(8); fillWall(s, 'left'); R.fire(s); assert.equal(s.stats.wallsStood, 1); assert(s.build.stood.left);
+  newDay(s); fallWall(s, 'left'); R.fire(s);
+  assert(!s.build.stood.left, 'stood is reset when the wall falls'); assert(s.build.fell.left);
+  newDay(s); newDay(s); fillWall(s, 'left'); var ev = R.fire(s);
+  assert.equal(s.stats.wallsStood, 2, 'standing again counts again');
+  assert(ev.some(function (e) { return e.kind === 'sticker' && e.ms === 'rebuilt'; }), 'A rebuilder');
+  newDay(s); fallWall(s, 'left'); R.fire(s); newDay(s); newDay(s); fillWall(s, 'left'); R.fire(s);
+  assert.equal(s.stickers.filter(function (x) { return x.ms === 'rebuilt'; }).length, 1, 'a milestone only once ever');
+});
+test('milestone stickers: Brave at the first real fire (not practice), once ever; the first wall gives a plain sticker (26 Nov 2026, round 4)', function () {
+  C.practiceFirstFire = true;
+  var s = kid(8); var ev = R.fire(s); assert(ev.practice, 'practice fire');
+  assert(!s.stickers.some(function (x) { return x.ms === 'firstFire'; }), 'no Brave sticker for the practice fire');
+  newDay(s); ev = R.fire(s); assert(ev.some(function (e) { return e.ms === 'firstFire'; }));
+  newDay(s); R.fire(s); assert.equal(s.stickers.filter(function (x) { return x.ms === 'firstFire'; }).length, 1);
+  var t = kid(8); C.practiceFirstFire = false; fillWall(t, 'right'); R.fire(t);
+  var pl = t.stickers.filter(function (x) { return !x.ms; }); assert.equal(pl.length, 1, 'first wall: a plain sticker'); assert.equal(pl[0].k, 0);
+});
+test('Forgiven and A mender stickers come with the first pearl; "tried" gives Forgiven only (26 Nov 2026, round 4)', function () {
+  C.pullNeedsForgive = true; C.pullNeedsMadeRight = true; C.pullsPerDay = 3;
+  var s = kid(8); set(s, 'left', 0, 0, 'W'); set(s, 'left', 1, 0, 'W');
+  R.forgive(s, 'left', 0, 0); R.markMadeRight(s, 'left', 0, 0, 'tried'); var ev = R.pull(s, 'left', 0, 0).events;
+  assert.equal(ev[0].kind, 'pull', 'the pull event stays first');
+  assert.deepEqual(s.stickers.map(function (x) { return x.ms; }), ['firstPearl']);
+  R.forgive(s, 'left', 1, 0); R.markMadeRight(s, 'left', 1, 0, 'grown-up'); R.pull(s, 'left', 1, 0);
+  assert.deepEqual(s.stickers.map(function (x) { return x.ms; }), ['firstPearl', 'firstPullOut']);
+});
+test('sticker book page 2: plain stickers keep counting k past 22 (26 Nov 2026, round 4)', function () {
+  var t = kid(8); for (var j = 0; j < 23; j++) t.stickers.push({ n: j, k: j, day: 1, at: null }); t.stickers.push({ n: 23, ms: 'firstFire', day: 1, at: null });
+  t.stats.wallsStood = 2; fillWall(t, 'left'); R.fire(t);
+  var last = t.stickers[t.stickers.length - 1]; assert.equal(last.n, 24); assert.equal(last.k, 23, 'k counts plain stickers only: the 24th plain one is page 2');
+});
+test('Mended keeps the first story and the full count (26 Nov 2026, round 4)', function () {
+  C.pullNeedsForgive = false; C.pullNeedsMadeRight = false; C.pullsPerDay = 999;
+  var s = kid(8);
+  for (var i = 0; i < 70; i++) { set(s, 'left', 0, 0, 'W'); s.walls.left[0][0].m = { label: 'Story ' + i }; assert(R.pull(s, 'left', 0, 0).ok); }
+  assert.equal(s.stats.mendedTotal, 70); assert.equal(s.stories.length, 60); assert.equal(s.stories[0].hay, 'Story 0', 'the first story is kept');
+  assert.equal(s.stories[59].hay, 'Story 69');
+  var old = kid(8); old.stories = [{ day: 1, hay: 'hay', how: 'mended' }, { day: 2, hay: 'hay', how: 'mended' }]; delete old.stats.mendedTotal; R.summary(old);
+  assert.equal(old.stats.mendedTotal, 2, 'an old save counts its stories');
+});
+test('family walls with the challenge bonus: one landmark piece for each month done (26 Nov 2026, round 4)', function () {
+  var a = kid(6); a.stats.wallsStood = 12;
+  var f = R.familyWalls([a], 2); assert.equal(f.walls, 12); assert.equal(f.pieces, 3); assert.equal(f.bonus, 2); assert.equal(f.next, 20, 'next is still counted in walls');
+  assert.equal(R.familyWalls([a], -1).pieces, 1);
+});
+test('Lay them for me skips the blueprint special piece: the child places it (26 Nov 2026, round 4)', function () {
+  var s = kid(8); s.tray.push({ id: s.nextId++, t: 'C', c: 'special', m: { label: 'The lamp room', special: 1 } }); R.addPiece(s, 'S'); R.addPiece(s, 'G');
+  var ev = R.autoPlace(s, true).events;
+  assert(ev.length >= 2); assert(ev.every(function (e) { return e.piece.c !== 'special'; }));
+  assert.equal(s.tray.length, 1); assert.equal(s.tray[0].c, 'special');
+  on('autoLayAtNight'); R.addPiece(s, 'S'); R.endDay(s); assert.equal(s.tray.length, 1, 'not laid at night either'); assert.equal(s.tray[0].c, 'special');
 });
 console.log(passed + ' tests passed' + (process.exitCode ? ', SOME FAILED' : ''));

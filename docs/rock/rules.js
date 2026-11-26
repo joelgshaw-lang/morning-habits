@@ -179,6 +179,7 @@
     if (!state.stories) state.stories = [];         // (26 Nov 2026, round 3) pearl stories: what was put right
     if (state.stats && state.stats.wallsStood == null) state.stats.wallsStood = 0;
     if (state.build && !state.build.stood) state.build.stood = {};
+    if (state.stats && state.stats.mendedTotal == null) state.stats.mendedTotal = state.stories.length;   // (26 Nov 2026, round 4) every time it was put right, not just the stories kept
     return state;
   }
   function fairOf(state) { return ensure(state).fair; }
@@ -566,7 +567,7 @@
   function autoLay(state, trayOnly, prefer, rubbleMax) {
     var ev = [], put = 0;
     for (;;) {
-      var ti = -1; for (var q = 0; q < state.tray.length; q++) if (state.tray[q].t !== 'W') { ti = q; break; }   // (26 Nov 2026, round 3) never lays straw (test blocks)
+      var ti = -1; for (var q = 0; q < state.tray.length; q++) if (state.tray[q].t !== 'W' && state.tray[q].c !== 'special') { ti = q; break; }   // (26 Nov 2026, round 3) never lays straw (test blocks); (round 4) nor a blueprint's special piece: the child places it
       var useTray = rubbleMax == null && ti >= 0;   // rubbleMax (26 Nov 2026, round 2): "Put 10 back" lays fallen blocks only
       if (rubbleMax != null && put >= rubbleMax) break;
       if (!useTray && (trayOnly || !state.rubble.length || state.today.rubble >= rubbleCap(state))) break;
@@ -643,6 +644,15 @@
     if (out != null) e.out = out;
     return { ok: true, events: [e] };
   }
+  /* (26 Nov 2026, round 4) stickers. A plain sticker for walls that stood ({n, k, day, at}: k = its place in the book, page 2 after 22).
+     A milestone sticker ({n, ms, day, at}) once ever for each content.js milestone id the rules can see (drawn gold). */
+  function giveSticker(state, ev, ms) {
+    ensure(state);
+    if (ms && state.stickers.some(function (x) { return x.ms === ms; })) return;
+    var st = { n: state.stickers.length, day: state.day, at: null };
+    if (ms) st.ms = ms; else st.k = state.stickers.filter(function (x) { return !x.ms; }).length;
+    state.stickers.push(st); var e = { kind: 'sticker', n: st.n }; if (ms) e.ms = ms; ev.push(e);
+  }
   /* placeSticker(state, i, wall, col, row, out?) (26 Nov 2026, round 3): stick sticker i from the book onto a good laid block
      (gold, silver, a gem, a pearl or a crafted block; never straw). One sticker per block; a placed sticker stays where it is. */
   function placeSticker(state, i, wall, col, row, out) {
@@ -662,9 +672,10 @@
   }
   /* familyWalls(list) (26 Nov 2026, round 3): add up the walls that stood from every child's state. Never ranked.
      -> { walls, pieces (landmark pieces earned), next (walls at the next piece) } */
-  function familyWalls(list) {
+  function familyWalls(list, bonus) {
     var n = 0; (list || []).forEach(function (s) { if (s && s.stats) n += s.stats.wallsStood || 0; });
-    var per = CONFIG.familyWallsPer; return { walls: n, pieces: Math.floor(n / per), next: (Math.floor(n / per) + 1) * per };
+    var per = CONFIG.familyWallsPer, b = Math.max(0, bonus || 0);   // (26 Nov 2026, round 4) bonus: months the family did its challenge (a grown-up's tap), one piece each
+    return { walls: n, pieces: Math.floor(n / per) + b, bonus: b, next: (Math.floor(n / per) + 1) * per };
   }
   /* putBack(state, n) (26 Nov 2026, round 2): "Put 10 back": up to n fallen blocks go back in, inside today's limit. Never tray pieces. */
   function putBack(state, n, prefer) { return { ok: true, events: autoLay(state, false, prefer || null, Math.max(0, n || 0)) }; }   // prefer (26 Nov 2026, round 3): the wall that fell first
@@ -721,9 +732,12 @@
     if (state.today.pulls >= pullCap(state)) return fail('pullCap');
     state.today.pulls++; state.stats.pearls++; state.build.pearls++; state.build.mended = (state.build.mended || 0) + 1;
     ensure(state); state.stories.push({ day: state.day, date: (opt && opt.date) || null, hay: String((p.m && p.m.label) || (p.m && p.m.material) || 'hay').slice(0, 48), how: p.madeRight === 'tried' ? 'tried' : 'mended' });   // (26 Nov 2026, round 3) a pearl story
-    if (state.stories.length > 60) state.stories.shift();
+    if (state.stories.length > 60) state.stories.splice(1, 1);   // (26 Nov 2026, round 4) the first story is always kept
     (state.stats.putRightDays || (state.stats.putRightDays = [])).push(state.day); if (state.stats.putRightDays.length > 60) state.stats.putRightDays.shift();   // (26 Nov 2026, round 2) for "Put right this month"
-    var ev = { kind: 'pull', wall: wall, col: col, row: row, settled: [] };
+    state.stats.mendedTotal = (state.stats.mendedTotal || 0) + 1;   // (26 Nov 2026, round 4)
+    var ev = { kind: 'pull', wall: wall, col: col, row: row, settled: [] }, more = [];
+    giveSticker(state, more, 'firstPearl');                                    // (26 Nov 2026, round 4) "Forgiven": the first pearl
+    if (p.madeRight !== 'tried') giveSticker(state, more, 'firstPullOut');     // "A mender": the first time it was made right with the other person
     if (CONFIG.pullMode === 'pearlSlot') {
       put(state, wall, col, row, { id: state.nextId++, t: 'P', seq: ++state.seq });
     } else {
@@ -738,7 +752,7 @@
       state.seams.push({ wall: wall, col: col, row: row });
     }
     ev.wobble = wobble(state)[wall];
-    return { ok: true, events: [ev] };
+    return { ok: true, events: [ev].concat(more) };
   }
 
   /* wobble(state) -> {front,left,right}: 0 steady, 1 sways, 2 leans (it will fall at the next fire). */
@@ -1046,13 +1060,19 @@
     if (ev.size === 'clean' || ev.size === 'small') state.stats[ev.size]++;
     /* (26 Nov 2026, round 3) a full wall that stands through a fire counts once per building; every 3 such walls earns a sticker */
     ensure(state);
+    /* (26 Nov 2026, round 4) a wall that fell can stand again and count again (and the first one back is "A rebuilder");
+       the very first wall that stands gives a sticker too; the first real fire is "Brave" */
+    if (!state.build.fell) state.build.fell = {};
+    WALLS.forEach(function (w) { if (caveIn || falling.indexOf(w) >= 0) { delete state.build.stood[w]; state.build.fell[w] = true; } });
+    if (!practice) giveSticker(state, ev, 'firstFire');
     fullBefore.forEach(function (w) {
       if (caveIn || falling.indexOf(w) >= 0 || state.build.stood[w]) return;
       state.build.stood[w] = true; state.stats.wallsStood++;
       ev.push({ kind: 'wallStood', wall: w, total: state.stats.wallsStood });
-      if (state.stats.wallsStood % CONFIG.stickers.wallsPer === 0) { var st = { n: state.stickers.length, day: state.day, at: null }; state.stickers.push(st); ev.push({ kind: 'sticker', n: st.n }); }
+      if (state.stats.wallsStood === 1 || state.stats.wallsStood % CONFIG.stickers.wallsPer === 0) giveSticker(state, ev);
+      if (state.build.fell[w]) giveSticker(state, ev, 'rebuilt');
     });
-    if (!burned) { ev.push({ kind: 'crown' }); if (isComplete(state)) sealBuilding(state, ev); }
+    if (!burned) { ev.push({ kind: 'crown' }); if (isComplete(state)) { sealBuilding(state, ev); giveSticker(state, ev, 'firstSealed'); } }   // (26 Nov 2026, round 4) "It lasts"
     state.today.fired = true;
     state.lastFire = { day: state.day, size: ev.size, burned: burned, falls: falling, caveIn: caveIn, practice: practice, windowsLost: ev.windowsLost,
       spireFell: ev.some(function (e) { return e.kind === 'spireFall'; }), sealed: ev.some(function (e) { return e.kind === 'seal'; }) };

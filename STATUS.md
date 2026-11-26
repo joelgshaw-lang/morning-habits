@@ -1,6 +1,6 @@
 # Morning Habits app: status
 
-Updated 25 Nov 2026 (app v78 LIVE). Next: Joel answers the 3 questions in the v78 section below, and opens the app twice on the iPad so v78 loads. Then: Joel opens the app twice on the iPad and tries planting, the gem / hay pile, the farm, the front screen in landscape, a Bible story, the breath prayer and the Treasure chest. Sunday morning: the first weekly review.
+Updated 26 Nov 2026 (app v78 LIVE; v79 committed, waiting for Joel's OK to go live). Next: say yes to go live, then open the app twice on the iPad and try a morning: All done → 🏰 My building (1 minute).
 
 ## Where it's up to
 - Live on GitHub Pages: Fruit time (3 fruits a day, this/not pictures, stars, quiz, pick your own fruit), Going up! night with the stay-in-bed bonus next morning, start by 7:15, −20 if asked, fair board, PIN every time, 3-minute grown-up cutoff, 🔊 voice chooser, kinder farm selling. Rules summary: README.md "Current rules".
@@ -25,6 +25,15 @@ Joel's 16 kids-app reminders (iPhone High Priority, also in Asana "Kids app upda
   1. **House size (item 14 "wood and clay never turn into houses"):** a cottage is 223 blocks (Joel chose the big size for everyone on 19 Nov). A good day gives about 30 blocks, so the first house takes a week or more, and gold/silver blocks look like wood and clay sitting in a strip. Option: make the first house half size (about 110), later ones big.
   2. **Farm "layout options" (item 9):** each land already has its own picture and you can move everything in Build mode. What did "layout options" mean? (e.g. choose between 2 looks when buying bigger land?)
   3. **"Kids app and Rainbow" (item 16):** what is Rainbow?
+
+### 🏰 Build on the Rock: 4 rounds of testing + Gmail notes (26 Nov 2026, app v79, committed, not live yet)
+- **From Gmail (Joel's dictated notes):** rainbow eggs now hatch a rarer animal (🌈 Hatch by the basket; eggs already in a basket move over); land and land pieces in the farm shop show a real picture, tap it to see it big. Reminders (High Priority) had nothing clearly for the kids app; "Negativity jar" asked about.
+- **4 rounds** of testers (hands-on player at ages 6/8/12, game designer with 12-month simulations, child psychologist + pastor), each followed by a builder. All reports: `docs/rock-test/` (round-N.md = scores + fix list, round-N-*.md = each tester, round-N-built.md = what changed).
+- **Scores 1→4 (out of 10):** morning touch 2.7→7.7, clear goals 4→7.7, seeing your hay 6→8, usability 5.7→6.7, smoothness 6.5→7, playability 6.3→8, creativity 6→6.7, long-term 5→6.7.
+- **What's new:** 🏰 morning touch (1 minute, from the morning All done card; ages 6 and 8 when one job is left; "Your morning pieces" after school): today's fruit + "I will…", tap pieces into today's row (chime), one hay line with grace first and "Say sorry now"; goal ladder (Today row / This week / This building / Next); hay chip, stripy hay, "Show me the hay"; fair make-it-right with a grown-up coach check; gentler words for 8 and under ("hay", no "whole house"); sticker book earned by walls (+ milestone stickers, page 2), family walls + growing City landmark (never ranked), monthly blueprint for everyone + monthly family challenge with a grown-up "We did it"; name your house from day 1; ✨ Mended page of times they made it right; Put 10 back; many bug fixes (tray hidden on a new day, auto-laid rubble, bale taps, camera for tall designs).
+- **Checked:** 138 rules tests pass; every page script compiles; testers played it in a browser at iPad size each round. **Not tried on the real iPad** (3D speed, sounds, finger feel).
+- **For Joel to decide:** a "small" size of each design (a rough child's first building ~day 31 instead of ~41–61); a bonus for putting right / calming down instead of fewer hard moments; should the family goal count put-right hay; year-2 blueprints. Testers also asked Joel to think about the stinky pop-up next to the gentle grace words, and watching for "I'll pray to finish my row".
+- **Grown-up talk before the kids try it (5 minutes):** a child can tap the "Grown-up" check themselves; be nearby on nights a wall might fall; read one Mended story aloud each week; tap "We did it" when the family does the month's challenge.
 
 ### 📜 Bible stories, farm extras, weekly review, breath prayer (24 Nov 2026, app v77, LIVE)
 Joel chose all four groups of the remaining voice-note items:
