@@ -90,7 +90,7 @@ export const SELL = { chicken: 20, duck: 20, lizard: 20, snake: 20, croc: 20, ko
 // "hen" reads better than "chicken" when saying goodbye.
 export const sellPrice = (a) => (a.paid > 0 ? Math.max(5, Math.floor((a.paid * SELL_SHARE) / 5) * 5) : SELL[a.type]);
 // What each egg costs, so a hatched animal knows what was paid for it.
-const EGG_PAID = { mystery: 30, rare: 90, dino: 1500, bush: 150, pool: 150, treasure: 300 };
+const EGG_PAID = { mystery: 30, rare: 90, dino: 1500, bush: 150, pool: 150, treasure: 300, rainbow: 0 };
 const animalWord = (type) => (type === 'chicken' ? 'hen' : KINDS[type].name.toLowerCase());
 // The words for saying goodbye: "your hen" for farm animals, "Kip the koala" for the named friends.
 function byeWords(type) {
@@ -112,7 +112,7 @@ export const SHOP = [
   { id: 'coop', icon: '🛖', name: 'Chicken coop', price: 100, stars: 10, level: 1, building: true, does: 'A cosy home for your hens: room for 4 more small animals, and the fox can never take a hen from the coop.' },
   { id: 'rareegg', icon: '💎', name: 'Rare egg', price: 90, stars: 5, level: 2, does: 'A sparkly egg with rarer animals: ducks, lizards, snakes, crocodiles, a rare Komodo dragon… and a 1 in 20 chance of a dinosaur!' },
   { id: 'box', icon: '🎁', name: 'Mystery box', price: 45, level: 2, does: 'Food, an egg, golden corn, a lamb, a decoration… or even a calf!' },
-  { id: 'treasure', icon: '💰', name: 'Treasure chest', price: 300, stars: 20, level: 3, does: 'Bigger surprises: a rare egg (maybe a Komodo dragon!), a calf, a piglet, two rainbow eggs or golden corn for every baby.' },
+  { id: 'treasure', icon: '💰', name: 'Treasure chest', price: 300, stars: 20, level: 3, does: 'Bigger surprises: a rare egg (maybe a Komodo dragon!), a calf, a piglet, two rainbow eggs to hatch, or golden corn for every baby.' },
   { id: 'lamb', icon: '🐑', name: 'Lamb', price: 150, stars: 15, level: 2, does: 'Feed it and it grows wool to shear and sell.' },
   // Painted farm only (painted: true): hidden from the shop when the painted farm is switched off.
   { id: 'piglet', icon: '🐷', name: 'Piglet', price: 120, stars: 12, level: 2, painted: true, does: `Grows into a pig that snuffles up a truffle every second day you work. Truffles sell for ${GOODS.truffle.price}!` },
@@ -149,6 +149,9 @@ export const SHOP = [
   { id: 'manor', icon: '🏰', name: 'Big beautiful farmhouse', price: 3000, stars: 300, level: 4, needs: 'house', building: true, does: 'The ultimate dream: a big, beautiful farmhouse with a porch, flowers and a light in every window. 🎉' },
   { id: 'dinoegg', icon: '🦕', name: 'Dinosaur egg', price: 1500, stars: 150, level: 4, does: 'Very rare and very special: a real baby dinosaur for your farm!' },
 ];
+
+// Shop items with a painted picture to preview (land pieces); lands use their ground picture.
+const PIECE_IMG = { wildflowers: 'wildflowers', bush: 'bush', hill: 'hill', beach: 'beach' };
 
 const LEVELS = [null,
   { name: 'Little Coop', icon: '🐣', next: 'Grow 4 hens or ducks' },
@@ -769,6 +772,8 @@ export function createFarm(ctx) {
     const goods = Object.entries(f.basket).filter(([, n]) => n > 0);
     const value = goods.reduce((s, [g, n]) => s + priceOf(f, g) * n, 0);
     const canHatch = (f.basket.egg || 0) > 0 && f.nest.length < 2 && roomFor(f, 'chicken');
+    if (f.basket.rainbow) { f.rainbowEggs = (f.rainbowEggs || 0) + f.basket.rainbow; delete f.basket.rainbow; save(); }   // rainbow eggs hatch now (26 Nov 2026)
+    const rainbow = f.rainbowEggs || 0, rainbowRoom = roomFor(f, 'chicken');
     return `
       <div class="farm-coins">🪙 <b>${coins}</b> <span class="farm-stars">⭐ ${starsLeft(k.id)}</span></div>
       ${troubleHTML(f, coins)}
@@ -787,6 +792,7 @@ export function createFarm(ctx) {
         <div class="basket-btns">
           ${goods.length ? `<button class="farm-btn sell" data-action="farm-sell">Sell for 🪙 ${value}</button>` : ''}
           ${canHatch ? '<button class="farm-btn hatch" data-action="farm-hatch">🪺 Hatch an egg</button>' : ''}
+          ${rainbow ? `<button class="farm-btn hatch rainbow" data-action="farm-rainbow" ${rainbowRoom ? '' : 'disabled'}>🌈 ${rainbowRoom ? `Hatch a rainbow egg${rainbow > 1 ? ` (${rainbow})` : ''}` : 'Rainbow egg: no room (build the big barn)'}</button>` : ''}
         </div>
       </div>
       <div class="farm-fence ${f.fenceDays <= 2 ? 'warn' : ''}">
@@ -971,6 +977,10 @@ export function createFarm(ctx) {
       const r = Math.random();
       return r < 0.3 ? 'duck' : r < 0.55 ? 'lizard' : r < 0.7 ? 'croc' : r < 0.75 ? 'komodo' : r < 0.85 ? 'snake' : r < 0.95 ? 'chicken' : 'dino';
     }
+    if (kind === 'rainbow') {   // 26 Nov 2026 (Joel): a rainbow egg has a real animal inside, always a rarer one
+      const r = Math.random();
+      return r < 0.25 ? 'duck' : r < 0.45 ? 'lizard' : r < 0.6 ? 'snake' : r < 0.75 ? 'croc' : r < 0.95 ? 'komodo' : 'dino';
+    }
     if (kind === 'treasure') {   // the treasure chest's egg: only the rare ones
       const r = Math.random();
       return r < 0.35 ? 'komodo' : r < 0.6 ? 'croc' : r < 0.8 ? 'lizard' : r < 0.95 ? 'snake' : 'dino';
@@ -1090,6 +1100,16 @@ export function createFarm(ctx) {
   }
 
   // 💰 Treasure chest (24 Nov 2026, Joel; not called "magic"): pricier than the mystery box, with bigger things inside. Never empty.
+  // 🌈 A rainbow egg hatches into a rarer animal (26 Nov 2026, Joel: "actually have something in there that is an animal").
+  async function hatchRainbow(k) {
+    const f = farmOf(k.id);
+    if (!(f.rainbowEggs > 0) || !roomFor(f, 'chicken')) return;
+    f.rainbowEggs--;
+    save();
+    await hatchMystery(f, 'A rainbow egg! 🌈', { kind: 'rainbow', paid: 0 });
+    ctx.renderKid();
+  }
+
   function openTreasure(f) {
     return new Promise((resolve) => {
       const r = Math.random();
@@ -1107,7 +1127,7 @@ export function createFarm(ctx) {
         let icon, text;
         if (prize === 'calf') { f.animals.push({ id: f.nextId++, type: 'cow', growth: 0, paid: 300 }); icon = '🐮'; text = 'A baby calf!'; SOUNDS.moo(); }
         if (prize === 'piglet') { f.animals.push({ id: f.nextId++, type: 'pig', growth: 0, paid: 300 }); icon = '🐷'; text = 'A cute piglet!'; }
-        if (prize === 'rainbow') { f.basket.rainbow = (f.basket.rainbow || 0) + 2; icon = '🌈'; text = `Two rainbow eggs to sell! (${GOODS.rainbow.price} each)`; }
+        if (prize === 'rainbow') { f.rainbowEggs = (f.rainbowEggs || 0) + 2; icon = '🌈'; text = 'Two rainbow eggs! Something rare is inside each one. Tap Hatch by your basket.'; }
         if (prize === 'corn') { babies.forEach((a) => { a.growth = KINDS[a.type].grow; }); icon = '🌽'; text = `Golden corn for everyone! ${babies.length} ${babies.length === 1 ? 'baby' : 'babies'} grew up straight away!`; }
         const up = levelUp(f);
         save();
@@ -1212,7 +1232,7 @@ export function createFarm(ctx) {
       if (scared && (a.type === 'chicken' || a.type === 'duck')) continue;
       if (a.type === 'chicken') {
         const r = Math.random();
-        if (r < RAINBOW_CHANCE) { f.basket.rainbow = (f.basket.rainbow || 0) + 1; msgs.push(`A RAINBOW egg! 🌈 It sells for ${GOODS.rainbow.price}!`); }
+        if (r < RAINBOW_CHANCE) { f.rainbowEggs = (f.rainbowEggs || 0) + 1; msgs.push('A RAINBOW egg! 🌈 Something rare is inside. Tap Hatch to see!'); }
         else if (r < RAINBOW_CHANCE + (hasGrown(f, 'lizard') ? 0.15 : 0) + (hasGrown(f, 'dino') ? 0.15 : 0)) { f.basket.golden = (f.basket.golden || 0) + 1; msgs.push('A golden egg! 🌟'); }
         else f.basket.egg = (f.basket.egg || 0) + 1;
         laid++;
@@ -1433,8 +1453,10 @@ export function createFarm(ctx) {
           const reason = locked ? `🔒 ${LEVELS[it.level].name}` : owned ? (it.tool || it.land ? 'Got it ✓' : 'Built ✓') : needs ? (it.land || it.minLand ? (it.minLand ? 'Buy Meadow land first' : 'Buy bigger land first') : `Build the ${SHOP.find((x) => x.id === it.needs).name.toLowerCase()} first`) : noDuck ? 'Get a duck first' : full ? (f.built.barn ? 'No room' : 'No room: build the big barn') : allHatched ? 'All hatched ✓' : '';
           const name = cost.invite ? `Invite ${KINDS[it.home].who} back` : it.name;
           const does = cost.invite ? `${KINDS[it.home].full} misses the ${it.name.toLowerCase()}. Invite ${KINDS[it.home].plural ? 'them' : KINDS[it.home].who} back home.` : it.does;
+          // 26 Nov 2026 (Joel): land and land pieces show a real picture; tap it to see it big.
+          const thumb = it.land ? `farm-art/${W.LAND[it.land].ground}` : PIECE_IMG[it.id] ? `farm-art/${PIECE_IMG[it.id]}.webp` : null;
           return `<div class="shop-item ${locked ? 'locked' : ''}">
-            <span class="shop-icon">${it.icon}</span>
+            ${thumb ? `<button class="shop-thumb" data-preview="${thumb}" data-name="${esc(it.name)}" aria-label="See the ${esc(it.name.toLowerCase())}"><img src="${thumb}" alt=""><i>🔍</i></button>` : `<span class="shop-icon">${it.icon}</span>`}
             <div><b>${name}</b><small>${does}</small></div>
             <button class="farm-btn small" data-buy="${it.id}" ${reason || coins < cost.price || starsLeft(k.id) < cost.stars ? 'disabled' : ''}>${reason || `🪙 ${cost.price}${cost.stars ? ` + ⭐ ${cost.stars}` : ''}`}</button>
           </div>`;
@@ -1447,6 +1469,12 @@ export function createFarm(ctx) {
     let armed = null;
     const el = overlay(shopHTML(k), async (e) => {
       if (e.target.closest('[data-close]') || e.target === el) return el.remove();
+      const pv = e.target.closest('[data-preview]');
+      if (pv) {   // a big look at the land or piece, then back to the shop
+        const big = overlay(`<h2>${pv.dataset.name}</h2><img class="shop-preview" src="${pv.dataset.preview}" alt=""><button class="farm-btn" data-close>Back to the shop</button>`, (ev) => { if (ev.target.closest('[data-close]') || ev.target === big) big.remove(); });
+        ctx.speak(pv.dataset.name, true);
+        return;
+      }
       const item = e.target.closest('.shop-item');
       const b = e.target.closest('[data-buy]');
       const id = (b || item?.querySelector('[data-buy]'))?.dataset.buy;
@@ -1563,6 +1591,7 @@ export function createFarm(ctx) {
       case 'farm-fix': return fixTrouble(k, Number(el.dataset.t));
       case 'farm-sell': return sellAll(k);
       case 'farm-hatch': return hatchEgg(k);
+      case 'farm-rainbow': return hatchRainbow(k);
       case 'farm-tap': return tapAnimal(k, el);
       case 'farm-zoom': return painted() ? pzBy(el.dataset.z === 'in' ? 1.5 : 1 / 1.5) : zoomBy(el.dataset.z === 'in' ? 1.5 : 1 / 1.5);
       case 'farm-full': mode.full = !mode.full; pz.u = 1; pz.x = 0; pz.y = 0; return ctx.renderKid();
