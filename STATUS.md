@@ -1,6 +1,6 @@
 # Morning Habits app: status
 
-Updated 26 Nov 2026 (app v80 ready, not live yet; v79 is live). Next: open the app twice on the iPad and try a morning: All done → 🏰 My building (1 minute).
+Updated 26 Nov 2026 (app v80 LIVE). Next: open the app twice on the iPad and try a morning: All done → 🏰 My building (1 minute).
 
 ## Where it's up to
 - Live on GitHub Pages: Fruit time (3 fruits a day, this/not pictures, stars, quiz, pick your own fruit), Going up! night with the stay-in-bed bonus next morning, start by 7:15, −20 if asked, fair board, PIN every time, 3-minute grown-up cutoff, 🔊 voice chooser, kinder farm selling. Rules summary: README.md "Current rules".
@@ -12,7 +12,7 @@ Updated 26 Nov 2026 (app v80 ready, not live yet; v79 is live). Next: open the a
 2. Joel to decide (docs/review-round3.md "For Joel to decide"): −20 for under-7s, 3-minute timer restarting on taps, farm money, farm visits per day, mine time, daily fire, speed bonuses, hand actions (Peace, Gentleness, Goodness "Thumbs up"), adding a 5-year-old.
 3. LATER list in docs/review-round3.md: only the right child can tick their column, redraw Peace and Faithfulness pictures, rebuild animals in Sticker Plus (3 first as a test), hide the PIN from the public code.
 
-### 🐔 3 farm visits + Annabelle's Meadow land (26 Nov 2026, app v80, NOT LIVE YET)
+### 🐔 3 farm visits + Annabelle's Meadow land (26 Nov 2026, app v80, LIVE)
 - **3 farm visits a day** (was 2): each at least **1 hour** after the last one started (was 30 min), and the **third only opens from 12:30 pm** ("after lunch" on the button). The night-chores visit is still extra. `FARM_VISITS_PER_DAY`, `FARM_GAP_MS`, `FARM_LUNCH` in js/app.js.
 - **Annabelle's land:** she bought the first land when it was called "Bigger land" (🪙 400, before 24 Nov). When Meadow land was added below it on 24 Nov, her farm moved up to River land (river and bridge picture). Now her farm is put on Meadow land once, with a 🌼 news note; nothing has to move. She can buy River land later. `meadowFix` in `farmOf`, js/farm.js.
 - **Tested** in Node (no browser this time): visit times at 7:00, 7:20, 8:05, 9:00, 12:00, 12:31, after the third; Meadow fix from River, starter and already-Meadow farms; both files load with no errors. **Not tried:** the app in a browser or on the iPad.
