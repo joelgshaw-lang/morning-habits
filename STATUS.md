@@ -1,6 +1,6 @@
 # Morning Habits app: status
 
-Updated 26 Nov 2026 (app v81 built, NOT live yet: waiting for Joel's OK; v80 is live). Next: Joel says yes to v81, then open the app twice on the iPad and try 🏰 My building: tap a glowing spot, then Gold.
+Updated 26 Nov 2026 (app v81 LIVE). Next: open the app twice on the iPad and try 🏰 My building: tap a glowing spot, then Gold.
 
 ## Where it's up to
 - Live on GitHub Pages: Fruit time (3 fruits a day, this/not pictures, stars, quiz, pick your own fruit), Going up! night with the stay-in-bed bonus next morning, start by 7:15, −20 if asked, fair board, PIN every time, 3-minute grown-up cutoff, 🔊 voice chooser, kinder farm selling. Rules summary: README.md "Current rules".
@@ -12,7 +12,7 @@ Updated 26 Nov 2026 (app v81 built, NOT live yet: waiting for Joel's OK; v80 is 
 2. Joel to decide (docs/review-round3.md "For Joel to decide"): −20 for under-7s, 3-minute timer restarting on taps, farm money, farm visits per day, mine time, daily fire, speed bonuses, hand actions (Peace, Gentleness, Goodness "Thumbs up"), adding a 5-year-old.
 3. LATER list in docs/review-round3.md: only the right child can tick their column, redraw Peace and Faithfulness pictures, rebuild animals in Sticker Plus (3 first as a test), hide the PIN from the public code.
 
-### 🏰 Tap a spot, then choose the piece (26 Nov 2026, app v81, NOT LIVE yet)
+### 🏰 Tap a spot, then choose the piece (26 Nov 2026, app v81, LIVE)
 From Joel's dictated notes (Asana "Kids app updates"). Joel chose: tap a spot first in **both** the 1-minute morning building and the full building; keep "Piece first" as a second way; keep "Lay them for me" as the automatic way.
 - **👆 Tap a spot (the normal way now):** with nothing in hand, every open space glows. Tap one: it glows brighter and the pieces bar asks **"What goes here?"**, showing only pieces that fit there (the spire only offers gems; a gem that would finish a window says so). Tap Gold (or any piece) and it drops there. Tap the same spot again or Cancel to choose another. After laying, the hand is empty again and all spaces glow.
 - **🧱 Piece first:** the old way (pick a piece, then a glowing space; the next piece of that kind stays in hand).
