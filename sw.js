@@ -1,6 +1,6 @@
 // Offline support: serve from cache first, refresh the cache in the background.
 // Bump VERSION when you deploy a change so old files are cleared.
-const VERSION = 'v80';   // (26 Nov 2026) 3 farm visits a day (an hour apart, last after lunch), Annabelle back on Meadow land
+const VERSION = 'v81';   // (26 Nov 2026) Build on the Rock: tap a spot, then choose the piece (or piece first, or Lay them for me)
 const CACHE = `morning-${VERSION}`;
 // The app itself. An update only installs if every one of these downloads, so keep this list short.
 const ASSETS = [

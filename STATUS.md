@@ -1,6 +1,6 @@
 # Morning Habits app: status
 
-Updated 26 Nov 2026 (app v80 LIVE). Next: open the app twice on the iPad and try a morning: All done → 🏰 My building (1 minute).
+Updated 26 Nov 2026 (app v81 built, NOT live yet: waiting for Joel's OK; v80 is live). Next: Joel says yes to v81, then open the app twice on the iPad and try 🏰 My building: tap a glowing spot, then Gold.
 
 ## Where it's up to
 - Live on GitHub Pages: Fruit time (3 fruits a day, this/not pictures, stars, quiz, pick your own fruit), Going up! night with the stay-in-bed bonus next morning, start by 7:15, −20 if asked, fair board, PIN every time, 3-minute grown-up cutoff, 🔊 voice chooser, kinder farm selling. Rules summary: README.md "Current rules".
@@ -11,6 +11,17 @@ Updated 26 Nov 2026 (app v80 LIVE). Next: open the app twice on the iPad and try
 1. Joel's iPad check of Ready, set, go → Fruit time, and Going up! at night. Fix what he finds.
 2. Joel to decide (docs/review-round3.md "For Joel to decide"): −20 for under-7s, 3-minute timer restarting on taps, farm money, farm visits per day, mine time, daily fire, speed bonuses, hand actions (Peace, Gentleness, Goodness "Thumbs up"), adding a 5-year-old.
 3. LATER list in docs/review-round3.md: only the right child can tick their column, redraw Peace and Faithfulness pictures, rebuild animals in Sticker Plus (3 first as a test), hide the PIN from the public code.
+
+### 🏰 Tap a spot, then choose the piece (26 Nov 2026, app v81, NOT LIVE yet)
+From Joel's dictated notes (Asana "Kids app updates"). Joel chose: tap a spot first in **both** the 1-minute morning building and the full building; keep "Piece first" as a second way; keep "Lay them for me" as the automatic way.
+- **👆 Tap a spot (the normal way now):** with nothing in hand, every open space glows. Tap one: it glows brighter and the pieces bar asks **"What goes here?"**, showing only pieces that fit there (the spire only offers gems; a gem that would finish a window says so). Tap Gold (or any piece) and it drops there. Tap the same spot again or Cancel to choose another. After laying, the hand is empty again and all spaces glow.
+- **🧱 Piece first:** the old way (pick a piece, then a glowing space; the next piece of that kind stays in hand).
+- **⚡ Lay them for me:** the automatic way, as before. The three buttons sit under "My pieces" (and in the morning panel). The choice is remembered on the iPad.
+- **Morning building:** a tap on a piece no longer drops it into today's row by itself (that one-tap way is gone; Joel didn't pick it). Each piece laid still plays the rising note.
+- Crafted items (recipes) and putting fallen blocks back still go piece first.
+- **Eggs and land (items 1 and 2 of the same notes):** already built and live in v79 (rainbow eggs hatch a rare animal; land and land pieces show a real picture in the shop, tap to see it big). Joel: that's enough.
+- **Tested** in a browser at iPad size (landscape 1080×810 and portrait 810×1080) from a test copy: tap a spot → picker → Gold dropped there; Cancel and tap-again cancel; spire offers gems only and the "dare" No leaves nothing in hand; Piece first shows no spots until a piece is picked and keeps silver in hand; sheets hide the spots; picker shows even with pieces hidden; morning panel (age 8) tap a spot → Gold, then Lay them for me laid the rest and finished today's goal; no errors; rules tests pass. **Not tried:** the real iPad (finger feel of tapping small spots).
+- `way`, `spotGhosts`, `pickSpot`, `picker`, `wayRow` in docs/rock/play.html.
 
 ### 🐔 3 farm visits + Annabelle's Meadow land (26 Nov 2026, app v80, LIVE)
 - **3 farm visits a day** (was 2): each at least **1 hour** after the last one started (was 30 min), and the **third only opens from 12:30 pm** ("after lunch" on the button). The night-chores visit is still extra. `FARM_VISITS_PER_DAY`, `FARM_GAP_MS`, `FARM_LUNCH` in js/app.js.

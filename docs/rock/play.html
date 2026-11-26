@@ -117,6 +117,8 @@ body.full #fullBtn{background:var(--gold);color:var(--gold-ink)}
 /* tray and panel */
 .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:8px 12px;display:flex;flex-direction:column;gap:6px}
 #tray{flex:none}
+.way{gap:6px;flex-wrap:wrap;margin:2px 0 6px}
+.picker{border:2px solid var(--gold);border-radius:12px;padding:6px 8px;background:rgba(242,185,63,.12)}
 body.notray #tray{display:none}
 @media (orientation:landscape){body:not(.full) .side #tray{max-height:46%;overflow-y:auto}}   /* the pieces never squeeze the panel below to nothing */
 #panel{flex:1;min-height:0;padding:0;gap:0;overflow:hidden}
@@ -1112,9 +1114,9 @@ function showGhosts(list,hints){hideGhosts();hints=hints||{};const gl={house:new
   if(q.wall==='free'){w=1.3;hh=1.3;d=0.7;g=new THREE.Mesh(geo(w,hh,0.12),M.slot);const v=freePos(q.col,false);g.position.set(v[0],v[1],v[2]);house.add(g)}
   else if(q.wall==='spire'){w=1.2;hh=1.2;d=0.9;g=new THREE.Mesh(geo(w,hh,0.12),M.slot);const v=spirePos(q.col);g.position.set(v[0],v[1],v[2]);house.add(g)}
   else{const side=q.wall!=='front';w=side?1:G.bw;hh=G.bh;d=side?G.colW:1;g=new THREE.Mesh(side?geo(0.12,hh,d):geo(w,hh,0.12),M.slot);const L=slotLocal(q.wall,q.col,q.row,q.out);g.position.set(L[0],L[1],L[2]);if(q.deco){const ow=outward(q.wall);g.position.x+=ow[0]*0.7;g.position.z+=ow[1]*0.7}pivots[q.wall].add(g)}
-  const xt=q.out!=null&&!q.deco;(xt?gl['x'+q.wall]:(gl[q.wall]||gl.house)).box(w*0.9,hh*0.9,d*0.9,g.position.x,g.position.y,g.position.z);const hint=xt?null:hints[key(q.wall,q.col,q.row)];   /* all the outlines on one wall are one set of lines */
-  const dot=new THREE.Sprite(hint?M.dotHot:xt?M.dotX:M.dot);dot.scale.setScalar(hint?2.3:xt?0.8:1.2);g.add(dot);
-  if(hint){const tg=sign(g,hint==='pure'?'pure window!':'window!',hint==='pure'?2.5:2,0,1.25,0,hint==='pure'?'#f2b93f':'#2c2356',hint==='pure'?'#2b1a02':'#fff6e0',true);tg.userData.tag=true}
+  const xt=q.out!=null&&!q.deco;(xt?gl['x'+q.wall]:(gl[q.wall]||gl.house)).box(w*0.9,hh*0.9,d*0.9,g.position.x,g.position.y,g.position.z);const hint=xt&&hints[key(q.wall,q.col,q.row)]!=='pick'?null:hints[key(q.wall,q.col,q.row)];   /* all the outlines on one wall are one set of lines */
+  const dot=new THREE.Sprite(hint?M.dotHot:xt?M.dotX:M.dot);dot.scale.setScalar(hint==='pick'?3:hint?2.3:xt?0.8:1.2);g.add(dot);
+  if(hint&&hint!=='pick'){const tg=sign(g,hint==='pure'?'pure window!':'window!',hint==='pure'?2.5:2,0,1.25,0,hint==='pure'?'#f2b93f':'#2c2356',hint==='pure'?'#2b1a02':'#fff6e0',true);tg.userData.tag=true}
   if(q.wall==='spire')sign(g,'dare?',1.6,1.6,0,0,'#5a2414','#ffd9b0',true);
   g.userData={ghost:true,wall:q.wall,c:q.col,r:q.row,o:q.out,extra:xt,deco:!!q.deco};ghosts.push(g)});
   Object.keys(gl).forEach(function(k){const xt=k.charAt(0)==='x'&&k!=='house',l=gl[k].into(k==='house'?house:pivots[xt?k.slice(1):k],xt?M.lineX:M.lineSlot);if(l){if(xt)l.computeLineDistances();ghostLines.push(l)}})}
@@ -1511,7 +1513,33 @@ function windowHints(s,piece,slots){const out={};if(!piece||!isGem(piece.t))retu
 function showSlots(){const s=st(),piece=trayPiece(),slots=piece?openSlots(s,piece):[];if(!slots.length){ui.sel=null;S.hideGhosts();return null}
   S.showGhosts(slots,windowHints(s,piece,slots));return slots}
 /* the picture was redrawn: if a piece is still in hand, its glowing spaces come back */
-function reGhost(){if(ui.sel)showSlots();else if(ui.stk!=null){const sl=R.stickerSlots(st());if(sl.length)S.showGhosts(sl,{});else ui.stk=null}}   /* (26 Nov 2026, round 3) stickers too */
+function reGhost(){if(ui.sel)showSlots();else if(ui.stk!=null){const sl=R.stickerSlots(st());if(sl.length)S.showGhosts(sl,{});else ui.stk=null}else spotGhosts()}   /* (26 Nov 2026, round 3) stickers too */
+/* 26 Nov 2026 (Joel): TAP A SPOT, THEN CHOOSE THE PIECE. With nothing in hand every open space glows; tap one, the pieces bar asks
+   "What goes here?", tap gold (or any piece) and it drops there. DB.way: 'spot' (the normal way) or 'piece' (the old way: pick a piece,
+   then a space, and the next piece of that kind stays in hand). "Lay them for me" is still the automatic way. */
+function way(){return DB.way==='piece'?'piece':'spot'}
+function canBuild(){const x=X();return !!x&&!ui.sheet&&!ui.busy&&(x.phase==='day'||(x.phase==='night'&&x.night==='build'))}
+function spotOk(slot,p){if(p.t==='C')return false;if(slot.wall==='spire')return isGem(p.t);if(slot.out!=null)return p.t!=='W';return true}   /* crafted items still go piece first (onto a laid block) */
+function spotAll(s){const t=trayTiles(s),gem=t.some(function(p){return isGem(p.t)}),good=t.some(function(p){return p.t!=='W'&&p.t!=='C'});if(!good&&!t.some(function(p){return p.t==='W'}))return [];
+  return R.legalSlots(s).concat(gem?R.spireSlots(s):[],good?R.extraSlots(s).filter(function(q){return !(q.out>=1&&strawSpots(s,q.wall).length)}):[])}
+function spotGhosts(){if(way()!=='spot'||ui.sel||ui.stk!=null||ui.prop)return;
+  if(!canBuild()){ui.spot=null;if(ui.spotOn){ui.spotOn=false;S.hideGhosts()}return}
+  const sl=ui.spot?[ui.spot]:spotAll(st());if(!sl.length){if(ui.spotOn){ui.spotOn=false;S.hideGhosts()}return}
+  S.showGhosts(sl,pickHint());ui.spotOn=true}
+function pickHint(){const o={};if(ui.spot)o[K3(ui.spot.wall,ui.spot.col,ui.spot.row)]='pick';return o}   /* the tapped space glows brighter */
+function spotKinds(s,slot){return trayGroups(s,trayTiles(s)).map(function(g){return {k:g.k,items:g.items.filter(function(p){return spotOk(slot,p)})}}).filter(function(g){return g.items.length})}
+function pickSpot(slot){const s=st(),kinds=spotKinds(s,slot);if(!kinds.length){sfx('no');say(slot.wall==='spire'?'Only a gem can go on the spire.':'None of your pieces can go there.',true);return}
+  sfx('tap');ui.spot=slot;S.showGhosts([slot],pickHint());ui.spotOn=true;say('What goes here? Tap a piece.',true);drawTray();
+  const pk=$('tray').querySelector('.picker');if(pk&&pk.scrollIntoView)pk.scrollIntoView({block:'nearest'})}
+function spotCancel(){sfx('tap');ui.spot=null;say('',true);drawAll()}
+function spotLay(g){const slot=ui.spot;if(!slot||busy())return;ui.spot=null;ui.sel={id:g.items[0].id,list:'tray'};tryLay(slot,function(){ui.sel=null;drawAll()})}
+/* the bar that asks "What goes here?": only the pieces that can go in that space */
+function picker(t){const s=st(),kinds=spotKinds(s,ui.spot);
+  t.appendChild(h('div',{class:'picker'},[h('div',{class:'row'},[h('h2',{text:'\ud83d\udc46 What goes here?'}),h('span',{class:'sp'}),btn('Cancel',spotCancel,'quiet')]),
+    h('div',{class:'tiles stack'},kinds.map(function(g){const p=g.items[0],n=g.items.length,name=n===1?pieceLabel(p):kindName(p),w=isGem(p.t)&&windowHints(s,p,[ui.spot])[K3(ui.spot.wall,ui.spot.col,ui.spot.row)];
+      return btn([h('span',{class:'sw',style:'background:'+cssP(p)}),h('span',{text:name}),h('span',{class:'count',text:'\u00d7 '+n}),w?h('span',{class:'badge',text:w==='pure'?'\u2728 pure window!':'\u2728 window!'}):null],function(){spotLay(g)},'tile',{'aria-label':'Put '+name+' here'})}))]))}
+function setWay(w){if(busy())return;sfx('tap');DB.way=w;ui.sel=null;ui.spot=null;ui.prop=null;S.hideGhosts();ui.spotOn=false;say(w==='spot'?'Tap a glowing space, then choose a piece.':'Tap a piece, then a glowing space.',true);drawAll()}
+function wayRow(lay){return h('div',{class:'row way'},[btn('\ud83d\udc46 Tap a spot',function(){setWay('spot')},'quiet',{'aria-pressed':String(way()==='spot')}),btn('\ud83e\uddf1 Piece first',function(){setWay('piece')},'quiet',{'aria-pressed':String(way()==='piece')}),lay?btn('\u26a1 Lay them for me',layRest,'quiet'):null])}
 function drawAll(){drawBar();drawTray();drawPanel();save()}
 /* full screen: on while building; the panel slides back over the picture for a sheet, the night, or anything that is not plain building */
 function applyFull(){const on=!!(DB&&DB.full),x=K()&&X(),need=on&&(!!ui.sheet||ui.busy||!x||x.phase!=='day');
@@ -1547,8 +1575,10 @@ function drawTray(){topUp();const _o=$('tray').querySelector('.tiles.stack'),_y=
   const _s=$('tray').querySelector('.tile[aria-pressed="true"]');if(_s&&_s.scrollIntoView)_s.scrollIntoView({block:'nearest',inline:'nearest'})}   /* 24 Nov 2026 (Joel): the block being laid is always in reach */
 function drawTray0(){const s=st(),t=$('tray'),sm=R.summary(s),tiles=trayTiles(s);t.textContent='';
   const can=tiles.length>0&&tiles.length<=40,pile=tiles.length>40&&!TOUCH&&!SANDBOX;   /* the test space tops itself up, so it keeps the small button */   /* (26 Nov 2026, round 1) Lay the rest is tray only; a big pile makes it the main button */
-  t.appendChild(h('div',{class:'row'},[h('h2',{text:'My pieces'}),tiles.length?null:h('span',{class:'note',text:'Good things done in real life fill these up.'}),h('span',{class:'sp'}),TOUCH?null:btn('\ud83d\udcd6 Recipes',function(){sfx('tap');openSheet({kind:'craft'})},'quiet'),can&&!DB.trayHide&&!TOUCH?btn('Lay the rest',layRest,'quiet'):null,
+  t.appendChild(h('div',{class:'row'},[h('h2',{text:'My pieces'}),tiles.length?null:h('span',{class:'note',text:'Good things done in real life fill these up.'}),h('span',{class:'sp'}),TOUCH?null:btn('\ud83d\udcd6 Recipes',function(){sfx('tap');openSheet({kind:'craft'})},'quiet'),
     btn(DB.trayHide?'\u25B4 Show pieces':'\u25BE Hide',function(){sfx('tap');DB.trayHide=!DB.trayHide;save();drawTray()},'quiet',{'aria-expanded':String(!DB.trayHide)})]));
+  if(ui.spot){picker(t);return}   /* 26 Nov 2026 (Joel): a space was tapped: "What goes here?" (even when the pieces are hidden) */
+  if(tiles.length&&!TOUCH&&!DB.trayHide)t.appendChild(wayRow(can));   /* tap a spot / piece first / lay them for me */
   if(pile)t.appendChild(btn('Lay the rest for me ('+tiles.length+' pieces)',layRest,'big'));
   if(DB.trayHide){const sel=trayPiece();if(sel)t.appendChild(h('p',{class:'note',text:'Holding: '+kindName(sel)+'. Tap a glowing space.'}));return}
   t.appendChild(h('div',{class:'tiles stack'},trayGroups(s,tiles).map(function(g){return g.items.length?groupTile(g,'tray'):emptyTile(g.k)})));   /* always every kind, 0 = greyed */
@@ -1577,7 +1607,7 @@ function groupTile(g,list){const p=g.items[0],n=g.items.length,sel=ui.sel&&ui.se
 let panelWas='';
 /* (26 Nov 2026, round 3) 8 and under: every word in the panel goes through kidWords ("hay", never "straw"), so no spot is missed */
 function kidPanel(){if(band()>8)return;['pbody','pfoot'].forEach(function(id){const w=document.createTreeWalker($(id),NodeFilter.SHOW_TEXT,null);let n;while((n=w.nextNode())){const t=kidWords(n.nodeValue);if(t!==n.nodeValue)n.nodeValue=t}})}
-function drawPanel(){drawPanel0();kidPanel()}
+function drawPanel(){drawPanel0();kidPanel();spotGhosts()}
 function drawPanel0(){applyFull();const b=$('pbody'),f=$('pfoot'),x=X(),was=JSON.stringify([ui.sheet&&ui.sheet.kind,ui.sheet&&ui.sheet.step,x&&x.phase,x&&x.night]),y=b.scrollTop;b.textContent='';f.textContent='';b.scrollTop=0;requestAnimationFrame(function(){if(was===panelWas)b.scrollTop=y;panelWas=was});
   if(ui.busy){b.appendChild(h('p',{class:'say',text:'Watch the fire.'}));return}
   if(ui.sheet){SHEETS[ui.sheet.kind](b,f,ui.sheet);return}
@@ -2000,7 +2030,7 @@ function prayedFor(who){if(busy())return;clearUndo();const k=K(),s=k.s,a=band();
   drawAll()}
 
 /* ---- C. building: tap a tile, tap a glowing space ---- */
-function pickTile(p,list){if(busy())return;const s=st();ui.stk=null;if(TOUCH&&!ui.touchHand&&list==='tray'&&p.t!=='C'&&p.t!=='W'){touchDrop(p);return}   /* (26 Nov 2026, round 3) the morning touch: tap to lay */
+function pickTile(p,list){if(busy())return;const s=st();ui.stk=null;ui.spot=null;   /* 26 Nov 2026 (Joel): the morning touch no longer drops by itself; a tap on a piece picks it up (both ways) */
   sfx('tap');S.disarm();
   if(ui.sel&&ui.sel.id===p.id){ui.sel=null;S.hideGhosts();drawTray();return}
   if(list==='rubble'&&R.summary(s).rubbleLeftToday<=0){refuse('rubbleCap');return}
@@ -2008,10 +2038,13 @@ function pickTile(p,list){if(busy())return;const s=st();ui.stk=null;if(TOUCH&&!u
   if(!slots.some(function(q){return q.wall==='front'||q.wall==='free'||q.wall==='spire'}))S.faceWall(slots[0].wall);   /* only a side wall is open: turn to show it */
   if(Object.keys(windowHints(s,p,slots)).length)say('The bright tags show where this gem would finish a window.',true);
   drawTray()}
-S.onGhost=function(slot){if(busy())return;if(ui.stk!=null){stickAt(slot);return}if(!ui.sel)return;   /* (26 Nov 2026, round 3) a sticker in hand */const k=K(),s=k.s,sp=get('commissions.spire')||{};
-  /* the spire is a dare: the first time on each building it asks */
-  if(slot.wall==='spire'&&!(k.p.dared||{})[s.sealed]){confirmBox(sp.dare||'Dare to build a spire? If any straw burns, the spire comes down.',sp.yes||'I dare',function(){(k.p.dared||(k.p.dared={}))[s.sealed]=true;layAt(slot)},{no:sp.no||'Not this time'});return}
-  layAt(slot)};
+S.onGhost=function(slot){if(busy())return;if(ui.stk!=null){stickAt(slot);return}   /* (26 Nov 2026, round 3) a sticker in hand */
+  if(!ui.sel){if(way()==='spot'&&canBuild()){if(ui.spot&&K3(ui.spot.wall,ui.spot.col,ui.spot.row,ui.spot.out)===K3(slot.wall,slot.col,slot.row,slot.out))spotCancel();else pickSpot(slot)}return}   /* 26 Nov 2026 (Joel): tap a spot first */
+  tryLay(slot)};
+/* the spire is a dare: the first time on each building it asks */
+function tryLay(slot,onNo){const k=K(),s=k.s,sp=get('commissions.spire')||{};
+  if(slot.wall==='spire'&&!(k.p.dared||{})[s.sealed]){confirmBox(sp.dare||'Dare to build a spire? If any straw burns, the spire comes down.',sp.yes||'I dare',function(){(k.p.dared||(k.p.dared={}))[s.sealed]=true;layAt(slot)},{no:sp.no||'Not this time',onNo:onNo});return}
+  layAt(slot);if(way()==='spot'&&ui.sel&&!ui.prop){ui.sel=null;drawAll()}}   /* refused: nothing stays in hand */
 /* an item onto a laid block: the block keeps its place and strength, and wears the item */
 S.aimPiece=function(){return busy()?null:trayPiece()};
 S.overUi=function(x,y){const r=$('tray').getBoundingClientRect();return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom};
@@ -2050,9 +2083,9 @@ function layAt(slot){if(!ui.sel)return;if(slot.deco){decoAt(slot);return}clearUn
   const ev=r.events[0],kind=ui.sel.list,laid=ui.sel.id;ui.sel=null;
   /* keep the flow going: pick up the next piece of the same kind */
   const pool=kind==='tray'?trayTiles(s):s.rubble,next=pool.filter(function(p){return kindKey(p)===laidKey})[0]||pool[0];
-  if(next&&next.id!==laid&&!(kind==='rubble'&&R.summary(s).rubbleLeftToday<=0))ui.sel={id:next.id,list:kind};
+  if(next&&next.id!==laid&&!(kind==='rubble'&&R.summary(s).rubbleLeftToday<=0)&&(way()==='piece'||kind==='rubble'))ui.sel={id:next.id,list:kind};   /* 26 Nov 2026 (Joel): tapping a spot first leaves the hand empty, so every space glows again */
   const fk=K3(slot.wall,slot.col,slot.row,slot.out);falling[fk]=1;draw3({loose:Object.keys(falling)});reGhost();
-  S.dropIn(slot.wall,slot.col,slot.row,0,slot.out).then(function(){delete falling[fk];sfx(isGem(ev.piece.t)?'gem':'place')});
+  S.dropIn(slot.wall,slot.col,slot.row,0,slot.out).then(function(){delete falling[fk];if(TOUCH)noteUp(touchN++);else sfx(isGem(ev.piece.t)?'gem':'place')});
   if(ev.windows.total>before){const relit=k.p.dark;k.p.dark=false;const ms=(get('milestones')||[]).filter(function(q){return q.id===(ev.windows.pure?'pureGlass':'firstWindow')})[0];
     say(relit?(get('commissions.window.relit')||'The window is shining again.'):(ms?ms.line:''));sfx('pearl')}
   else if(slot.wall==='spire')say('A gem on the spire. Keep the straw out, and it stands.');
@@ -2480,7 +2513,7 @@ function liveSync(){if(!canSync())return;
   else if(got.length)sfx('gem');
   const uniq=function(list){const out=[];list.forEach(function(q){if(q&&out.indexOf(q)<0)out.push(q)});return out.join(', ')},words=[];
   if(moved)words.push(LW('newDay'));
-  if(got.length)words.push(TOUCH&&!ui.touchHand?'New pieces: '+uniq(got.map(function(o){return o.label}))+'. Tap one to drop it into today\'s row.':LW('arrived',{list:uniq(got.map(function(o){return o.label}))}));   /* (26 Nov 2026, round 3) the touch lays with one tap */
+  if(got.length)words.push(way()==='spot'?'New pieces: '+uniq(got.map(function(o){return o.label}))+'. Tap a glowing space, then choose a piece.':LW('arrived',{list:uniq(got.map(function(o){return o.label}))}));   /* (26 Nov 2026, round 3) the touch lays with one tap */
   if(straw.length&&!TOUCH)words.push(LW('strawLanded',{list:uniq(straw.map(function(e){return hayWords(e.piece)}))}));   /* (26 Nov 2026, round 1) say what it was: "Hay (rude)"; (round 2) not in the morning touch: grace first, the chip and hay line show it */
   if(moved&&k.s.fireOwed&&!k.s.today.fired&&!TOUCH)words.push(LW('fireOwed'));
   if(bumped)words.push('Your house was full, so the new hay pushed '+(bumped===1?'1 good block':bumped+' good blocks')+' off. '+(bumped===1?'It is':'They are')+' in Fallen blocks: you can build '+(bumped===1?'it':'them')+' back.');   /* (26 Nov 2026, round 4) say why good blocks came off */
@@ -2533,12 +2566,12 @@ function drawLive(b,f){const k=K(),s=k.s,sm=R.summary(s),tiles=trayTiles(s),nm=s
   title(b,nm?LW('title',{name:nm}):LW('titleNoName'));sorryCard(b);heartAsk(b);topCards(b,s);   /* (26 Nov 2026, round 3) Sorry tonight first, then the heart question */
   if(sm.mortar)b.appendChild(h('p',{class:'mortar',text:mortarLine(sm)}));
   if(R.canChooseDesign(s))b.appendChild(h('div',{class:'row'},[h('span',{class:'note',text:'A new building: '+designName(s.bp)+'.'}),btn(V('designs.title')||'Choose your design',function(){openSheet({kind:'design'})},'link')]));
-  if(reviewDue(k))b.appendChild(btn('★ '+(V('review.title')||'This week with Jesus'),function(){openSheet({kind:'review',step:'fruit',i:0})},'link'));
+  if(reviewDue(k))b.appendChild(btn('\u2605 '+(V('review.title')||'This week with Jesus'),function(){openSheet({kind:'review',step:'fruit',i:0})},'link'));
   const todays=(k.p.arrivals||[]).filter(function(a){return a.day===s.day});
   b.appendChild(h('h3',{text:LW('todayHead')}));
   if(!todays.length)b.appendChild(h('p',{class:'note',text:LW('none')}));
   else b.appendChild(h('div',{class:'chips'},todays.map(function(a){return h('span',null,[h('span',{class:'dot'+(a.t==='W'?' W':''),style:a.t==='W'?null:'background:'+css(a.t)}),' '+(a.t==='W'?hayWords({m:{label:a.label,material:a.material}}):a.label)])})));
-  if(tiles.length)b.appendChild(h('p',{class:'note',text:LW('place')}));
+  if(tiles.length)b.appendChild(h('p',{class:'note',text:way()==='spot'?'Tap a glowing space, then choose a piece.':LW('place')}));
   const list=[['Stop & Pray','Lights the lamp',function(){openSheet({kind:'pray'})},'#ffd58a'],
     [get('gospel.labels.told','gospel.actCard.label')||'I told someone about Jesus','A seed is planted',function(){openSheet({kind:'tell'})},'#bfffb0'],
     [get('gospel.labels.friendFollows')||'A friend says they want to follow Jesus',get('gospel.labels.friendFollowsNote')||'Grown-ups only',friendCame,'#ff9a4a'],
@@ -2593,23 +2626,9 @@ function famWalls(){if(famOthers==null){famOthers=[];try{if(LIVE)for(let i=0;i<l
     try{const d=JSON.parse(localStorage.getItem(key)),q=d&&!d.sandbox&&d.kids&&d.kids.me&&d.kids.me.s;if(q&&q.stats)famOthers.push({stats:{wallsStood:q.stats.wallsStood||0}})}catch(e){}}}catch(e){}}
   const own=LIVE?[st()]:AGES.map(function(a){return DB.kids[a]&&DB.kids[a].s});return R.familyWalls(famOthers.concat(own),Object.keys(famCh().done||{}).length)}   /* (26 Nov 2026, round 4) + challenges done */
 function famLine(){const f=famWalls();return '\ud83c\udfe1 Our family: '+f.walls+(f.walls===1?' wall':' walls')+(f.pieces>=LMMAX?' \u00b7 the town square is full \u2605':' \u00b7 next: '+(LANDMARK[f.pieces]||'a tree')+' at '+f.next)}   /* (26 Nov 2026, round 4) names a piece that really appears */
-/* (26 Nov 2026, round 3) MORNING TOUCH: a tap on a piece drops it into Today's row, with a rising note; a chime and a small shake when the row is done */
+/* (26 Nov 2026, round 3) MORNING TOUCH: each piece laid plays a rising note */
 let touchN=0;
 function noteUp(i){if(DB.mute||!tapped)return;try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();const sc=[0,2,4,5,7,9,11,12,14,16,17,19],f=392*Math.pow(2,sc[i%sc.length]/12);tone(f,0,0.25,'triangle',0.22);tone(f*2,0.02,0.2,'sine',0.05)}catch(e){}}
-function shake(){const c=$('c');c.classList.remove('shake');void c.offsetWidth;c.classList.add('shake')}
-function touchSlot(s){const tg=todayGoal(s),L=R.legalSlots(s);let c=null;
-  if(tg.row!=null)c=L.filter(function(q){return q.wall===tg.wall&&q.row===tg.row}).sort(function(a,z){return a.col-z.col})[0];
-  if(!c){L.sort(function(a,z){return (tg.wall?(z.wall===tg.wall)-(a.wall===tg.wall):0)||(a.wall==='free')-(z.wall==='free')||(z.hole-a.hole)||(a.row-z.row)||(WALLS.indexOf(a.wall)-WALLS.indexOf(z.wall))||(a.col-z.col)});c=L[0]}
-  return c?{slot:c,tg:tg}:null}
-function touchDrop(p){if(busy())return;const k=K(),s=k.s,i=s.tray.findIndex(function(q){return q.id===p.id});if(i<0)return;const t=touchSlot(s);if(!t){sfx('no');say('There is no open space right now.',true);return}
-  clearUndo();const snap=JSON.stringify(k),was=goalDone(),sl=t.slot,tg=t.tg,r=R.place(s,i,sl.wall,sl.col,sl.row);if(!r.ok){refuse(r.reason);return}
-  bundo.stack.push(snap);if(bundo.stack.length>20)bundo.stack.shift();drawUndoBlock();
-  ui.sel=null;S.hideGhosts();const fk=K3(sl.wall,sl.col,sl.row);falling[fk]=1;draw3({loose:Object.keys(falling)});if(sl.wall!=='free')S.faceWall(sl.wall);
-  const n=touchN++;S.dropIn(sl.wall,sl.col,sl.row,0).then(function(){delete falling[fk];noteUp(n)});
-  const done=tg.row!=null&&sl.wall===tg.wall&&sl.row===tg.row&&rowFull(s,tg.wall,tg.row);
-  if(!cheerGoal(was)&&done){setTimeout(function(){sfx('seal');shake()},420);touchN=0;say('Today\'s goal done! The '+WALLNAME[tg.wall]+'\'s '+(ROWN[tg.row]||'next')+' row is up.'+(trayTiles(s).length&&R.rowGoal(s)?' Keep going if you like: the next row is waiting.':''));toast('Today\'s goal done! \u2714')}
-  else fruitCheer(r.events[0].piece);
-  drawAll()}
 function drawTouch(b,f){const k=K(),s=k.s,nm=s.profile.name,tiles=trayTiles(s),hg=heartGoal(),six=band()===6;
   title(b,LATE?'\ud83c\udff0 Your morning pieces':nm?'Good morning, '+nm+'!':'Good morning!');
   if(hg)b.appendChild(h('div',{class:'ladder'},[h('div',{class:'heart',text:hg})]));   /* (26 Nov 2026, round 2) the heart goal first */
@@ -2630,8 +2649,8 @@ function drawTouch(b,f){const k=K(),s=k.s,nm=s.profile.name,tiles=trayTiles(s),h
     if(full&&act)main=btn(act[0],act[1],'big')}   /* (26 Nov 2026, round 3) house full and waiting on hay: the sorry step is the main button */
   if(tg.rebuild)main=main||btn('Put '+tg.n+' back on the '+WALLNAME[tg.wall],function(){putBack(tg.n)},'big');   /* (26 Nov 2026, round 3) a wall fell: build that wall back first */
   if(tiles.length&&!full){
-    b.appendChild(h('p',{class:'note',text:ui.touchHand?'Tap a piece, then a glowing space.':'Tap a piece below and it drops into today\'s row.'}));
-    f.appendChild(h('div',{class:'row'},[btn(ui.touchHand?'Drop into today\'s row':'Place it myself',function(){sfx('tap');ui.touchHand=!ui.touchHand;ui.sel=null;S.hideGhosts();drawAll()},'quiet'),btn('Lay them for me',layRest,'quiet')]))}
+    b.appendChild(h('p',{class:'note',text:way()==='piece'?'Tap a piece, then a glowing space.':'Tap a glowing space, then choose a piece.'}));
+    f.appendChild(wayRow(true))}   /* 26 Nov 2026 (Joel): tap a spot / piece first / lay them for me */
   if(main)f.appendChild(main);
   b.appendChild(h('p',{class:'note',text:famLine()}));
   f.appendChild(btn('Done',touchClose,main||(tiles.length&&!full)?'quiet':'big'))}
