@@ -367,6 +367,18 @@ export function createFarm(ctx) {
       f.events.push({ icon: '🐍', text: 'Your snake came home! Snakes stay on the farm now. Feed it every day.' });
       ctx.kvSet('farms', state.farms);
     }
+    // 26 Nov 2026 (Joel): Annabelle bought the first land when it was "Bigger land" (before 24 Nov). When Meadow land
+    // was slotted in below it, her farm moved up to River land, but the land she chose is Meadow. Put her on Meadow
+    // land once (her paddock keeps its size, so nothing has to move). She can still buy River land later.
+    if (id === 'annabelle' && !f.meadowFix) {
+      f.meadowFix = true;
+      if (f.world && W.landOf(f.world) !== 1) {
+        f.world.land = 1;
+        f.world.n = Math.max(f.world.n, W.landMax(f.world));
+        (f.events ||= []).push({ icon: '🌼', text: 'Your Meadow land is here! Wildflowers and a stone wall all around.' });
+      }
+      ctx.kvSet('farms', state.farms);
+    }
     return f;
   };
   const balance = (id) => ctx.earned(id) + farmOf(id).sold - farmOf(id).spent;

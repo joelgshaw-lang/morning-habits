@@ -21,8 +21,9 @@ const HOLD_MS = 800;              // press-and-hold to tick a habit, so explorin
 const UNDO_MS = 8000;
 const FOCUS_HOME_MS = 9000;      // after a tick, the board resets soon so kids go and do the next job
 const SESSION_MS = 3 * 60 * 1000;   // farm time per visit
-const FARM_VISITS_PER_DAY = 2;      // a child can open their farm twice a day on their own
-const FARM_GAP_MS = 30 * 60000;     // 24 Nov 2026 (Joel): the second farm visit is at least 30 minutes after the first starts
+const FARM_VISITS_PER_DAY = 3;      // 26 Nov 2026 (Joel): three farm visits a day on their own (was 2), spread out
+const FARM_GAP_MS = 60 * 60000;     // 26 Nov 2026 (Joel, "spread out"): each visit is at least an hour after the last one started (was 30 min)
+const FARM_LUNCH = [12, 30];        // 26 Nov 2026 (Joel, "1 after lunch"): the last visit of the day only opens from 12:30 pm
 const COIN_SHOW_MS = 8000;          // a child's coins show on the board for a few seconds after they earn, then hide again
 const PRAISE = ['Great job!', 'Awesome!', 'You did it!', 'Super star!', 'Way to go!', 'Nice work!', 'Brilliant!', 'Keep it up!', 'Fantastic!', 'Well done!'];
 
@@ -273,7 +274,7 @@ const dinnerToday = () => state.dinners[todayKey()];
 
 // ---------- farm codes and farm time ----------
 // Chores need no sign-in: the family board shows everyone. A child's own 4-digit code opens their farm
-// (where coins get spent) once their routine is done: twice a day, 3 minutes each.
+// (where coins get spent) once their routine is done: three times a day (an hour apart, the last one after lunch), 3 minutes each.
 // A grown-up can open anyone's farm any time from the Grown-ups portal.
 
 const readJSON = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; } };
@@ -282,7 +283,27 @@ const sessions = readJSON('sessions', {});
 const nowMs = () => clock.now().getTime();
 const visitsLeft = (id) => { const f = farm.farmOf(id); return FARM_VISITS_PER_DAY - (f.visitDay === todayKey() ? f.visits || 0 : 0); };
 // Minutes until the next farm visit may start (0 = now).
-const farmWaitMin = (id) => { const f = farm.farmOf(id); if (f.visitDay !== todayKey() || !f.lastVisitAt) return 0; return Math.max(0, Math.ceil((Date.parse(f.lastVisitAt) + FARM_GAP_MS - clock.now().getTime()) / 60000)); };
+// True when the next visit is the last one of the day and it is still before lunch.
+const farmWaitLunch = (id) => {
+  if (visitsLeft(id) !== 1) return false;
+  const now = clock.now(), lunch = new Date(now);
+  lunch.setHours(FARM_LUNCH[0], FARM_LUNCH[1], 0, 0);
+  return now < lunch;
+};
+const farmWaitMin = (id) => {
+  const f = farm.farmOf(id);
+  const now = clock.now();
+  let opens = f.visitDay === todayKey() && f.lastVisitAt ? Date.parse(f.lastVisitAt) + FARM_GAP_MS : 0;
+  if (farmWaitLunch(id)) { const lunch = new Date(now); lunch.setHours(FARM_LUNCH[0], FARM_LUNCH[1], 0, 0); opens = Math.max(opens, lunch.getTime()); }
+  return Math.max(0, Math.ceil((opens - now.getTime()) / 60000));
+};
+// What the farm button says while it waits: "after lunch" for the last visit, otherwise minutes (or hours and minutes).
+const farmWaitText = (id) => {
+  const m = farmWaitMin(id);
+  if (!m) return '';
+  if (farmWaitLunch(id) && m > 60) return 'after lunch';
+  return m >= 60 ? `in ${Math.floor(m / 60)} hr ${m % 60 ? `${m % 60} min` : ''}`.trim() : `in ${m} min`;
+};
 const sessionLeft = (id) => Math.max(0, SESSION_MS - (sessions[id]?.used || 0));
 const sessionText = () => (sessionPaused() ? '⏸ Paused' : `${state.farmByGrown ? '👨‍👩‍👧 ' : ''}⏳ ${clock.fmtDuration(sessionLeft(state.farmKid))}`);
 // Farm time doesn't tick while praying. A farm a grown-up opened has 3 minutes too (18 Nov 2026).
@@ -322,7 +343,7 @@ function timesUp() {
   const el = document.createElement('div');
   el.className = 'all-done-moment times-up';
   el.style.setProperty('--kid', k.color);
-  const more = state.farmByGrown ? 'A grown-up can open it again with the PIN.' : visitsLeft(k.id) ? 'You have one more farm visit today.' : 'See your animals again tomorrow!';
+  const more = state.farmByGrown ? 'A grown-up can open it again with the PIN.' : visitsLeft(k.id) > 1 ? `You have ${visitsLeft(k.id)} more farm visits today.` : visitsLeft(k.id) === 1 ? (farmWaitLunch(k.id) ? 'Your last farm visit is after lunch.' : 'You have one more farm visit today.') : 'See your animals again tomorrow!';
   el.innerHTML = `<div><div class="big-emoji">⏰</div><h2>Farm time's up, ${esc(k.name)}!</h2><p>${more}</p></div>`;
   document.body.appendChild(el);
   speak(`Farm time's up, ${k.name}! ${more}`, true);
@@ -393,8 +414,13 @@ async function openFarm(id, { grown = false } = {}) {
   }
   const wait = farmWaitMin(id);
   if (wait > 0) {
-    if (readAloudOn(id)) speak(`Your farm opens again in ${wait} minute${wait === 1 ? '' : 's'}, ${k.name}.`, true);
-    return toast(`⏳ Farm again in ${wait} min.`);
+    const when = farmWaitText(id);
+    if (when === 'after lunch') {
+      if (readAloudOn(id)) speak(`Your last farm visit is after lunch, ${k.name}.`, true);
+      return toast('🥪 Your last farm visit is after lunch.');
+    }
+    if (readAloudOn(id)) speak(`Your farm opens again ${when}, ${k.name}.`, true);
+    return toast(`⏳ Farm again ${when}.`);
   }
   if (!(await askKidCode(id))) return;
   const f = farm.farmOf(id);
@@ -1049,7 +1075,7 @@ function columnHTML(k, d, r) {
   const farmBtn = farmLocked(k, d)
     ? `<div class="farm-lock">${farmLockText()}</div>`
     : left > 0
-      ? `<button class="farm-open" data-action="open-farm">🐔 My farm <small>${farmWaitMin(k.id) ? `in ${farmWaitMin(k.id)} min` : `${left} left today`}</small></button>`
+      ? `<button class="farm-open" data-action="open-farm">🐔 My farm <small>${farmWaitText(k.id) || `${left} left today`}</small></button>`
       : '<div class="farm-lock">🌙 Farm again tomorrow</div>';
   // 🍓 Fruit time: only after this child's "Ready, set, go!" (it never blocks the start), with a free "Not today".
   // (At night the fruit question is part of "Going up!".)
