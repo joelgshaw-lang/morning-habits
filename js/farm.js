@@ -769,10 +769,10 @@ export function createFarm(ctx) {
     const prog = levelProgress(f);
     const hungry = f.animals.filter((a) => a.fedDay !== today());
     const plan = feedPlan(f);
+    if (f.basket.rainbow) { f.rainbowEggs = (f.rainbowEggs || 0) + f.basket.rainbow; delete f.basket.rainbow; save(); }   // rainbow eggs hatch now (26 Nov 2026)
     const goods = Object.entries(f.basket).filter(([, n]) => n > 0);
     const value = goods.reduce((s, [g, n]) => s + priceOf(f, g) * n, 0);
     const canHatch = (f.basket.egg || 0) > 0 && f.nest.length < 2 && roomFor(f, 'chicken');
-    if (f.basket.rainbow) { f.rainbowEggs = (f.rainbowEggs || 0) + f.basket.rainbow; delete f.basket.rainbow; save(); }   // rainbow eggs hatch now (26 Nov 2026)
     const rainbow = f.rainbowEggs || 0, rainbowRoom = roomFor(f, 'chicken');
     return `
       <div class="farm-coins">🪙 <b>${coins}</b> <span class="farm-stars">⭐ ${starsLeft(k.id)}</span></div>
