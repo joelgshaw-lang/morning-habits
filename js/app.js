@@ -5,6 +5,7 @@ import { summarize, startOffer, startCoins, fmtMinutes, nightFinishedAt, morning
 import { createPortal } from './portal.js';
 import { createQuick } from './quick.js';
 import { createGrow } from './grow.js';
+import { fruitById } from './fruits.js';
 import { createFarm } from './farm.js';
 import { askPin } from './pinpad.js';
 import { utterance } from './voice.js';
@@ -195,12 +196,14 @@ function openRockTest() {
 // 🏰 Morning touch (26 Nov 2026, round 1): once a day, after the morning is all done and until the morning window
 // closes, "My building (1 minute)" opens a short building panel (play.html touch=1) that closes itself after 90 seconds.
 const rockTouchOpen = (d, r) => r === 'morning' && d && !d.rockTouch && windowInfo('morning').phase !== 'closed';
-async function rockTouch(id) {
+// (26 Nov 2026, round 2) fair access: missed in the morning -> "🏰 Your morning pieces" on the first open after school (noon to 8pm), once a day.
+const rockLateOpen = (d, r) => r !== 'morning' && d && !d.rockTouch && clock.now().getHours() >= 12 && clock.now().getHours() < 20;
+async function rockTouch(id, late) {
   const d = state.days[id];
-  if (!rockTouchOpen(d, 'morning')) return renderKid();
+  if (!(late ? rockLateOpen(d, 'extras') : rockTouchOpen(d, 'morning'))) return renderKid();
   d.rockTouch = clock.now().toISOString();
   await dayPut(d);
-  openRockNow(id, { touch: 1 });
+  openRockNow(id, { touch: 1, late: !!late });
 }
 // After 3pm the child makes tomorrow's plan first (grow.js), then builds.
 function openRock(id) { grow.beforeRock(id, () => openRockNow(id)); }
@@ -216,6 +219,9 @@ function openRockNow(id, opt = {}) {
   el.className = 'rock-frame';
   const q = new URLSearchParams({ live: '1', kid: id, name: k.name, age: String(k.age || 8) });
   if (opt.touch) q.set('touch', '1');   // (26 Nov 2026, round 1) the 1-minute morning touch
+  if (opt.late) q.set('late', '1');   // (26 Nov 2026, round 2) "Your morning pieces" after school
+  // (26 Nov 2026, round 2) the heart goal first: today's fruit and its small "I will" from the plan (grow.js)
+  try { const plan = grow.goalToday(id), f = plan && fruitById(plan.fruit); if (f) { q.set('fruit', f.name); if (f.practice) q.set('will', f.practice); } } catch (_) { /* no plan today */ }
   el.innerHTML = `<iframe src="./docs/rock/play.html?${q}" title="Build on the Rock" allow="autoplay"></iframe>`;
   document.body.appendChild(el);
 }
@@ -1034,7 +1040,10 @@ function columnHTML(k, d, r) {
       ${r === 'night' ? '<div class="part-label">🍽️ After-dinner job</div>' : ''}
       ${tileHTML(k, big, d, null, r).replace('class="tile', 'class="tile next-tile')}
       <div class="job-row">${list.map((h) => tileHTML(k, h, d, null, r).replace('class="tile', `class="tile mini-tile ${h === big ? 'is-next' : ''}`)).join('')}</div>`;
+    // (26 Nov 2026, round 2) fair access for 6 and 8: the touch is offered with one morning job left
+    if (r === 'morning' && !playing && total - n === 1 && (k.age || 8) <= 8 && rockTouchOpen(d, r)) main += '<button class="farm-open rock-touch" data-action="rock-touch">🏰 My building <small>1 minute</small></button>';
   }
+  if (rockLateOpen(d, r)) main = '<button class="farm-open rock-touch" data-action="rock-touch-late">🏰 Your morning pieces <small>1 minute</small></button>' + main;   // (26 Nov 2026, round 2)
   if (r !== 'extras') main += askedNoteHTML(d, r);
   const left = visitsLeft(k.id);
   const farmBtn = farmLocked(k, d)
@@ -1914,6 +1923,7 @@ document.addEventListener('click', async (e) => {
   switch (a) {
     case 'open-farm': return openFarm(el.closest('[data-col]').dataset.col);
     case 'rock-touch': return rockTouch(col?.dataset.col || state.kidId);
+    case 'rock-touch-late': return rockTouch(col?.dataset.col || state.kidId, true);   // (26 Nov 2026, round 2)
     case 'dinner': return dinnerFinished();
     case 'reminders': return openReminders();
     case 'portal': return portal.open();

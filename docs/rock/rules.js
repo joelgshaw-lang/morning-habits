@@ -547,20 +547,23 @@
     if (res.ok) state.today.rubble++;
     return res;
   }
-  function autoLay(state, trayOnly) {
-    var ev = [];
+  function autoLay(state, trayOnly, prefer, rubbleMax) {
+    var ev = [], put = 0;
     for (;;) {
-      var useTray = state.tray.length > 0;
+      var useTray = rubbleMax == null && state.tray.length > 0;   // rubbleMax (26 Nov 2026, round 2): "Put 10 back" lays fallen blocks only
+      if (rubbleMax != null && put >= rubbleMax) break;
       if (!useTray && (trayOnly || !state.rubble.length || state.today.rubble >= rubbleCap(state))) break;
       var slots = legalSlots(state);
       if (!slots.length) break;
       slots.sort(function (a, b) {
-        return (a.wall === 'free') - (b.wall === 'free') || (b.hole - a.hole) || (a.row - b.row) ||
+        return (prefer ? (b.wall === prefer) - (a.wall === prefer) : 0) ||   // (26 Nov 2026, round 2) the Today goal's wall first
+               (a.wall === 'free') - (b.wall === 'free') || (b.hole - a.hole) || (a.row - b.row) ||
                (WALLS.indexOf(a.wall) - WALLS.indexOf(b.wall)) || (a.col - b.col);
       });
       var s = slots[0];
       var res = useTray ? place(state, 0, s.wall, s.col, s.row) : placeRubble(state, 0, s.wall, s.col, s.row);
       if (!res.ok) break;
+      if (!useTray) put++;
       ev = ev.concat(res.events);
     }
     return ev;
@@ -623,7 +626,32 @@
     if (out != null) e.out = out;
     return { ok: true, events: [e] };
   }
-  function autoPlace(state, trayOnly) { return { ok: true, events: autoLay(state, !!trayOnly) }; }   // trayOnly (26 Nov 2026, round 1): "Lay the rest" never lays fallen blocks
+  /* putBack(state, n) (26 Nov 2026, round 2): "Put 10 back": up to n fallen blocks go back in, inside today's limit. Never tray pieces. */
+  function putBack(state, n) { return { ok: true, events: autoLay(state, false, null, Math.max(0, n || 0)) }; }
+  function autoPlace(state, trayOnly, prefer) { return { ok: true, events: autoLay(state, !!trayOnly, prefer || null) }; }   // prefer (26 Nov 2026, round 2): a wall to fill first
+  /* putRightLately(state, days) (26 Nov 2026, round 2): hay bales put right (pulled) in the last `days` days (default 30). Own past only. */
+  function putRightLately(state, days) {
+    var from = state.day - (days || 30) + 1;
+    return (state.stats.putRightDays || []).filter(function (d) { return d >= from; }).length;
+  }
+  /* rowGoal(state) (26 Nov 2026, round 2): a Today goal a child can reach today. The wall nearest finished, and its
+     lowest row that still has an empty space. -> { wall, row, total, good, straw, left } or null when every wall is full.
+     good = good blocks in that row (straw is not counted as progress). */
+  function rowGoal(state) {
+    var best = null, fewest = 1e9;
+    WALLS.forEach(function (w) { var t = tally(state, w), l = t.total - t.filled; if (l > 0 && l < fewest) { fewest = l; best = w; } });
+    if (!best) return null;
+    for (var r = 0; r < rowsOf(state, best); r++) {
+      var o = { wall: best, row: r, total: 0, good: 0, straw: 0, left: 0 };
+      for (var c = 0; c < cols(state, best); c++) {
+        if (!isSlot(state, best, c, r)) continue;
+        var p = state.walls[best][c][r]; o.total++;
+        if (!p) o.left++; else if (p.t === 'W') o.straw++; else o.good++;
+      }
+      if (o.left > 0) return o;
+    }
+    return null;
+  }   // trayOnly (26 Nov 2026, round 1): "Lay the rest" never lays fallen blocks
 
   /* forgive(state, wall, col, row): the sorry prayer. Free, unlimited, at once. The bale gets its pearl mark. */
   function forgive(state, wall, col, row) {
@@ -652,6 +680,7 @@
     if (CONFIG.pullNeedsMadeRight && !p.madeRight) return fail('notMadeRight');
     if (state.today.pulls >= pullCap(state)) return fail('pullCap');
     state.today.pulls++; state.stats.pearls++; state.build.pearls++;
+    (state.stats.putRightDays || (state.stats.putRightDays = [])).push(state.day); if (state.stats.putRightDays.length > 60) state.stats.putRightDays.shift();   // (26 Nov 2026, round 2) for "Put right this month"
     var ev = { kind: 'pull', wall: wall, col: col, row: row, settled: [] };
     if (CONFIG.pullMode === 'pearlSlot') {
       put(state, wall, col, row, { id: state.nextId++, t: 'P', seq: ++state.seq });
@@ -1303,7 +1332,7 @@
     windows: windows, forecast: forecast, isFireNight: isFireNight, callFire: callFire, fire: fire,
     endDay: endDay, summary: summary, addGospelShare: addGospelShare, addNeighbour: addNeighbour, prayFor: prayFor,
     strawTarget: strawTarget, isComplete: isComplete, at: at, tally: tally,
-    spireSlots: spireSlots, extraSlots: extraSlots, extraAt: extraAt, markMadeRight: markMadeRight, commissionChoices: commissionChoices,
+    spireSlots: spireSlots, extraSlots: extraSlots, extraAt: extraAt, markMadeRight: markMadeRight, rowGoal: rowGoal, putBack: putBack, putRightLately: putRightLately, commissionChoices: commissionChoices,
     chooseCommission: chooseCommission, commissionProgress: commissionProgress, spendStars: spendStars,
     /* v5 */
     designs: designs, chooseDesign: chooseDesign, setLook: setLook, isEmptyBuilding: isEmptyBuilding, blueprintFor: blueprintFor,

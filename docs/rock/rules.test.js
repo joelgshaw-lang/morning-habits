@@ -1408,4 +1408,39 @@ test('monthly blueprint: named blueprints also open one every 28 days, for every
   C.designs.monthlyDays = 0; s.day = 400;
   assert(!bp('bp1').open, 'switched off: only finished buildings open blueprints');
 });
+test('a Today goal you can reach today: the next row of the nearest wall, and Lay them for me fills that wall first (26 Nov 2026, round 2)', function () {
+  var s = kid(8), W = Object.keys(s.walls);
+  var cols = function (w) { return s.walls[w].length; }, rows = function (w) { return s.walls[w][0].length; };
+  /* fill the left wall except one space in row 1, and put one hay in row 1 */
+  for (var c = 0; c < cols('left'); c++) for (var r = 0; r < rows('left'); r++) if (!(r === 1 && c === 0) && R.at(s, 'left', c, r) === null) set(s, 'left', c, r, r === 1 && c === 1 ? 'W' : 'S');
+  var g = R.rowGoal(s);
+  assert.equal(g.wall, 'left'); assert.equal(g.row, 1); assert.equal(g.left, 1); assert.equal(g.straw, 1, 'hay is not counted as good');
+  assert.equal(g.good, g.total - 2);
+  /* with a preferred wall, the tray goes there first */
+  var t = kid(8); for (var i = 0; i < 3; i++) R.addPiece(t, 'S');
+  var ev = R.autoPlace(t, true, 'right').events;
+  assert(ev.length >= 1); assert.equal(ev[0].wall, 'right', 'the goal wall is filled first');
+  var u = kid(8); R.addPiece(u, 'S'); assert.equal(R.autoPlace(u, true).events[0].wall, 'front', 'without a goal wall, the old order');
+  W.forEach(function (w) { for (var c = 0; c < cols(w); c++) for (var r = 0; r < rows(w); r++) if (R.at(s, w, c, r) === null) set(s, w, c, r, 'S'); });
+  assert.equal(R.rowGoal(s), null, 'every wall full: no row goal');
+});
+test('put right this month: counts pulls in the last 30 days, own past only (26 Nov 2026, round 2)', function () {
+  var s = kid(8); C.pullNeedsForgive = true; C.pullNeedsMadeRight = true; C.pullsPerDay = 3;
+  assert.equal(R.putRightLately(s), 0);
+  set(s, 'left', 0, 0, 'W'); set(s, 'left', 1, 0, 'W');
+  [0, 1].forEach(function (c) { R.forgive(s, 'left', c, 0); R.markMadeRight(s, 'left', c, 0, 'grown-up'); assert(R.pull(s, 'left', c, 0).ok); });
+  assert.equal(R.putRightLately(s), 2);
+  s.day += 30; assert.equal(R.putRightLately(s), 0, 'a month later they drop off');
+  assert.equal(s.stats.pearls, 2, 'the lifetime count stays');
+});
+test('put 10 back: fallen blocks only, at most n, inside the daily limit (26 Nov 2026, round 2)', function () {
+  var s = kid(8);
+  for (var i = 0; i < 15; i++) s.rubble.push({ id: 900 + i, t: 'S', seq: i });
+  R.addPiece(s, 'G'); var tray = s.tray.length;
+  var ev = R.putBack(s, 10).events;
+  var cap = Math.min(10, ev.length + R.summary(s).rubbleLeftToday); assert.equal(ev.length, cap, 'ten back, or up to the daily limit'); assert(ev.length > 0); assert.equal(s.today.rubble, ev.length);
+  assert.equal(s.tray.length, tray, 'tray pieces are left for the child');
+  assert.equal(s.rubble.length, 15 - ev.length);
+  s.today.rubble = 999; assert.equal(R.putBack(s, 10).events.length, 0, 'over the daily limit: none');
+});
 console.log(passed + ' tests passed' + (process.exitCode ? ', SOME FAILED' : ''));

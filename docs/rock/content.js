@@ -70,7 +70,7 @@
                       ownUp{ prompt, yes, no, dealtWith? (12 only), praise, note },
                       confirm{ line, parentAsk, yes, given }, blessing[] } }
      repair         { intro, didIt{ label, line{6,8,12} }, rightAgain{ label, ask, line, thanks }, prayedTogether{ label, line, note },
-                      notReadyYet{ label, toChild, toOther, later, note }, taskDone{ label, line }, pearlAfter{6,8,12} }
+                      notReadyYet{ label, toChild, toOther, later, note, grownUpAsk, grownUpYes, grownUpNo, notYet }, taskDone{ label, line }, pearlAfter{6,8,12} }
      throughTheDay  { lunch{ prompt, when, ifRemembered, ifForgot, parentNote },
                       calmPractice{ when, minutes, intro, steps[5]{ say, act }, close, parentNote }, quietWays[5]{ id, label, how } }
      fairness       + mortar{ name, extraStraw: 1, kid, kidEnds, sibling, parent }, + lines.mortar
@@ -1399,18 +1399,21 @@
     rightAgain: { label: 'We\'re right again', ask: '{sibling}, are you two right again?',
       line: 'We\'re right again.', thanks: 'Thank you for forgiving. That is a gift too.' },
     prayedTogether: { label: 'We prayed it together',
-      line: 'We said sorry to Jesus together, and went and made it right.',
-      note: 'Age 6: a grown-up taps this after praying with the child. The child never taps sorry alone.' },
+      line: 'We said sorry to Jesus together. Jesus has forgiven you. Next: go and make it right.',   // (26 Nov 2026, round 2) one tap is sorry only
+      note: 'Age 6: a grown-up taps this after praying with the child. The child never taps sorry alone. Making it right is the next step.' },
     notReadyYet: { label: 'Not ready yet',
-      toChild: 'They are not ready yet. That\'s okay. You did your part, so you can pull the hay out. Keep being kind, and try again later.',   // (26 Nov 2026, round 1) the child's part counts
+      toChild: 'They are not ready yet. That\'s okay. You did your part, so you can pull the hay out. Keep being kind, and try again later.',   // (26 Nov 2026, round 1) the child's part counts (round 2: after a grown-up says they tried)
       toOther: 'You don\'t have to be ready yet. Tell us when you are.',
+      grownUpAsk: 'Grown-up: did they go and really try to make it right?', grownUpYes: 'Yes, they tried', grownUpNo: 'Not yet',   // (26 Nov 2026, round 2) closes the loophole
+      notYet: 'That\'s okay. Go and try to make it right when you are ready. The hay can wait.',
       later: 'Would you like to try again with {sibling} now?',
       note: 'The child\'s part counts: they can still pull the hay out. Nobody is hurried into saying "I forgive you".' },   // (26 Nov 2026, round 1)
     taskDone: { label: 'I did the job', line: 'I went back and did it properly.' },
     pearlAfter: {
       '6': 'It is mended. Look, pearl where the straw was.',
       '8': 'Sorry said and put right. Pearl where the straw was. You and {sibling} are right again.',
-      '12': 'Put right. A line of pearl where the straw was. That is what lasts.'
+      '12': 'Put right. A line of pearl where the straw was. That is what lasts.',
+      tried: 'You did your part. Pearl where the hay was. Keep being kind. Jesus is working on it too.'   // (26 Nov 2026, round 2) not made up yet: never "right again"
     }
   };
 
@@ -1604,7 +1607,7 @@
       goldLine: 'You were with Jesus today. This is His gift.', lateGems: 'Last night\'s gems have arrived.' },
     tomorrow: { title: 'Tomorrow',
       reminder: { '6': 'One day Jesus will show what lasts. What we build with Him lasts forever. You are safe in Jesus.',
-                  '8': 'Your work will be tested by fire. Tomorrow will be played on eternity\'s screen.',
+                  '8': 'One day Jesus will show what lasts. What we build with Him lasts forever. You are safe in Jesus.',   // (26 Nov 2026, round 2) the gentler line for 8 too
                   '12': 'Your work will be tested by fire. Tomorrow will be played on eternity\'s screen.' },
       joel: 'Your work will be tested by fire. Tomorrow will be played on eternity\'s screen.',
       verse: '1 Corinthians 3:13', ask: 'Which one will you build with tomorrow?', example: 'How will you do it?',
