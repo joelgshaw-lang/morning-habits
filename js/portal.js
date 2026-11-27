@@ -275,6 +275,8 @@ export function createPortal(ctx) {
         <button class="farm-btn small" data-farm-setup="1">Give again</button></div>
       <div class="job-row-edit"><span class="ji">🏰</span><b>Build on the Rock (pretend try-out)<small> The pretend-day test page. Each child's real building opens from their page. Needs internet.</small></b>
         <a class="farm-btn small" href="docs/rock/play.html" target="_blank" rel="noopener" style="text-decoration:none">Open</a></div>
+      <div class="job-row-edit"><span class="ji">🌍</span><b>Rock World (new, test)<small> The new 3D building game, to try before the children get it. Test buttons for wood, hay, stubble, next day and fire. Its saves are kept apart from the children's. Needs internet.</small></b>
+        <a class="farm-btn small" href="docs/rock-world/world.html" target="_blank" rel="noopener" style="text-decoration:none">Open</a></div>
       <div class="job-row-edit"><span class="ji">🧪</span><b>Building test space<small> Endless blocks, gems, straw and crafting to try things out, with Fire now and Start again. Kept apart from the children's buildings.</small></b>
         <button class="farm-btn small" data-open-rock-test="1">Open</button></div>`;
   }

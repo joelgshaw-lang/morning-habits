@@ -1,6 +1,6 @@
 // Offline support: serve from cache first, refresh the cache in the background.
 // Bump VERSION when you deploy a change so old files are cleared.
-const VERSION = 'v82';   // (26 Nov 2026) Town Square, my farmer, turkeys, market stall
+const VERSION = 'v83';   // (27 Nov 2026) Rock World test page on the grown-ups App tab
 const CACHE = `morning-${VERSION}`;
 // The app itself. An update only installs if every one of these downloads, so keep this list short.
 const ASSETS = [
