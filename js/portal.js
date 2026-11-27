@@ -158,6 +158,11 @@ export function createPortal(ctx) {
   const rebuildPrice = (n) => Math.min(REBUILD.price, Math.max(5, Math.ceil(n / 3) * 5));
   function fallenBlocks(id) {
     try {
+      if (ctx.rockWorldOn()) {   // 🌍 Rock World (v84): its fallen pile
+        const s = JSON.parse(localStorage.getItem(`rock-world.${id}`) || 'null');
+        const queued = JSON.parse(localStorage.getItem(`rockworld.inbox.${id}`) || '[]').filter((x) => x.kind === 'rebuild').reduce((n, x) => n + (x.n || 0), 0);
+        return Math.max(0, (s?.fallen?.length || 0) - queued);
+      }
       const db = JSON.parse(localStorage.getItem(`rock-live.${id}`) || 'null');
       const pile = db?.kids?.me?.s?.rubble?.length || 0;
       const queued = JSON.parse(localStorage.getItem(`rock.inbox.${id}`) || '[]').filter((x) => x.kind === 'rebuild').reduce((n, x) => n + (x.n || 0), 0);
@@ -275,7 +280,11 @@ export function createPortal(ctx) {
         <button class="farm-btn small" data-farm-setup="1">Give again</button></div>
       <div class="job-row-edit"><span class="ji">🏰</span><b>Build on the Rock (pretend try-out)<small> The pretend-day test page. Each child's real building opens from their page. Needs internet.</small></b>
         <a class="farm-btn small" href="docs/rock/play.html" target="_blank" rel="noopener" style="text-decoration:none">Open</a></div>
-      <div class="job-row-edit"><span class="ji">🌍</span><b>Rock World (new, test)<small> The new 3D building game, to try before the children get it. Test buttons for wood, hay, stubble, next day and fire. Its saves are kept apart from the children's. Needs internet.</small></b>
+      <div class="job-row-edit"><span class="ji">🌍</span><b>Children's building: ${ctx.rockWorldOn() ? 'Rock World (new)' : 'Build on the Rock (old)'}<small> ${ctx.rockWorldOn()
+        ? 'Each child\'s building button opens Rock World. Their old Build on the Rock is kept and still gets every piece, so you can switch back.'
+        : 'Each child\'s building button opens the old Build on the Rock. Rock World is kept and still gets every piece.'} Needs internet.</small></b>
+        <button class="farm-btn small" data-rock-use="${ctx.rockWorldOn() ? 'old' : 'new'}">${ctx.rockWorldOn() ? 'Use the old one' : 'Use Rock World'}</button></div>
+      <div class="job-row-edit"><span class="ji">🧪</span><b>Rock World (test copy)<small> The grown-ups' copy with test buttons for wood, hay, stubble, next day and fire. Its saves are kept apart from the children's. Needs internet.</small></b>
         <a class="farm-btn small" href="docs/rock-world/world.html" target="_blank" rel="noopener" style="text-decoration:none">Open</a></div>
       <div class="job-row-edit"><span class="ji">🧪</span><b>Building test space<small> Endless blocks, gems, straw and crafting to try things out, with Fire now and Start again. Kept apart from the children's buildings.</small></b>
         <button class="farm-btn small" data-open-rock-test="1">Open</button></div>`;
@@ -474,6 +483,7 @@ export function createPortal(ctx) {
     if (ds.openRock) { el.remove(); el = null; return ctx.openRock(ds.openRock); }
     if (ds.rebuild) { await buyRebuild(ds.rebuild); return draw(); }
     if (ds.openRockTest) { el.remove(); el = null; return ctx.openRockTest(); }
+    if (ds.rockUse) { try { localStorage.setItem('rockworld.use', ds.rockUse); } catch {} draw(); return ctx.toast(ds.rockUse === 'old' ? '🏰 The children\'s building button now opens the old Build on the Rock.' : '🌍 The children\'s building button now opens Rock World.'); }
     if (ds.keep || ds.drop) { if (await ctx.quickHandle(t)) draw(); return; }
     if (ds.practice) { const [id, dr] = ds.practice.split(':'); return runDrill(id, dr); }
   }

@@ -172,7 +172,7 @@ export function createQuick(ctx) {
         state.coinAdjust = [...(state.coinAdjust || []), { kidId: q.kidId, n, why: `${q.icon} ${q.label}`, t: q.checkedAt, quick: q.id }];
         await ctx.kvSet('coinAdjust', state.coinAdjust);
       }
-      ctx.sendToRock(q.kidId, q.n > 0 ? { kind: 'gem', fruit: q.fruit, label: q.label } : { kind: 'straw', material: q.material, label: q.label });
+      ctx.sendToRock(q.kidId, q.n > 0 ? { kind: 'gem', fruit: q.fruit, label: q.label } : { kind: 'straw', material: q.material, moment: q.kind, label: q.label });
       ctx.toast(`🏰 Sent to ${esc(ctx.kid(q.kidId)?.name || '')}'s building: ${q.icon} ${esc(q.label)} (${q.n > 0 ? '💎 gem' : MATERIAL[q.material]})`);
     }
     await save();

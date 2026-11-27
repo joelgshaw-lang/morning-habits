@@ -139,6 +139,7 @@ button:disabled{opacity:.4}
 </div>
 
 <div id="side">   <!-- heart round 3: the buttons that come and go are at the bottom, so nothing moves under a finger -->
+  <button id="homeBtn" hidden aria-label="Back to the app"><span class="big">🏠</span>Home</button>
   <button id="testBtn" hidden>🧪 Test</button>
   <button id="voiceBtn" aria-label="Read words aloud"><span class="big">🔈</span>Voice</button>
   <button id="insideBtn"><span class="big">👀</span>My eyes</button>
@@ -259,17 +260,24 @@ button:disabled{opacity:.4}
 <script type="module">
 'use strict';
 /* Rock World, the page (slice 2). The rules live in world-rules.js, the words in world-content.js.
-   This test copy saves to localStorage 'rock-world-test.<age>' only. It never reads or writes the children's
-   Build on the Rock saves ('rock-live.<kid>') or the app's inbox. Joining it to the app is slice 3. */
+   Two ways in:
+   - the grown-ups' test copy (no ?live): saves to localStorage 'rock-world-test.<age>', with the test tools.
+   - the children's real game (?live=1&kid=..&name=..&age=.., opened by the app, 27 Nov 2026, Joel: "push it to their ones live"):
+     saves to 'rock-world.<kid>', takes pieces from the app's inbox 'rockworld.inbox.<kid>', follows real days (a new day
+     starts at 3am, as in the app), no test tools. On its first open it copies the child's blocks from Build on the Rock
+     ('rock-live.<kid>', read only, never changed) into the tray. Build on the Rock keeps working and keeps getting pieces. */
 const R=window.WorldRules,WW=window.WorldWords,K=R.key,U=R.un;
 const $=id=>document.getElementById(id);
 const QS=new URLSearchParams(location.search);
+const LKID=String(QS.get('kid')||'').replace(/[^\w-]/g,'').slice(0,40),LIVE=QS.get('live')==='1'&&!!LKID;   /* the children's real game */
+const INFRAME=window.parent!==window;
 const WEEK=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const ORDER=['G','S','M','P','X','Y','D','W','V','T','B','L','C','N'];
 const P=R.CONFIG.plot,SD=R.CONFIG.sand,MID=P>>1;   /* the plot is P x P with a sand ring SD wide */
 const COL={C:'#8a5a34',N:'#f2c14e',Y:'#c79bff',V:'#b58cff',G:'#f2c14e',S:'#cfd6e6',H:'#e0a93b',P:'#fff4fb',X:'#fff3d6',D:'#8a5a34',W:'#9fd8ff',T:'#a8743f',B:'#e2607a',L:'#ffe9a6'};
 const FRUIT={l:'#d72337',j:'#f57d1e',p:'#2864e6',t:'#14b4a5',k:'#28aa50',b:'#cde43c',f:'#7d55e1',e:'#fa96c3',r:'#782678'};
-const pref=(k,v)=>{try{if(v===undefined)return localStorage.getItem('rock-world-test.pref.'+k);localStorage.setItem('rock-world-test.pref.'+k,v)}catch(e){return null}};
+const PREF=LIVE?'rock-world.'+LKID+'.pref.':'rock-world-test.pref.';
+const pref=(k,v)=>{try{if(v===undefined)return localStorage.getItem(PREF+k);localStorage.setItem(PREF+k,v)}catch(e){return null}};
 
 /* ---------- who is building ---------- */
 let AGE=R.ageBand(QS.get('age')||pref('age')||8);document.body.classList.add('age'+AGE);
@@ -278,7 +286,7 @@ let TOUCH=QS.get('touch')==='1';
 let S=null;
 const w=(p,v)=>{v=Object.assign({name:NAME},v||{});if(v.n!=null){v.blocks=v.n===1?'1 block':v.n+' blocks';v.pieces=v.n===1?'1 piece':v.n+' pieces'}return WW.get(p,AGE,v)};
 const pname=k=>WW.T.pieces[k]||k;
-function saveKey(){return 'rock-world-test.'+AGE}
+function saveKey(){return LIVE?'rock-world.'+LKID:'rock-world-test.'+AGE}
 /* Safe saving: every save keeps the one before as a backup; a save that can't be read falls back to the backup; missing parts
    of an older save are filled in. Nothing here can wipe a building. While the self-check runs, nothing is saved. */
 let noSave=false;
@@ -293,8 +301,51 @@ function problems(){try{return JSON.parse(localStorage.getItem('rock-world-test.
 window.addEventListener('error',e=>problem((e.message||'error')+' @'+(e.lineno||'?')));
 window.addEventListener('unhandledrejection',e=>problem('promise: '+((e.reason&&e.reason.message)||e.reason)));
 const guard=fn=>function(){try{return fn.apply(this,arguments)}catch(e){problem((e&&e.message)+' in '+(fn.name||'handler'));console.error(e)}};
-function freshState(){const s=R.fresh(AGE,new Date().getDay());s.ui={bx:MID+.5,by:0,bz:P-3.5,seen:false};
+function freshState(){const s=R.fresh(AGE,LIVE?wdOf(dayNum(rockDate())):new Date().getDay());s.ui={bx:MID+.5,by:0,bz:P-3.5,seen:false};
+  if(LIVE){s.ui.date=rockDate();const c=oldBlocks();if(c&&(c.G+c.S+c.P+c.L+c.M.length)>0){s.tray.G+=c.G;s.tray.S+=c.S;s.tray.P+=c.P;s.tray.L+=c.L;s.tray.M.push(...c.M);
+    s.ui.imported={at:new Date().toISOString(),G:c.G,S:c.S,P:c.P,L:c.L,M:c.M.length};return s}}   /* blocks from Build on the Rock instead of the starter pile */
   [{kind:'gold'},{kind:'silver'},{kind:'silver'},{kind:'gem',fruit:'k'},{kind:'gem',fruit:'j'}].forEach(it=>R.addItem(s,it));return s}
+/* ---------- the children's real game: days, the app's inbox, and blocks from Build on the Rock ---------- */
+function rockDate(d){const t=new Date((d==null?Date.now():new Date(d).getTime())-3*3600e3);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')}   /* 1am still counts as yesterday, as in the app */
+function dayNum(ds){const q=String(ds).split('-');return Math.round(Date.UTC(+q[0],+q[1]-1,+q[2])/864e5)}
+function wdOf(n){return new Date(n*864e5).getUTCDay()}
+const LINBOX='rockworld.inbox.'+LKID;   /* its own inbox: Build on the Rock empties 'rock.inbox.<kid>' when it reads it */
+function takeInbox(){if(!LIVE)return[];let a=null;try{const raw=localStorage.getItem(LINBOX);if(raw==null)return[];localStorage.removeItem(LINBOX);a=JSON.parse(raw)}catch(e){a=null}
+  return Array.isArray(a)?a.filter(x=>x&&typeof x==='object'&&typeof x.kind==='string'):[]}
+/* every block the child has in Build on the Rock: laid in the building, waiting in the tray, fallen, and in finished buildings.
+   Gems keep their fruit colour. Wood, hay and stubble (straw) are not carried over. Read only: the old save is never changed. */
+function oldBlocks(){let db=null;try{db=JSON.parse(localStorage.getItem('rock-live.'+LKID))}catch(e){db=null}
+  const s=db&&db.kids&&db.kids.me&&db.kids.me.s;if(!s||typeof s!=='object')return null;
+  const c={G:0,S:0,P:0,L:0,M:[]},GEMS='ljptkbfer',see=t=>{if(t==='G'||t==='S'||t==='P'||t==='L')c[t]++;else if(typeof t==='string'&&t.length===1&&GEMS.includes(t))c.M.push(t)},pc=p=>{if(p&&typeof p==='object')see(p.t)};
+  const arr=a=>Array.isArray(a)?a:[];
+  if(s.walls&&typeof s.walls==='object')Object.values(s.walls).forEach(wl=>arr(wl).forEach(col=>arr(col).forEach(pc)));
+  arr(s.free).forEach(pc);arr(s.spire).forEach(pc);arr(s.extras).forEach(x=>pc(x&&x.p));arr(s.tray).forEach(pc);arr(s.rubble).forEach(pc);
+  arr(s.city).forEach(r=>{if(!r||typeof r!=='object')return;if(r.layout&&typeof r.layout==='object')Object.values(r.layout).forEach(wl=>arr(wl).forEach(str=>String(str).split('').forEach(see)));
+    arr(r.free).forEach(see);arr(r.spire).forEach(see);arr(r.extras).forEach(x=>see(x&&x.t))});
+  return c}
+/* pieces that came while the game was shut count on their own day (so the daily limits are right), and each real day that
+   passed is a night in the game (at most 14). Returns what to show once the world is drawn. */
+function liveCatchUp(){const today=rockDate(),tn=dayNum(today);if(!/^\d{4}-\d\d-\d\d$/.test(S.ui.date||''))S.ui.date=today;
+  let cur=Math.min(dayNum(S.ui.date),tn);
+  const items=takeInbox().map(it=>{let d=tn;try{if(it.t)d=dayNum(rockDate(it.t))}catch(e){}return{it,d:Math.max(cur,Math.min(tn,d||tn))}});
+  const acc=feedApply([]),feedDay=d=>feedApply(items.filter(x=>x.d===d).map(x=>x.it),acc);
+  let nd=null,laidY=0,y=S.day,rolled=0;feedDay(cur);
+  for(let d=cur+1;d<=tn;d++){if(tn-d<14){laidY=(S.today&&S.today.laid)||0;y=S.day;nd=R.nextDay(S,wdOf(d));rolled++}feedDay(d)}
+  S.ui.date=today;acc.hay=acc.hay.filter(h=>S.b[h.k]&&S.b[h.k].t==='H');save();
+  return{acc,nd,laidY,y,rolled}}
+function liveShow(c){const has=Object.keys(c.acc.got).length||c.acc.hay.length||c.acc.tr;if(has)feedShow(c.acc);
+  if(TOUCH)return startTouch();
+  const im=S.ui.imported&&!S.ui.importSaid?S.ui.imported:null;
+  if(im){S.ui.importSaid=1;save();const parts=[];if(im.G)parts.push(im.G+' gold');if(im.S)parts.push(im.S+' silver');if(im.M)parts.push(im.M+(im.M===1?' gem':' gems'));if(im.P)parts.push(im.P+(im.P===1?' pearl':' pearls'));if(im.L)parts.push(im.L+(im.L===1?' lamp':' lamps'));
+    say('🎁 Welcome to Rock World, '+NAME+'! All '+(im.G+im.S+im.M+im.P+im.L)+' blocks from your old building came with you: '+parts.join(', ')+'. They are in your tray, ready to build with.',true);return}
+  if(c.rolled&&c.nd)setTimeout(()=>morningLine(c.laidY,c.y,c.nd,''),200);else if(!has)say(S.ui.seen?w('welcomeBack'):w('hello'),true)}
+/* while the game is open: new pieces from the app every few seconds; a new day (3am) starts the page again */
+function livePoll(){if(!LIVE||!S||!S.ui||document.hidden||demo)return;try{
+  if(rockDate()!==S.ui.date){save();location.reload();return}
+  const items=takeInbox();if(items.length){feed(items);save()}}catch(e){problem('inbox: '+(e&&e.message))}}
+if(LIVE){setInterval(livePoll,4000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)livePoll()})}
+/* tell the app the child is still playing (so it does not go back to the home screen) */
+let actSent=0;document.addEventListener('pointerdown',()=>{if(!INFRAME||Date.now()-actSent<5000)return;actSent=Date.now();try{window.parent.postMessage({type:'rock-activity'},location.origin)}catch(e){}},true);
 
 /* ---------- voice (read aloud, off unless a child turns it on; no sound effects) ---------- */
 
@@ -326,10 +377,13 @@ const col=c=>new THREE.Color(c).convertSRGBToLinear();
 function linMat(m){if(!m||m.userData.lin)return;m.userData.lin=1;['color','emissive','specular'].forEach(k=>{if(m[k]&&m[k].isColor)m[k].convertSRGBToLinear()});
   ['map','emissiveMap','envMap'].forEach(k=>{const t=m[k];if(t&&t.encoding!==THREE.sRGBEncoding){t.encoding=THREE.sRGBEncoding;t.needsUpdate=true}});m.needsUpdate=true}
 function linFix(root){root.traverse(o=>{const m=o.material;if(!m)return;if(Array.isArray(m))m.forEach(linMat);else linMat(m)})}
-var hvBg,hvCam,hvPlace;   /* the City of light, far away (filled in further down) */
+var hvBg,hvCam,hvPlace,hvSun,lookYaw=.75;   /* Heaven all around, with the city far away (filled in further down) */
 renderer.info.autoReset=false;
-function paint(){linFix(scene);renderer.info.reset();if(hvBg&&S&&!(S.ui&&S.ui.heavenOff)&&(fp||lookUp||pitch<.7)){   /* looking steeply down, the island hides the sky: skip the far layer */renderer.autoClear=false;renderer.clear();
-    const e=camera.rotation;hvCam.rotation.set(fp?e.x:-.07+(e.x+.62)*.5,fp?Math.PI+fyaw:yaw,0);renderer.render(hvBg,hvCam);renderer.clearDepth();renderer.render(scene,camera)}
+function heavenOn(){return !!(hvBg&&S&&sceneKind==='sky'&&!(S.ui&&S.ui.heavenOff))}
+function paint(){linFix(scene);renderer.info.reset();if(heavenOn()){renderer.autoClear=false;renderer.clear();
+    hvCam.quaternion.copy(camera.quaternion);if(hvCam.fov!==camera.fov||hvCam.aspect!==camera.aspect||!!(camera.view&&camera.view.enabled)!==!!(hvCam.view&&hvCam.view.enabled)||(camera.view&&camera.view.enabled&&hvCam.view.offsetY!==camera.view.offsetY)){
+      hvCam.fov=camera.fov;hvCam.aspect=camera.aspect;if(camera.view&&camera.view.enabled){const v=camera.view;hvCam.setViewOffset(v.fullWidth,v.fullHeight,v.offsetX,v.offsetY,v.width,v.height)}else hvCam.clearViewOffset();hvCam.updateProjectionMatrix()}   /* the sky turns exactly with the view */
+    renderer.render(hvBg,hvCam);renderer.clearDepth();renderer.render(scene,camera)}
   else{renderer.autoClear=true;renderer.render(scene,camera)}}
 const scene=new THREE.Scene();scene.fog=new THREE.Fog(col(0x4a2f66),50,130);
 const camera=new THREE.PerspectiveCamera(40,1,0.1,300);
@@ -875,7 +929,7 @@ let tool='G',fp=false;
 function firstPiece(){return ORDER.find(t=>(TOUCH||(t!=='P'&&t!=='Y'))&&(TOUCH?R.todayLeftKind(S,t)>0:R.count(S,t)>0))||'walk'}   /* motivation round 5: a pearl or fruit stone is only ever picked by the child */   /* the morning minute starts with a piece from today */
 function burnChip(){if(TOUCH)return'';const n=R.heartList(S).filter(r=>(!r.keys.length||r.keys.some(k=>!hidden.has(k)))&&!(r.state==='platform'&&r.pst==='waiting'&&r.rpAll)).length;return n?w('chip.heart',{n}):''}   /* never a list of wrongs; hidden in the morning minute (round 3 heart) */
 function draw(){const sm=R.summary(S),h=R.house(S);
-  $('who').textContent=(NAME==='builder'?'🔨 My building':'🔨 '+NAME)+' · age '+AGE+' (test)'+((S.stickers||[]).length&&!TOUCH?' · ⭐ '+S.stickers.length:'');   /* the child's own stickers, never compared */   /* no level badge or day count to compare (round 3 heart) */
+  $('who').textContent=(NAME==='builder'?'🔨 My building':'🔨 '+NAME)+' · age '+AGE+(LIVE?'':' (test)')+((S.stickers||[]).length&&!TOUCH?' · ⭐ '+S.stickers.length:'');   /* the child's own stickers, never compared */   /* no level badge or day count to compare (round 3 heart) */
   const bc=burnChip(),parts=[];if(bc)parts.push(bc+(sm.danger&&AGE>6?w('chip.danger',{n:sm.danger}):'')+(sm.leaning&&AGE>6?w('chip.leaning',{n:sm.leaning}):''));if(sm.onSand&&(AGE>6||sm.stormDue))parts.push(w('chip.sand',{n:sm.onSand}));   /* age 6 is told too when a storm is coming (round 4) */if(sm.fallen&&AGE>6)parts.push(w('chip.fallen',{n:sm.fallen}));
   {const co=R.cutsOpen(S);let seen=S.ui.cutsSeen;if(!Array.isArray(seen))seen=S.ui.cutsSeen=co.slice(0,typeof seen==='number'?seen:1);const nw=co.filter(c=>!seen.includes(c));
     if(!TOUCH&&!demo&&nw.length){S.ui.cutsSeen=co.slice();setTimeout(()=>{say(sayAll+' '+nw.map(c=>w('cuts.unlocked',{name:w('cuts.name.'+c)})).join(' '),true);hearts(5)},2600)}}   /* motivation round 7: the right cut, after the moment that earned it */
@@ -1309,7 +1363,7 @@ function anim(dt){let busy=moodStep(dt);
   return busy}
 var lookUp=false;   /* ✨ Look up: the island sits lower on screen so the sky (and the City of light) shows above it, until the view is turned */
 function camStep(dt,busy){
-  if(lookUp&&(fp||Math.abs(pitch-.42)>.005||Math.abs(yaw-.75)>.005))lookUp=false;{const W=innerWidth,H=innerHeight;if(lookUp){if(!camera.view||camera.view.offsetY!==-.22*H)camera.setViewOffset(W,H,0,-.22*H,W,H)}else if(camera.view&&camera.view.enabled)camera.clearViewOffset()}
+  if(lookUp&&(fp||Math.abs(pitch-.26)>.005||Math.abs(yaw-lookYaw)>.005))lookUp=false;{const W=innerWidth,H=innerHeight;if(lookUp){if(!camera.view||camera.view.offsetY!==-.22*H)camera.setViewOffset(W,H,0,-.22*H,W,H)}else if(camera.view&&camera.view.enabled)camera.clearViewOffset()}
   /* camera */
   if(fp){camera.fov=70;const ey=S.ui.by+1.45;camera.position.set(S.ui.bx,ey,S.ui.bz);const cp=Math.cos(fpitch);camera.lookAt(S.ui.bx+Math.sin(fyaw)*cp,ey+Math.sin(fpitch),S.ui.bz+Math.cos(fyaw)*cp)}
   else{camera.fov=FOV;if(tgt.distanceToSquared(goalT)>1e-4){tgt.lerp(goalT,Math.min(1,dt*4));busy=true}const cp=Math.cos(pitch);camera.position.set(tgt.x+Math.sin(yaw)*cp*dist,tgt.y+Math.sin(pitch)*dist,tgt.z+Math.cos(yaw)*cp*dist);camera.lookAt(tgt)}
@@ -1331,8 +1385,9 @@ function startTouch(){TOUCH=true;touchOver=false;fp=false;touchEnd=Date.now()+60
   clearInterval(touchTimer);touchTimer=setInterval(tickTouch,500);tickTouch();draw()}
 function tickTouch(){const left=Math.max(0,Math.ceil((touchEnd-Date.now())/1000));$('touchLeft').textContent=w('touch.head')+' · '+(left?Math.floor(left/60)+':'+String(left%60).padStart(2,'0'):'done');
   if(!left&&!touchOver){touchOver=true;tool='walk';say(w('touch.over'),true);clearInterval(touchTimer);draw()}}
+$('homeBtn').onclick=()=>{save();try{window.parent.postMessage({type:'rock-close'},location.origin)}catch(e){}};
 $('touchDone').onclick=()=>{clearInterval(touchTimer);if(window.parent!==window){try{window.parent.postMessage({type:'rock-close'},location.origin)}catch(e){}}
-  TOUCH=false;touchOver=false;$('touchBar').hidden=true;$('testBtn').hidden=false;say('');draw()};
+  TOUCH=false;touchOver=false;$('touchBar').hidden=true;$('testBtn').hidden=LIVE;$('homeBtn').hidden=!(LIVE&&INFRAME);say('');draw()};
 
 /* ---------- grown-ups' test tools (this test copy only) ---------- */
 const DAY=[{kind:'gold'},{kind:'silver'},{kind:'silver'},{kind:'gem',fruit:'k'},{kind:'gem',fruit:'j'}];
@@ -1355,11 +1410,14 @@ const QB={wood:()=>qMoment('wood'),hay:()=>qMoment('hay'),stubble:()=>qMoment('s
   again:()=>{const hs=Object.values(S.b).filter(b=>b.t==='H'),pf=hs.find(b=>b.pf!=null),last=hs[hs.length-1],mo=(pf||last||{}).mo;
     if(!mo||!MOMENTS[mo]){say('🔁 No hard moment yet. Tap 🪵 Wood, 🌾 Hay or 🥀 Stubble first.');return}qMoment(MOMENTS[mo].mat,mo)},
   day:()=>TEST.day(true),fire:()=>runNight('fire'),
-  heaven:()=>{if(fp)$('insideBtn').click();yaw=.75;pitch=.42;dist=Math.max(dist,30);goalT.set(MID,1,MID);lookUp=true;want();say('✨ Far away, the City of light. One day, a home with Jesus (Revelation 21).')}};   /* test: tilt the view up to see the city */
+  heaven:()=>{if(fp)$('insideBtn').click();yaw=lookYaw;pitch=.26;dist=48;goalT.set(MID,1,MID);lookUp=true;want();say('✨ Far away, in the great light, the city of God. One day, a home with Jesus (Revelation 21:23).')}};   /* test: tilt the view up to see the city */
 document.querySelectorAll('#qbar [data-q]').forEach(b=>b.onclick=()=>{if(busyModal()||act||acts.length||pending)return;try{QB[b.dataset.q]()}catch(e){problem('quick test: '+(e&&e.message))}});
-function feed(items){const got={},hay=[],evs=[];let tr=0,capped=0;
-  items.forEach(it=>{const r=R.addItem(S,it,Math.random);if(!r.ok){if(r.why==='cap')capped++;return}
-    if(r.gave)Object.keys(r.gave).forEach(k=>got[k]=(got[k]||0)+r.gave[k]);if(r.hay)r.hay.forEach(k=>hay.push({k,moment:it.moment}));if(r.events)evs.push(...r.events);if(it.kind==='treasure')tr++});
+function feed(items){feedShow(feedApply(items))}
+function feedApply(items,a){a=a||{got:{},hay:[],evs:[],tr:0,capped:0};
+  items.forEach(it=>{const r=R.addItem(S,it,Math.random);if(!r.ok){if(r.why==='cap')a.capped++;return}
+    if(r.gave)Object.keys(r.gave).forEach(k=>a.got[k]=(a.got[k]||0)+r.gave[k]);if(r.hay)r.hay.forEach(k=>a.hay.push({k,moment:it.moment}));if(r.events)a.evs.push(...r.events);if(it.kind==='treasure')a.tr++});
+  return a}
+function feedShow(a){const{got,hay,evs,tr,capped}=a;
   ['G','S','M','X'].forEach(k=>{if(got[k])queueAct({pose:GOOD[k].pose,say:GOOD[k].say,dur:2.0,fx:'hop',hearts:1})});   /* good acts last longer and hop: the fun ones */
   const list=Object.keys(got).filter(k=>k!=='X').map(k=>got[k]+' '+(k==='M'&&got[k]>1?'gems':pname(k).toLowerCase()));const words=[];
   if(list.length)words.push(w('arrived',{list:list.join(', ')}));if(evs.some(e=>e.kind==='coins'))words.push(w('yay.coins'));if(tr)words.push('✨ '+w('treasure'));
@@ -1555,12 +1613,15 @@ function bigHouse(){clearActs();S=R.fresh(AGE,S.weekday);const o=MID-7;S.ui={bx:
   S.tray.S=8;S.tray.G=4;S.tray.M=S.tray.M.slice(0,8);S.rockPts=0;R.checkMiles(S);tool='G';groundHalf=-1;drawMiddle();after([]);focusOn(new THREE.Vector3(S.ui.bx,0,S.ui.bz));say('A big house of '+Object.keys(S.b).length+' blocks, for the speed test. Turn it, zoom it, go inside.')}
 
 /* ---------- start ---------- */
-function start(){clearActs();S=load()||freshState();mend(S);if(!S.ui)S.ui={bx:MID+.5,by:0,bz:P-3.5,seen:false};lvl=S.ui.lvl!=null?S.ui.lvl:Math.round(S.ui.by||0);S.ui.by=lvl;if(!S.ui.endless2){S.ui.endless=true;S.ui.endless2=1}if(!S.ui.chaffRain2){S.ui.chaffRain=true;S.ui.chaffRain2=1}chaffNext=performance.now()+8000;topUp();   /* 27 Nov 2026 (Joel: "give me unlimited number of jewels"): endless pieces start on for testing */
+function start(){clearActs();S=load()||freshState();mend(S);if(!S.ui)S.ui={bx:MID+.5,by:0,bz:P-3.5,seen:false};lvl=S.ui.lvl!=null?S.ui.lvl:Math.round(S.ui.by||0);S.ui.by=lvl;
+  if(LIVE){S.ui.endless=false;S.ui.chaffRain=false;S.ui.qbarOff=true}   /* the children's game: no endless pieces, no test hard moments, no test buttons */
+  else{if(!S.ui.endless2){S.ui.endless=true;S.ui.endless2=1}if(!S.ui.chaffRain2){S.ui.chaffRain=true;S.ui.chaffRain2=1}}chaffNext=performance.now()+8000;topUp();
+  const live=LIVE?liveCatchUp():null;   /* 27 Nov 2026 (Joel: "give me unlimited number of jewels"): endless pieces start on for testing */
   tool=firstPiece();fp=false;walkPath=[];pops.clear();
   builder.clear?builder.clear():builder.children.slice().forEach(c=>builder.remove(c));cloud=null;moodParts.length=0;farmerSprite=null;loadFarmer();
   setScene(S.ui.scene||'sky');groundHalf=-1;drawGround();drawMiddle();rebuild();unstick();dist=niceDist();goalT.set(S.ui.bx,1,S.ui.bz);tgt.copy(goalT);draw();
-  $('testBtn').hidden=TOUCH;
-  if(TOUCH)startTouch();else say(S.ui.seen?w('welcomeBack'):w('hello'),true);
+  $('testBtn').hidden=TOUCH||LIVE;$('homeBtn').hidden=!(LIVE&&INFRAME)||TOUCH;
+  if(live)liveShow(live);else if(TOUCH)startTouch();else say(S.ui.seen?w('welcomeBack'):w('hello'),true);
   if(!TOUCH&&(S.ui.fireWait||S.fireOwed)&&R.fireReady(S))setTimeout(()=>ask(w('fire.title'),w('fire.away')+' '+w('fire.text')+(R.stormDue(S)?w('fire.storm'):''),w('fire.light'),'',()=>runNight(),{noNo:1,alt:{label:w('fire.lookFirst'),fn:()=>{say(w('fire.looking'),true)}}}),900);   /* "Not yet" waits once: next visit only "Light the fire" (round 2 heart) */
   S.ui.seen=true;save()}
 /* ---------- where the rock is: ☁️ in the sky or 🌊 in the sea (27 Nov 2026, Joel: "give the option in the sky or in the sea.
@@ -1584,7 +1645,7 @@ function scnMat(id){if(SCN[id])return SCN[id];let m;
   SHARED.add(m);if(m.map)SHARED.add(m.map);return SCN[id]=m}
 const scenery=new THREE.Group();world.add(scenery);const clouds=new THREE.Group();world.add(clouds);
 let sceneKind=null,sceneAnim=null;
-const SKY={sky:'linear-gradient(#1c1446 0%,#3d2a6e 38%,#9a5a7a 66%,#f08a5e 86%,#ffc27a 100%)',sea:'linear-gradient(#1f3a7a 0%,#4f6aa8 40%,#e8957a 70%,#ffcf8a 88%,#ffe2a8 100%)'};
+const SKY={sky:'linear-gradient(#4f9db6 0%,#9fd0cf 30%,#fbe6b4 58%,#f3b08e 80%,#d99a96 100%)',   /* heaven all around (Joel 27 Nov); was dusk purple */sea:'linear-gradient(#1f3a7a 0%,#4f6aa8 40%,#e8957a 70%,#ffcf8a 88%,#ffe2a8 100%)'};
 function voxBuild(Vx,extra){const k3=(x,y,z)=>x+','+y+','+z,buf={};
   const solid=(x,y,z)=>{const m=Vx.get(k3(x,y,z));return !!m&&m!=='lamp'&&m!=='pond'};
   const side=(m,d)=>m==='grass'?(d[1]===1?'grass':d[1]===-1?'dirt':'side'):m==='sand'?(d[1]===1?'sand':'sandS'):m;
@@ -1613,13 +1674,19 @@ function oak(put,x,y,z,r,leaf){const h=3+((r()*2)|0);for(let i=0;i<h;i++)put(x,y
 function pine(put,x,y,z){for(let i=0;i<2;i++)put(x,y+i,z,'trunk');let r=2;for(let i=2;i<7;i++){for(let dx=-r;dx<=r;dx++)for(let dz=-r;dz<=r;dz++)if(Math.abs(dx)+Math.abs(dz)<=r)put(x+dx,y+i,z+dz,'pine');if(i%2===1)r=Math.max(0,r-1)}put(x,y+7,z,'pine')}
 function palm(put,x,y,z,r){let px=x,pz=z;const lean=[[1,0],[-1,0],[0,1],[0,-1]][(r()*4)|0];for(let i=0;i<6;i++){put(px,y+i,pz,'trunk');if(i===2||i===4){px+=lean[0];pz+=lean[1]}}
   const top=y+6;put(px,top,pz,'palm');[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]].forEach(d=>{put(px+d[0],top,pz+d[1],'palm');put(px+2*d[0],top-1,pz+2*d[1],'palm')})}
-/* ---------- the City of light (Joel 27 Nov 2026, from docs/rock-world/heaven-looks.html: "I think the City of Light is pretty good").
-   Far away on a bank of high clouds, a small golden city glows, with pearl gates and soft beams of light rising from it (Revelation 21).
-   It sits in its own far layer, drawn first, so it always stays in the open sky behind the island: it turns with the view, and stays level. ---------- */
-{let sd=4242;const hr=()=>{sd=(sd*16807)%2147483647;return(sd-1)/2147483646};const UTh=UT;
-  hvBg=new THREE.Scene();hvCam=new THREE.PerspectiveCamera(FOV,1,1,800);hvCam.rotation.order='YXZ';
+/* ---------- Heaven all around, with the city (Joel 27 Nov 2026, from his picture: "far in the distance ... the scale is just breathtaking ...
+   something like this around you"; he picked "Heaven all around + city" on docs/rock-world/heaven-looks.html).
+   In the sky scene, the island floats inside a huge glowing sky: a sky dome (teal above, pale gold round the light, warm peach below),
+   one great light far off with long breathing rays, a bowl of soft gold-lit clouds at every height (well below the island too, so it
+   shows in the normal steep view), drifting sparkles, and the gold city very small in the heart of the light (Revelation 21:23).
+   It is drawn first in its own far layer, and that layer turns exactly with the camera, like a real sky, so nothing slides.
+   Draw jobs: sky 1, light 1, clouds 1, rays 1, sparkles 1, city 1, its cloud bank 1. ---------- */
+{let seed=4242;const rnd=()=>{seed=(seed*16807)%2147483647;return(seed-1)/2147483646};const UTh=UT;
+  hvBg=new THREE.Scene();hvCam=new THREE.PerspectiveCamera(FOV,1,1,6000);
   const cv=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h||w;return c};
-  const glowT=st=>{const c=cv(64),g=c.getContext('2d'),gr=g.createRadialGradient(32,32,0,32,32,32);st.forEach(([p,q])=>gr.addColorStop(p,q));g.fillStyle=gr;g.fillRect(0,0,64,64);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;return t};
+  const glowT=(st,size)=>{const z=size||64,c=cv(z),g=c.getContext('2d'),gr=g.createRadialGradient(z/2,z/2,0,z/2,z/2,z/2);st.forEach(([p,q])=>gr.addColorStop(p,q));g.fillStyle=gr;g.fillRect(0,0,z,z);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;return t};
+  const gs=(map,c,op)=>new THREE.Sprite(new THREE.SpriteMaterial({map,color:c||0xffffff,transparent:true,opacity:op==null?1:op,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
+  const gapTex=glowT([[0,'rgba(255,255,255,1)'],[.12,'rgba(255,250,230,.95)'],[.35,'rgba(255,236,190,.4)'],[1,'rgba(255,220,160,0)']],128);
   const rayT=(()=>{const W=32,Hh=128,c=cv(W,Hh),g=c.getContext('2d'),im=g.createImageData(W,Hh),d=im.data;for(let y=0;y<Hh;y++)for(let x=0;x<W;x++){const v=1-y/(Hh-1),u=Math.abs(x/(W-1)*2-1),side=Math.pow(Math.max(0,1-u*u),1.6),top=Math.min(1,(1-v)*12),i=(y*W+x)*4;d[i]=d[i+1]=d[i+2]=255;d[i+3]=Math.max(0,Math.min(255,255*Math.pow(v,1.5)*side*top|0))}g.putImageData(im,0,0);return new THREE.CanvasTexture(c)})();
   const rayM=(c,str)=>new THREE.ShaderMaterial({uniforms:{uMap:{value:rayT},uT:UTh,uC:{value:c},uS:{value:str}},transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,
     vertexShader:'attribute float aPh;varying vec2 vUv;varying float vPh;void main(){vUv=uv;vPh=aPh;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
@@ -1627,11 +1694,74 @@ function palm(put,x,y,z,r){let px=x,pz=z;const lean=[[1,0],[-1,0],[0,1],[0,-1]][
   const rayG=list=>{const p=[],u=[],ph=[],ix=[],Z=new THREE.Vector3(0,0,1);list.forEach(r=>{const dd=r.e.clone().sub(r.s),sdv=dd.clone().cross(Z).normalize(),b=p.length/3;
       [[r.s,-r.w0,1,0],[r.s,r.w0,1,1],[r.e,r.w1,0,1],[r.e,-r.w1,0,0]].forEach(([q,w0,v,uu])=>{p.push(q.x+sdv.x*w0/2,q.y+sdv.y*w0/2,q.z+sdv.z*w0/2);u.push(uu,v);ph.push(r.ph)});ix.push(b,b+1,b+2,b,b+2,b+3)});
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(u,2));g.setAttribute('aPh',new THREE.Float32BufferAttribute(ph,1));g.setIndex(ix);return g};
-  const city=new THREE.Group();hvBg.add(city);
-  const cityMat=new THREE.ShaderMaterial({uniforms:{uT:UTh,uB:{value:.82}},
-    vertexShader:'attribute vec3 aC;varying vec3 vC;varying vec3 vP;void main(){vC=aC;vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader:'uniform float uT;uniform float uB;varying vec3 vC;varying vec3 vP;\nvoid main(){float s=mod(uT*1.5,40.)-20.;float band=smoothstep(1.8,0.,abs(vP.x-s+vP.y*.35))*.5;float tw=.9+.1*sin(uT*1.1+vP.x*.9+vP.y*.6);gl_FragColor=vec4(vC*uB*(tw+band),1.);\n#include <encodings_fragment>\n}'});
-  {const a={p:[],c:[],i:[]},LO=col(0xd6953a),HI=col(0xfff0c6),PEARL=new THREE.Color(1.25,1.2,1.15),tmp=new THREE.Color(),v=new THREE.Vector3();
+  /* where the great light is: far behind the island from the first view (yaw .75), a little right of centre and just above the horizon */
+  const SUN=new THREE.Vector3(.44*Math.tan(FOV*Math.PI/360)*1.33,(1-2*.27)*Math.tan(FOV*Math.PI/360),-1).normalize().applyEuler(new THREE.Euler(-.07,.75,0,'YXZ')),SUND=1500;
+  /* the sky dome */
+  const skyMat=new THREE.ShaderMaterial({depthWrite:false,depthTest:false,side:THREE.BackSide,
+    uniforms:{uSun:{value:SUN},cTop:{value:col(0x4f9db6)},cHigh:{value:col(0x9fd0cf)},cBand:{value:col(0xfbe6b4)},cBandFar:{value:col(0xf6c9a0)},cLow:{value:col(0xf3b08e)},cDeep:{value:col(0xd99a96)},cGlow:{value:col(0xfff3d6)}},
+    vertexShader:'varying vec3 vD;void main(){vD=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader:'uniform vec3 uSun,cTop,cHigh,cBand,cBandFar,cLow,cDeep,cGlow;varying vec3 vD;\nvoid main(){vec3 d=normalize(vD);float e=d.y-uSun.y;float s=max(0.,dot(d,uSun));\n'+
+      'vec3 c=mix(cBandFar,cBand,pow(s,2.));c=mix(c,cHigh,smoothstep(.04,.4,e));c=mix(c,cTop,smoothstep(.35,.95,e));c=mix(c,cLow,1.-smoothstep(-.32,-.02,e));c=mix(c,cDeep,1.-smoothstep(-.95,-.35,e));\n'+
+      'c+=cGlow*(pow(s,4.)*.08+pow(s,16.)*.3+pow(s,90.)*.8);gl_FragColor=vec4(c,1.);\n#include <encodings_fragment>\n}'});
+  const dome=new THREE.Mesh(new THREE.SphereGeometry(2000,40,24),skyMat);dome.renderOrder=-10;dome.frustumCulled=false;hvBg.add(dome);
+  /* the great light, breathing slowly */
+  const bigGlow=gs(gapTex,col(0xfff1d4),.72);bigGlow.renderOrder=1;bigGlow.position.copy(SUN).multiplyScalar(SUND*.95);bigGlow.scale.setScalar(SUND*.95*.5);hvBg.add(bigGlow);
+  /* soft billboard clouds: 8 painted puffs in one 512 x 512 picture (surface slope in red/green, height in blue, thickness in alpha),
+     so the side facing the great light is lit gold and the far side stays lilac-grey */
+  const puffTex=(()=>{const W=512,d=new Uint8Array(W*W*4),S0=seed;seed=4040;const ss=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)};
+    for(let cell=0;cell<8;cell++){const ox=(cell%2)*256,oy=Math.floor(cell/2)*128,base=18+rnd()*8,C=[],n=6+Math.floor(rnd()*5),h=new Float32Array(256*128);
+      for(let i=0;i<n;i++){const t=(i+.5)/n,mid=1-Math.abs(t-.5)*2,r=18+mid*(30+rnd()*20)+rnd()*8;C.push([28+t*200+(rnd()-.5)*18,base+r*.5+rnd()*8,r])}
+      for(let i=0;i<6;i++){const x=55+rnd()*146;C.push([x,base+34+rnd()*36*(1-Math.abs(x-128)/128),12+rnd()*18])}
+      for(let y=0;y<128;y++)for(let x=0;x<256;x++){let m=0;for(const[a,b,r]of C){const q=r*r-(x-a)*(x-a)-(y-b)*(y-b);if(q>0){const v=Math.sqrt(q);if(v>m)m=v}}h[y*256+x]=m}
+      for(let y=0;y<128;y++)for(let x=0;x<256;x++){const g=(xx,yy)=>h[Math.min(127,Math.max(0,yy))*256+Math.min(255,Math.max(0,xx))],m=g(x,y);
+        let nx=-(g(x+2,y)-g(x-2,y)),ny=-(g(x,y+2)-g(x,y-2)),nz=6;const l=Math.hypot(nx,ny,nz);nx/=l;ny/=l;
+        const a=ss(0,12,m)*ss(base-8,base+12,y)*(.9+.1*rnd()),i=((oy+y)*W+ox+x)*4;
+        d[i]=Math.round((nx*.5+.5)*255);d[i+1]=Math.round((ny*.5+.5)*255);d[i+2]=Math.round(Math.min(1,Math.max(0,(y-base)/80))*255);d[i+3]=Math.round(a*255)}}
+    seed=S0;const t=new THREE.DataTexture(d,W,W,THREE.RGBAFormat);t.generateMipmaps=true;t.minFilter=THREE.LinearMipmapLinearFilter;t.magFilter=THREE.LinearFilter;t.needsUpdate=true;return t})();
+  const cloudMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,depthTest:false,
+    uniforms:{uMap:{value:puffTex},uSunPos:{value:SUN.clone().multiplyScalar(SUND)},cLit:{value:col(0xffaa68)},cLitNear:{value:col(0xffe4b2)},cShade:{value:col(0x7682b4)},cShadeNear:{value:col(0xab9cbc)},cRim:{value:col(0xffe3a4)},cSky:{value:col(0xcfe6ea)}},
+    vertexShader:'attribute vec2 aCorner;attribute vec2 aSize;attribute float aFlip;attribute float aA;uniform vec3 uSunPos;varying vec2 vUv;varying vec3 vL;varying float vWarm;varying float vA;varying float vFlip;\n'+
+      'void main(){vUv=uv;vFlip=aFlip;vA=aA;vec4 c=modelViewMatrix*vec4(position,1.);vec3 sv=(viewMatrix*vec4(uSunPos,1.)).xyz;vL=normalize(sv-c.xyz);vWarm=dot(normalize(position),normalize(uSunPos));c.xy+=aCorner*aSize;gl_Position=projectionMatrix*c;}',
+    fragmentShader:'uniform sampler2D uMap;uniform vec3 cLit,cLitNear,cShade,cShadeNear,cRim,cSky;varying vec2 vUv;varying vec3 vL;varying float vWarm;varying float vA;varying float vFlip;\n'+
+      'void main(){vec4 t=texture2D(uMap,vUv);if(t.a<.01)discard;vec3 n=vec3((t.r*2.-1.)*vFlip,t.g*2.-1.,0.);n.z=sqrt(max(0.,1.-dot(n.xy,n.xy)));vec3 L=normalize(vL);\n'+
+      'float w=smoothstep(-.3,1.,vWarm);vec2 d2=L.xy/max(.001,length(L.xy));float lit=smoothstep(-.3,.7,dot(n.xy,d2)*.9+L.z*.35-.05);vec3 c=mix(mix(cShade,cShadeNear,w*w),mix(cLit,cLitNear,w*w*w),lit);c=mix(c,cSky,max(0.,n.y)*(1.-lit)*.35);\n'+
+      'float back=max(0.,-L.z);c+=cRim*(pow(1.-n.z,1.4)*.7+(1.-t.a)*.6)*back*(.3+w*w*1.4);c*=.8+.32*t.b;gl_FragColor=vec4(c,t.a*vA);\n#include <encodings_fragment>\n}'});
+  {const sunEl=Math.asin(SUN.y),az0=Math.atan2(SUN.x,SUN.z),D2R=Math.PI/180;seed=6262;
+    const P=[],bands=[[48,-70,-26,30,44,300],[62,-28,-5,17,30,400],[40,-6,26,13,24,480],[12,-10,4,8,13,520]];   /* [count, lowest and highest (degrees from the light's height), width (degrees), distance] */
+    bands.forEach(([cnt,e0,e1,w0,w1,R],bi)=>{for(let i=0;i<cnt;i++){let az=bi===3?az0+(rnd()-.5)*70*D2R:(i+rnd())/cnt*Math.PI*2,el=(e0+rnd()*(e1-e0))*D2R+sunEl;el=Math.max(-86*D2R,el);
+        const off=Math.acos(Math.max(-1,Math.min(1,Math.cos(el)*Math.cos(sunEl)*Math.cos(az-az0)+Math.sin(el)*Math.sin(sunEl))))/D2R;
+        if(bi===2&&off<22&&el>sunEl-4*D2R)continue;if(bi===3&&off<7)continue;   /* keep the light itself open */
+        const W=(w0+rnd()*(w1-w0))*D2R,r=R*(.94+rnd()*.12);P.push({r,v:new THREE.Vector3(Math.sin(az)*Math.cos(el),Math.sin(el),Math.cos(az)*Math.cos(el)).multiplyScalar(r),hw:r*Math.tan(W/2),cell:Math.floor(rnd()*8),fl:rnd()<.5?-1:1,a:.82+rnd()*.16})}});
+    P.sort((a,b)=>b.r-a.r);
+    const pos=[],cor=[],siz=[],uv=[],fl=[],al=[],ix=[];P.forEach((q,j)=>{const u0=(q.cell%2)*.5,v0=Math.floor(q.cell/2)*.25;
+      [[-1,-1],[1,-1],[1,1],[-1,1]].forEach(([x,y])=>{pos.push(q.v.x,q.v.y,q.v.z);cor.push(x,y);siz.push(q.hw,q.hw*.5);const ux=q.fl>0?(x+1)/2:(1-x)/2;uv.push(u0+ux*.5,v0+(y+1)/2*.25);fl.push(q.fl);al.push(q.a)});
+      const b=j*4;ix.push(b,b+1,b+2,b,b+2,b+3)});
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('aCorner',new THREE.Float32BufferAttribute(cor,2));g.setAttribute('aSize',new THREE.Float32BufferAttribute(siz,2));
+    g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setAttribute('aFlip',new THREE.Float32BufferAttribute(fl,1));g.setAttribute('aA',new THREE.Float32BufferAttribute(al,1));g.setIndex(ix);
+    const m=new THREE.Mesh(g,cloudMat);m.frustumCulled=false;m.renderOrder=4;hvBg.add(m);
+    /* long rays fanning out from the light */
+    const L=[],n=26;for(let i=0;i<n;i++){const a=(i/n)*Math.PI*2+(rnd()-.5)*.18,len=SUND*(.55+rnd()*1.1)*(i%3===0?1.5:1),w=len*(.07+rnd()*.1);
+      L.push({s:new THREE.Vector3(Math.cos(a)*30,Math.sin(a)*30,0),e:new THREE.Vector3(Math.cos(a)*len,Math.sin(a)*len,0),w0:24,w1:w,ph:rnd()*6.3})}
+    const hold=new THREE.Group();hold.position.copy(SUN).multiplyScalar(SUND*.9);hold.lookAt(0,0,0);const rays=new THREE.Mesh(rayG(L),rayM(col(0xfff0cc),.28));rays.renderOrder=5;rays.frustumCulled=false;hold.add(rays);hvBg.add(hold)}
+  /* sparkles and a few short light streaks drifting everywhere (one draw job) */
+  {const N=700,p=[],sz=[],ph=[],k=[];seed=5151;
+    for(let i=0;i<N;i++){const st=i<64,u=rnd()*2-1,a=rnd()*6.283,r=40+rnd()*260,y=st?-.15-rnd()*.6:u*.9-.1,h=Math.sqrt(Math.max(0,1-y*y));
+      p.push(Math.cos(a)*h*r,y*r,Math.sin(a)*h*r);sz.push(st?12+rnd()*12:2.2+rnd()*3.4);ph.push(rnd()*60);k.push(st?1:0)}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('aS',new THREE.Float32BufferAttribute(sz,1));g.setAttribute('aPh',new THREE.Float32BufferAttribute(ph,1));g.setAttribute('aK',new THREE.Float32BufferAttribute(k,1));
+    const m=new THREE.ShaderMaterial({transparent:true,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending,uniforms:{uT:UTh,uPx:{value:renderer.getPixelRatio()},uC:{value:col(0xfff2d2)}},
+      vertexShader:'attribute float aS;attribute float aPh;attribute float aK;uniform float uT;uniform float uPx;varying float vA;varying float vK;varying float vAng;\n'+
+        'void main(){vec3 p=position+vec3(sin(uT*.07+aPh),sin(uT*.05+aPh*1.7)*.7,cos(uT*.06+aPh*.7))*length(position)*.03;vec4 mv=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*mv;\n'+
+        'float tw=.5+.5*sin(uT*(1.1+fract(aPh)*1.6)+aPh*3.);vA=aK>.5?.35+.4*sin(uT*.3+aPh):.35+.65*tw;vK=aK;vAng=aPh;gl_PointSize=aS*uPx*(aK>.5?1.:.75+.5*tw);}',
+      fragmentShader:'uniform vec3 uC;varying float vA;varying float vK;varying float vAng;\nvoid main(){vec2 q=gl_PointCoord-.5;float a;\n'+
+        'if(vK<.5){float r=length(q)*2.;a=smoothstep(1.,0.,r);a=a*a*.7+smoothstep(.4,0.,r)*.6;}else{float c=cos(vAng),s=sin(vAng);vec2 r=vec2(c*q.x+s*q.y,c*q.y-s*q.x);a=smoothstep(.07,0.,abs(r.y))*smoothstep(.5,.05,abs(r.x));}\n'+
+        'gl_FragColor=vec4(uC,a*vA);\n#include <encodings_fragment>\n}'});
+    const pt=new THREE.Points(g,m);pt.frustumCulled=false;pt.renderOrder=6;hvBg.add(pt)}
+  /* the gold city, tiny and far away in the heart of the light (Revelation 21:23: the glory of God gives it light) */
+  {const city=new THREE.Group();seed=4242;
+    const cityMat=new THREE.ShaderMaterial({uniforms:{uT:UTh,uB:{value:.6}},transparent:true,
+      vertexShader:'attribute vec3 aC;varying vec3 vC;varying vec3 vP;void main(){vC=aC;vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+      fragmentShader:'uniform float uT;uniform float uB;varying vec3 vC;varying vec3 vP;\nvoid main(){float s=mod(uT*1.5,40.)-20.;float band=smoothstep(1.8,0.,abs(vP.x-s+vP.y*.35))*.5;float tw=.9+.1*sin(uT*1.1+vP.x*.9+vP.y*.6);gl_FragColor=vec4(vC*uB*(tw+band),1.);\n#include <encodings_fragment>\n}'});
+    const a={p:[],c:[],i:[]},LO=col(0xd6953a),HI=col(0xfff0c6),PEARL=new THREE.Color(1.25,1.2,1.15),tmp=new THREE.Color(),v=new THREE.Vector3();
     const add=(geo,m,pearl)=>{const Pp=geo.attributes.position,b=a.p.length/3;for(let i=0;i<Pp.count;i++){v.fromBufferAttribute(Pp,i).applyMatrix4(m);a.p.push(v.x,v.y,v.z);const c=pearl?PEARL:tmp.copy(LO).lerp(HI,Math.min(1,Math.max(0,v.y/8)));a.c.push(c.r,c.g,c.b)}
       if(geo.index)for(let i=0;i<geo.index.count;i++)a.i.push(b+geo.index.getX(i));else for(let i=0;i<Pp.count;i++)a.i.push(b+i);geo.dispose()};
     const M=(x,y,z,ry)=>new THREE.Matrix4().makeRotationY(ry||0).setPosition(x,y,z);
@@ -1639,22 +1769,18 @@ function palm(put,x,y,z,r){let px=x,pz=z;const lean=[[1,0],[-1,0],[0,1],[0,-1]][
     bx(15,1.8,.5,0,0,0);bx(.5,1.8,5,-7.5,0,-2.5);bx(.5,1.8,5,7.5,0,-2.5);for(let x=-7;x<=7;x+=1)bx(.45,.4,.55,x,1.8,0);
     [-7.5,-2.6,2.6,7.5].forEach(x=>{bx(1.2,3.4,1.2,x,0,.1);roof(.95,1.2,x,3.4,.1)});
     [-5.05,0,5.05].forEach(x=>{bx(.9,1.25,.2,x,0,.32,true);add(new THREE.CircleGeometry(.45,10,0,Math.PI),M(x,1.25,.42),true)});   /* pearl gates */
-    for(let i=0;i<16;i++){const x=-6.5+i*.87+(hr()-.5)*.4,h=2.4+hr()*3.4,w0=.8+hr()*.7;bx(w0,h,w0,x,0,-1.4-hr()*2.4);if(hr()<.45)roof(w0*.75,1,x,h,-2.2)}
+    for(let i=0;i<16;i++){const x=-6.5+i*.87+(rnd()-.5)*.4,h=2.4+rnd()*3.4,w0=.8+rnd()*.7;bx(w0,h,w0,x,0,-1.4-rnd()*2.4);if(rnd()<.45)roof(w0*.75,1,x,h,-2.2)}
     bx(1.8,7.6,1.8,0,0,-2.6);add(new THREE.ConeGeometry(.9,2.6,4,1),M(0,7.6+1.3,-2.6,Math.PI/4));
-    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(a.p,3));g.setAttribute('aC',new THREE.Float32BufferAttribute(a.c,3));g.setIndex(a.i);city.add(new THREE.Mesh(g,cityMat))}
-  const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glowT([[0,'rgba(255,240,205,.95)'],[.35,'rgba(255,226,170,.45)'],[1,'rgba(255,210,150,0)']]),color:col(0xffd890),transparent:true,opacity:.42,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
-  halo.material.userData.lin=1;halo.position.set(0,3.5,-5);halo.scale.set(30,15,1);city.add(halo);
-  {const L=[];for(let i=0;i<7;i++){const an=(i-3)*.32+(hr()-.5)*.1,len=15+hr()*8;L.push({s:new THREE.Vector3(Math.sin(an)*1.5,3.5,-3),e:new THREE.Vector3(Math.sin(an)*len,3.5+Math.cos(an)*len,-3),w0:1,w1:3.2+hr()*1.5,ph:i*1.9})}
-    city.add(new THREE.Mesh(rayG(L),rayM(col(0xffe7b0),.32)))}
-  {sd=99;const L=[];for(let i=0;i<9;i++){const x=-15+(i+.5)*30/9+(hr()-.5)*2,cw=3+hr()*4;L.push([x,(hr()-.5)*.8,(hr()-.5)*6,cw,1.1+hr()*1.2,2+hr()*3]);if(hr()<.55&&Math.abs(x)<11.4)L.push([x+(hr()-.5)*2,.9+hr()*.5,(hr()-.5)*6,cw*.6,1+hr()*.6,2+hr()*2])}
-    const a={p:[],c:[],i:[]};L.forEach(q0=>{const q=[q0[0],q0[1]-.6,q0[2]-1,q0[3],q0[4],q0[5]],c=col(q[1]>0?0xffe8d0:0xe8c8e0).multiplyScalar(1-Math.abs(q[0])/40);
-      FACES.forEach(f=>{const b=a.p.length/3,k=f.d[1]>0?1:f.d[1]<0?.62:.82;f.v.forEach(v=>{a.p.push(q[0]+(v[0]-.5)*q[3],q[1]+(v[1]-.5)*q[4],q[2]+(v[2]-.5)*q[5]);a.c.push(c.r*k,c.g*k,c.b*k)});a.i.push(b,b+1,b+2,b,b+2,b+3)})});
-    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(a.p,3));g.setAttribute('color',new THREE.Float32BufferAttribute(a.c,3));g.setIndex(a.i);
-    const m=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:.55,depthWrite:false,fog:false,side:THREE.DoubleSide});m.userData.lin=1;city.add(new THREE.Mesh(g,m))}   /* the cloud bank it stands on */
-  /* where it sits: up in the open sky, above and behind the island from the first view (yaw .75), a little right of centre */
-  hvPlace=()=>{const W=innerWidth,H=innerHeight,th=Math.tan(FOV*Math.PI/360),sc=Math.min(1,Math.max(.62,(W/H)/1.33));hvCam.aspect=W/H;hvCam.fov=FOV;hvCam.updateProjectionMatrix();
-    const fy=.27,v=new THREE.Vector3(.44*th*W/H,(1-2*fy)*th,-1).normalize().multiplyScalar(140).applyEuler(new THREE.Euler(-.07,.75,0,'YXZ'));city.position.copy(v);city.lookAt(0,v.y,0);city.scale.setScalar(.85*sc)};
-  hvPlace();addEventListener('resize',()=>{hvPlace();want()})}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(a.p,3));g.setAttribute('aC',new THREE.Float32BufferAttribute(a.c,3));g.setIndex(a.i);const cm=new THREE.Mesh(g,cityMat);cm.renderOrder=2;city.add(cm);
+    seed=99;const L=[];for(let i=0;i<9;i++){const x=-15+(i+.5)*30/9+(rnd()-.5)*2,cw=3+rnd()*4;L.push([x,(rnd()-.5)*.8,(rnd()-.5)*6,cw,1.1+rnd()*1.2,2+rnd()*3]);if(rnd()<.55&&Math.abs(x)<11.4)L.push([x+(rnd()-.5)*2,.9+rnd()*.5,(rnd()-.5)*6,cw*.6,1+rnd()*.6,2+rnd()*2])}
+    const cb={p:[],c:[],i:[]};L.forEach(q0=>{const q=[q0[0],q0[1]-.6,q0[2]-1,q0[3],q0[4],q0[5]],c=col(q[1]>0?0xffe8d0:0xe8c8e0).multiplyScalar(1-Math.abs(q[0])/40);
+      FACES.forEach(f=>{const b=cb.p.length/3,k=f.d[1]>0?1:f.d[1]<0?.62:.82;f.v.forEach(v=>{cb.p.push(q[0]+(v[0]-.5)*q[3],q[1]+(v[1]-.5)*q[4],q[2]+(v[2]-.5)*q[5]);cb.c.push(c.r*k,c.g*k,c.b*k)});cb.i.push(b,b+1,b+2,b,b+2,b+3)})});
+    const g2=new THREE.BufferGeometry();g2.setAttribute('position',new THREE.Float32BufferAttribute(cb.p,3));g2.setAttribute('color',new THREE.Float32BufferAttribute(cb.c,3));g2.setIndex(cb.i);
+    const bm=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:.4,depthWrite:false,fog:false,side:THREE.DoubleSide});bm.userData.lin=1;const bank=new THREE.Mesh(g2,bm);bank.renderOrder=3;city.add(bank);
+    city.position.copy(SUN).multiplyScalar(760);city.lookAt(0,city.position.y,0);city.scale.setScalar(2.6);hvBg.add(city)}
+  hvSun=SUN;lookYaw=Math.atan2(SUN.x,SUN.z)+Math.PI;   /* ✨ Look up faces the great light */
+  hvPlace=()=>{};   /* the far layer copies the camera every picture (see paint), so nothing to place on resize */
+}
 function buildScenery(kind){
   scenery.children.slice().forEach(c=>{scenery.remove(c);c.traverse(o=>{if(o.geometry)o.geometry.dispose()})});clouds.children.slice().forEach(c=>{clouds.remove(c);c.geometry.dispose()});
   const Vx=new Map(),k3=(x,y,z)=>x+','+y+','+z,put=(x,y,z,m)=>Vx.set(k3(x,y,z),m),small=[];let sd=kind==='sea'?57:91;const r=()=>{sd=(sd*16807)%2147483647;return(sd-1)/2147483646};
@@ -1733,8 +1859,9 @@ function buildScenery(kind){
   const cgeo=new THREE.BufferGeometry();cgeo.setAttribute('position',new THREE.Float32BufferAttribute(cb.p,3));cgeo.setAttribute('normal',new THREE.Float32BufferAttribute(cb.n,3));cgeo.setIndex(cb.i);clouds.add(new THREE.Mesh(cgeo,scnMat('cloud')));
   return anim}
 function setScene(kind){kind=kind==='sea'?'sea':'sky';if(sceneKind===kind&&scenery.children.length)return;sceneKind=kind;sceneAnim=buildScenery(kind);
-  $('sky').style.background=SKY[kind];scene.fog.color.copy(col(kind==='sea'?0x6a7fb0:0x5a3a72));scene.fog.near=60;scene.fog.far=170;
-  hemi.color.copy(col(kind==='sea'?0xfff0dc:0xe6e2ff));hemi.groundColor.copy(col(kind==='sea'?0x3a5a78:0x4a3560));sun.color.copy(col(kind==='sea'?0xffd8a8:0xffdcb8));sun.position.set(kind==='sea'?-30:-12,kind==='sea'?22:18,kind==='sea'?-30:12);
+  $('sky').style.background=SKY[kind];scene.fog.color.copy(col(kind==='sea'?0x6a7fb0:0xf0c4a8));scene.fog.near=kind==='sea'?60:70;scene.fog.far=kind==='sea'?170:230;   /* sky: a warm peach haze that melts into heaven's clouds */
+  hemi.color.copy(col(kind==='sea'?0xfff0dc:0xfff1de));hemi.groundColor.copy(col(kind==='sea'?0x3a5a78:0x8a6a7e));hemi.intensity=kind==='sea'?.7:.78;sun.color.copy(col(kind==='sea'?0xffd8a8:0xffe2b4));sun.intensity=kind==='sea'?.6:.66;sun.position.set(kind==='sea'?-30:-12,kind==='sea'?22:18,kind==='sea'?-30:12);
+  rim.color.copy(col(kind==='sea'?0x9fb4ff:0xffd89a));rim.intensity=kind==='sea'?.28:.42;clouds.visible=kind!=='sky';   /* sky: a gold back light from heaven's great light; heaven's own clouds replace the box clouds */
   farHouses.forEach(f=>{f.und.visible=kind==='sky';f.base.material.color.copy(col(kind==='sea'?0xd6be86:0x4f8a5a))});
   midTop.material.color.copy(col(S&&S.unlocked?(kind==='sea'?0xd6be86:0x8d93a6):0x5a5f73));
   const b=$('sceneBtn');if(b){b.textContent=kind==='sea'?'🌊 In the sea':'☁️ In the sky';b.setAttribute('aria-label','My rock is '+(kind==='sea'?'in the sea':'in the sky')+'. Tap to change')}
@@ -1748,7 +1875,7 @@ function animScene(T){if(!sceneAnim)return;const a=sceneAnim;
 
 setScene(pref('scene')||'sky');
 size();
-if(QS.get('age')||pref('age'))start();else{S=R.fresh(AGE,1);S.ui={bx:MID+.5,by:0,bz:P-3.5};rebuild();$('whoSheet').hidden=false}
+if(LIVE||QS.get('age')||pref('age'))start();else{S=R.fresh(AGE,1);S.ui={bx:MID+.5,by:0,bz:P-3.5};rebuild();$('whoSheet').hidden=false}
 requestAnimationFrame(frame);
 /* for checking from a script (speed tests, tests in a browser) */
 window.__rw={S:()=>S,R,said:()=>sayAll,place:(k,x,y,z)=>{tool=k;return tryPlace(k,x,y,z)},tap,info:()=>({calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,frames,blocks:Object.keys(S.b).length,merged:merged.length,solo:Object.keys(solo).length}),

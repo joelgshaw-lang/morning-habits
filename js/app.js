@@ -160,7 +160,7 @@ const portal = createPortal({
   endGrace: () => { grownUntil = 0; }, coinTarget: (id) => coinTarget(id),
   version: () => state.appVersion || '', updateNow: () => updateNow(),
   quickSection: (k) => quick.sectionHTML(k), quickHandle: (b) => quick.handle(b), quickWaiting: (id) => quick.waitingFor(id).length,
-  openRock: (id) => openRock(id), openRockTest: () => openRockTest(),
+  openRock: (id) => openRock(id), openRockTest: () => openRockTest(), rockWorldOn: () => rockWorldOn(),
   sendToRock: (...a) => sendToRock(...a),
 });
 const quick = createQuick({
@@ -180,9 +180,14 @@ const grow = createGrow({
 // Real life sends it pieces through a small inbox in localStorage (the page collects them):
 // gold = a finished prayer timer, silver = a finished morning or night routine (once each a day),
 // a gem or wood / hay / stubble = a front-board moment a grown-up kept at night (quick.js).
+// (27 Nov 2026, Joel: "push it to their ones live ... still keep the other one around") every piece goes to BOTH games, each
+// with its own inbox (each game empties the one it reads): Rock World 'rockworld.inbox.<kid>' and Build on the Rock
+// 'rock.inbox.<kid>'. A rebuild pack (bought with coins) goes only to the game the children are using.
+const rockWorldOn = () => { try { return localStorage.getItem('rockworld.use') !== 'old'; } catch { return true; } };
 function sendToRock(kidId, item) {
   try { farm.townPiece(kidId, item.kind); } catch {}   // 🏘️ gold, silver and gems also go in the child's town bag (26 Nov 2026, js/town.js)
-  try { const key = `rock.inbox.${kidId}`, list = JSON.parse(localStorage.getItem(key) || '[]'); list.push({ t: clock.now().toISOString(), ...item }); localStorage.setItem(key, JSON.stringify(list)); } catch {}
+  const boxes = item.kind === 'rebuild' ? [rockWorldOn() ? 'rockworld.inbox' : 'rock.inbox'] : ['rockworld.inbox', 'rock.inbox'];
+  for (const b of boxes) { try { const key = `${b}.${kidId}`, list = JSON.parse(localStorage.getItem(key) || '[]'); list.push({ t: clock.now().toISOString(), ...item }); localStorage.setItem(key, JSON.stringify(list.slice(-400))); } catch {} }
 }
 // The grown-ups test space: the same game with endless blocks, Fire now and Start again, saved apart from the children.
 function openRockTest() {
@@ -225,7 +230,10 @@ function openRockNow(id, opt = {}) {
   if (opt.late) q.set('late', '1');   // (26 Nov 2026, round 2) "Your morning pieces" after school
   // (26 Nov 2026, round 2) the heart goal first: today's fruit and its small "I will" from the plan (grow.js)
   try { const plan = grow.goalToday(id), f = plan && fruitById(plan.fruit); if (f) { q.set('fruit', f.name); if (f.practice) q.set('will', f.practice); } } catch (_) { /* no plan today */ }
-  el.innerHTML = `<iframe src="./docs/rock/play.html?${q}" title="Build on the Rock" allow="autoplay"></iframe>`;
+  // 🌍 Rock World is the children's building from v84 (27 Nov 2026). Grown-ups → App can switch back to Build on the Rock.
+  el.innerHTML = rockWorldOn()
+    ? `<iframe src="./docs/rock-world/world.html?${q}" title="Rock World" allow="autoplay"></iframe>`
+    : `<iframe src="./docs/rock/play.html?${q}" title="Build on the Rock" allow="autoplay"></iframe>`;
   document.body.appendChild(el);
 }
 function closeRock() {

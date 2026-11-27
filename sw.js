@@ -1,6 +1,6 @@
 // Offline support: serve from cache first, refresh the cache in the background.
 // Bump VERSION when you deploy a change so old files are cleared.
-const VERSION = 'v83';   // (27 Nov 2026) Rock World test page on the grown-ups App tab
+const VERSION = 'v84';   // (27 Nov 2026) Rock World is the children's building (old Build on the Rock kept, switch in Grown-ups → App)
 const CACHE = `morning-${VERSION}`;
 // The app itself. An update only installs if every one of these downloads, so keep this list short.
 const ASSETS = [
